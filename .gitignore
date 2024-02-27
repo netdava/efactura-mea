@@ -1,0 +1,8 @@
+.portal
+.lsp/.cache
+.clj-kondo/.cache
+.cpcache
+.calva
+.nrepl-port
+
+node_modules/

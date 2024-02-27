@@ -1,0 +1,31 @@
+#+title: eFacturier
+
+– logincert.anaf.ro – serviciu de tip “Identity Provider” - IdP, ce facilitează
+obținerea unor token-uri de acces folosite pentru autorizarea accesului la
+servicii de tip API. Obținerea se face prin autentificarea utilizatorului folosind
+certificate digitale calificate.
+– api.anaf.ro – serviciu protejat ce expune API-uri care necesită acces autorizat
+pe bază de token-uri de acces.
+
+* Să descoperim
+
+
+Accesul local este pe https://localhost:8123/api/v1/oauth/anaf-callback
+
+#+BEGIN_SRC shell
+
+curl -X GET https://logincert.anaf.ro/anaf-oauth2/v1/authorize \
+    --data client_id="REDACTED" \
+    --data client_secret="REDACTED" \
+    --data code="Enter code displayed in browser:"
+
+
+
+#+END_SRC
+
+
+* Referințe
+
+- https://static.anaf.ro/static/10/Anaf/Informatii_R/API/Oauth_procedura_inregistrare_aplicatii_portal_ANAF.pdf
+- https://community.sap.com/t5/technology-blogs-by-sap/generating-an-authorization-token-in-romania-s-anaf-portal-using-postman/ba-p/13577060
+- https://github.com/andalisolutions/oauth2-anaf
