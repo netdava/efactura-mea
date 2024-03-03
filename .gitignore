@@ -6,3 +6,5 @@
 .nrepl-port
 
 node_modules/
+.envrc
+conf/efactura.dev.edn

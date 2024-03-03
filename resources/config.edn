@@ -1,0 +1,8 @@
+;; Default configuration options
+;; Are used as defaults
+;; Override them via file, env, system properties
+{:anaf {:client-id "replace-me"
+        :client-secret "replace-me"
+        :redirect-uri "replace-me"}
+ :server {:public-path "public"
+          :templates-path "templates"}}

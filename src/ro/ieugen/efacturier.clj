@@ -1,62 +1,107 @@
 (ns ro.ieugen.efacturier
-  (:require [clojure.tools.logging :as log]
-            [clojure.edn :as edn]
-            [mount.core :as mount :refer [defstate]]
+  (:require [babashka.http-client :as http]
+            [clj-commons.byte-streams :as bs]
+            [clojure.tools.logging :as log]
+            [cprop.core :refer [load-config]]
+            [hiccup2.core :as h]
+            [jsonista.core :as j]
             [mount-up.core :as mu]
+            [mount.core :as mount :refer [defstate]]
+            [muuntaja.core :as m]
+            [muuntaja.middleware :as middleware]
             [reitit.ring :as reitit]
-            ;; [muuntaja.middleware :as muuntaja]
-            [ring.middleware.file :refer [wrap-file]]
+            [ring.adapter.jetty9 :refer [run-jetty stop-server]]
             [ring.middleware.defaults :as rmd]
-            [ring.adapter.jetty9 :refer [run-jetty stop-server]]))
+            [ring.middleware.file :refer [wrap-file]]
+            [ro.ieugen.oauth2-anaf :as o2a]))
 
 (mu/on-upndown :info mu/log :before)
 
-(defn load-config
-  [file]
-  (try
-    (edn/read-string (slurp file))
-    (catch Exception e
-      (log/error e "Failed to load config."))))
+(defstate conf
+  :start (load-config))
 
-(defstate config
-  :start (load-config "test/resources/config.edn"))
+(def object-mapper (j/object-mapper {:pretty true}))
 
+(def m (m/create (assoc m/default-options
+                        :return :input-stream
+                        :mapper object-mapper)))
 (defn html-handler
   [_]
   {:status 200, :body "ok"})
 
-(defn anaf-callback
+(defn req->str
   [req]
+  (let [body (:body req)
+        bis (m/encode m
+                      "application/json"
+                      (-> req
+                          (assoc :body (bs/to-string body))
+                          (dissoc :reitit.core/router
+                                  :reitit.core/match)))]
+    (bs/to-string bis)))
+
+(defn res->str
+  [res]
+  (let [body (:body res)
+        bis (m/encode m
+                      "application/json"
+                      (-> res
+                          (assoc :body (bs/to-string body))
+                          (dissoc :body
+                                  :reitit.core/router
+                                  :reitit.core/match)))]
+    (bs/to-string bis)))
+
+(defn echo-request
+  [req]
+  ;; (tap> req)
+  ;; (def reqqq res)
   {:status 200
-   :body "anaf-callback"
+   :body (str (h/html
+               [:div.request
+                [:h2 "Request"]
+                [:div {:style {"width" "600px"
+                               "word-wrap" "break-word"}}
+                 (req->str req)]]))
    :headers {"content-type" "text/html"}})
 
-(def routes
-  [["/" {:get html-handler}]
-   ["/api/v1/oauth/anaf-callback" {:get anaf-callback}]])
+(defn routes
+  [anaf-conf]
+  [["/" html-handler]
+   ["/login-anaf" (o2a/make-anaf-login-handler
+                   (anaf-conf :client-id)
+                   (anaf-conf :client-secret))]
+   ["/xui/echo" {:get echo-request}]
+   ["/api/v1/oauth/anaf-callback" (o2a/make-authorization-token-handler
+                                   (anaf-conf :client-id)
+                                   (anaf-conf :client-secret)
+                                   (anaf-conf :redirect-uri))]])
 
-(def handler
+(defn handler
+  [conf]
   (reitit/ring-handler
-   (reitit/router routes)))
+   (reitit/router (routes (get-in conf [:anaf])))))
 
 (defn app
-  []
-  (-> #'handler
+  [conf]
+  (-> (handler conf)
+      (middleware/wrap-format)
       (rmd/wrap-defaults rmd/site-defaults)
-      (wrap-file (:public-path config))
+      (wrap-file (get-in conf [:server :public-path]))
       (wrap-file "node_modules")))
 
 (defstate server
-  :start (run-jetty (app) {:port 8080
-                         :join? false
-                         :h2c? true  ;; enable cleartext http/2
-                         :h2? true   ;; enable http/2
-                         :ssl? true  ;; ssl is required for http/2
-                         :ssl-port 8123
-                         :keystore "dev-resources/keystore.jks"
-                         :key-password "dev123"
-                         :keystore-type "jks"
-                         :sni-host-check? false})
+  :start (run-jetty (app conf) {:port 8080
+                           :join? false
+                           :h2c? true  ;; enable cleartext http/2
+                           :h2? true   ;; enable http/2
+                           :ssl? true  ;; ssl is required for http/2
+                           :ssl-port 8123
+                           :send-server-version? false
+                           :keystore "dev-resources/keystore.jks"
+                           :key-password "dev123"
+                           :keystore-type "jks"
+                           :sni-host-check? false})
   :stop (stop-server server))
 
 (defn -main [& args]
@@ -67,7 +112,12 @@
   (mount/start)
   (mount/stop)
 
-  (println config)
+  (println conf)
+
+
+  (bs/to-string (m/encode m "application/json" {"a" 123}))
+
+  (http/get "https://www.ieugen.ro/")
 
 
   0

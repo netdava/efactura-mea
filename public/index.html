@@ -1,21 +1,22 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ro-RO">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
+    <link rel="manifest" href="manifest.json" />
     <title>Factură electronică</title>
     <script src="htmx.org/dist/htmx.min.js"></script>
   </head>
   <body>
     <p>Aici este aplicația.</p>
 
-    <input type="text" name="q"
-    hx-get="/trigger_delay"
-    hx-trigger="keyup changed delay:500ms"
-    hx-target="#search-results"
-    placeholder="Search..."
-    >
-    <div id="search-results"></div>
+    <a href="/login-anaf">Autentificare ANAF</a>
 
+    <hr />
+
+    <button hx-get="/xui/echo" hx-trigger="click" hx-target="#request-echo">
+      Echo
+    </button>
+    <div id="request-echo"></div>
   </body>
 </html>

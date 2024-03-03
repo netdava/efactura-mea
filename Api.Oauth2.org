@@ -7,8 +7,10 @@ certificate digitale calificate.
 – api.anaf.ro – serviciu protejat ce expune API-uri care necesită acces autorizat
 pe bază de token-uri de acces.
 
-* Să descoperim
+API-ul ANAF folosește protocolul Oauth.
+Aici găsiți o [[https://fusionauth.io/articles/oauth/modern-guide-to-oauth#oauth-grants][descriere a protocolului Oauth2]] .
 
+* Să descoperim
 
 Accesul local este pe https://localhost:8123/api/v1/oauth/anaf-callback
 
@@ -18,8 +20,6 @@ curl -X GET https://logincert.anaf.ro/anaf-oauth2/v1/authorize \
     --data client_id="REDACTED" \
     --data client_secret="REDACTED" \
     --data code="Enter code displayed in browser:"
-
-
 
 #+END_SRC
 
