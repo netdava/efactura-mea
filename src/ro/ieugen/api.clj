@@ -1,5 +1,5 @@
 (ns ro.ieugen.api
-  (:require [clj-http.client :as c]
+  (:require [babashka.http-client :as http]
             [clojure.java.io :as io]
             [clojure.data.json :as json]))
 
@@ -29,7 +29,7 @@
   (let [a-token (get-access-token "EFACTURA_ACCESS_TOKEN")
         headers {:headers {"Authorization" (str "Bearer " a-token)}}
         endpoint (format url days cif)
-        r (c/get endpoint headers)
+        r (http/get endpoint headers)
         l (:body r)
         lista-mesaje (json/read-str l)]
     lista-mesaje))
@@ -39,10 +39,11 @@
    - funcționează doar cu endpointurile de test/prod :lista-mesaje"
   [url id]
   (let [a-token (get-access-token "EFACTURA_ACCESS_TOKEN")
-        headers {:headers {"Authorization" (str "Bearer " a-token)} :as :byte-array}
+        headers {:headers {"Authorization" (str "Bearer " a-token)} :as :stream}
         endpoint (format url id)
-        response (c/get endpoint headers)]
+        response (http/get endpoint headers)]
     (save-zip-file response (str id "-factura.zip"))))
+
 
 (comment
   (let [url (get-in config [:endpoint :lista-mesaje :prod])
