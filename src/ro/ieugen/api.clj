@@ -27,10 +27,14 @@
 
 (defn obtine-lista-facturi 
   "Obtine lista de facturi pe o perioada de 60 zile din urmă;
-   - funcționează doar cu endpointurile de test/prod :lista-mesaje"
-  [url days cif]
+   - funcționează doar cu endpointurile de test/prod :lista-mesaje;
+   - <environment> can be :prod or :test ."
+  [environment]
   (let [a-token (get-access-token "EFACTURA_ACCESS_TOKEN")
         headers {:headers {"Authorization" (str "Bearer " a-token)}}
+        url (get-in config [:endpoint :lista-mesaje environment])
+        days "60"
+        cif (:cif config)
         endpoint (format url days cif)
         r (http/get endpoint headers)
         l (:body r)
@@ -39,13 +43,15 @@
 
 (defn descarca-factura
   "Descarcă factura în format zip pe baza id-ului.
-   - funcționează doar cu endpointurile de test/prod :lista-mesaje"
-  [url id]
+   - funcționează doar cu endpointurile de test/prod :lista-mesaje;
+   - <environment> can be :prod or :test ."
+  [id download-to environment]
   (let [a-token (get-access-token "EFACTURA_ACCESS_TOKEN")
         headers {:headers {"Authorization" (str "Bearer " a-token)} :as :stream}
+        url (get-in config [:endpoint :descarcare environment])
         endpoint (format url id)
         response (http/get endpoint headers)]
-    (save-zip-file response (str "facturi-descarcate-zip/nas/" id ".zip"))))
+    (save-zip-file response (str download-to "/" id ".zip"))))
 
 (defn list-files-from-dir [dir]
   (let [directory (clojure.java.io/file dir)
@@ -54,25 +60,17 @@
          (filter (comp not dir?)
                  (tree-seq dir? #(.listFiles %) directory)))))
 
-(defn already-downloaded? [file-name]
-  (some #(= file-name %) '("3192491497.zip" "3182888140.zip")))
+(defn is-file-in-dir? [file dir]
+  (let [files (list-files-from-dir dir)]
+    (some #(= file %) files)))
 
 
 (comment
+  (is-file-in-dir? "3192491497.zip" "facturi-descarcate-zip")
   
-  (let [f "3192491497.zip"
-        l (list-files-from-dir "facturi-descarcate-zip")]
-    (already-downloaded? f))
+  (obtine-lista-facturi :prod)
+ (descarca-factura "3182888140" "my-files/abc" :prod)
   
-  (let [url (get-in config [:endpoint :lista-mesaje :prod])
-        cif (:cif config)]
-    (obtine-lista-facturi url "60" cif))
   
-  (let [
-        url (get-in config [:endpoint :descarcare :prod])
-        id "3182888140"]
-    (descarca-factura url id))
   
-  (let [a :prod]
-    (get-in config [:endpoint :descarcare a]))
   )
