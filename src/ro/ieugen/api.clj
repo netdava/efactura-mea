@@ -9,17 +9,6 @@
         access-token (get env name)]
     access-token))
 
-(def config
-  {:endpoint
-   {:lista-mesaje
-    {:test "https://api.anaf.ro/test/FCTEL/rest/listaMesajeFactura?zile=%s&cif=%s"
-     :prod "https://api.anaf.ro/prod/FCTEL/rest/listaMesajeFactura?zile=%s&cif=%s"}
-    :descarcare
-    {:test "https://api.anaf.ro/test/FCTEL/rest/descarcare?id=%s"
-     :prod "https://api.anaf.ro/prod/FCTEL/rest/descarcare?id=%s"}}
-   :cif "35586426"})
-
-
 (defn build-url
   "Build a url from a base and a opts-map {:endpoint <type>}
    - <type> can be :prod or :test;"
@@ -48,7 +37,7 @@
          headers {:headers {"Authorization" (str "Bearer " a-token)}}
          format-url "https://api.anaf.ro/%s/FCTEL/rest/listaMesajeFactura"
          base-url (build-url format-url opts)
-         cif (:cif config)
+         cif "35586426"
          q-str {"zile" "60"
                 "cif" cif}
          endpoint (str base-url "?" (make-query-string q-str))
