@@ -15,7 +15,7 @@
         mount/mount {:mvn/version "0.1.17"}
         tolitius/mount-up {:mvn/version "0.1.3"}
         cprop/cprop {:mvn/version "0.1.19"}
-        org.clojure/data.json {:mvn/version "2.5.0"}}
+        metosin/jsonista {:mvn/version "0.3.8"}}
  :aliases {:dev {:extra-paths ["dev" "dev-resources"]
                  :extra-deps {djblue/portal {:mvn/version "0.52.2"}
                               org.slf4j/slf4j-simple {:mvn/version "2.0.12"}}

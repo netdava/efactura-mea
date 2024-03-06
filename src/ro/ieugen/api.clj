@@ -1,7 +1,7 @@
 (ns ro.ieugen.api
   (:require [babashka.http-client :as http]
             [clojure.java.io :as io]
-            [clojure.data.json :as json]))
+            [jsonista.core :as j]))
 
 (defn get-access-token [name]
   (let [env (System/getenv)
@@ -37,9 +37,10 @@
         cif (:cif config)
         endpoint (format url days cif)
         r (http/get endpoint headers)
-        l (:body r)
-        lista-mesaje (json/read-str l :key-fn keyword)]
-    lista-mesaje))
+        body (:body r)
+        object-mapper (j/object-mapper {:decode-key-fn true})
+        lista-facturi (j/read-value body object-mapper)]
+    lista-facturi))
 
 (defn descarca-factura
   "Descarcă factura în format zip pe baza id-ului.
@@ -67,10 +68,8 @@
 
 (comment
   (is-file-in-dir? "3192491497.zip" "facturi-descarcate-zip")
-  
+
   (obtine-lista-facturi :prod)
- (descarca-factura "3182888140" "my-files/abc" :prod)
-  
-  
-  
+
+  (descarca-factura "3182888140" "my-files/abc" :prod)
   )
