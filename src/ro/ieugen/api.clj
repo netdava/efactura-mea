@@ -2,7 +2,8 @@
   (:require [babashka.http-client :as http]
             [clojure.java.io :as io]
             [jsonista.core :as j]
-            [ro.ieugen.oauth2-anaf :refer [make-query-string]]))
+            [ro.ieugen.oauth2-anaf :refer [make-query-string]])
+  (:import [java.util.zip ZipFile]))
 
 (defn get-access-token [name]
   (let [env (System/getenv)
@@ -78,11 +79,43 @@
     (some #(= file %) files)))
 
 
+
 (comment
+  (defn entries [zipfile]
+    (enumeration-seq (.entries zipfile)))
+
+  (defn walkzip [fileName]
+    (with-open [z (ZipFile. fileName)]
+      (doseq [e (entries z)]
+        (println (.getName e)))))
+
   (is-file-in-dir? "3192491497.zip" "facturi-descarcate-zip")
 
-  (obtine-lista-facturi :prod)
 
-  (descarca-factura "3182888140" "my-files/abc" {:endpoint :test})
+  (descarca-factura "3182888140" "my-files/abc" {:endpoint :prod})
+
+  (defn build-path [data-creare]
+    (let [an (subs data-creare 0 4)
+          luna (subs data-creare 4 6)]
+      (str an "/" luna)))
+
+  (defn download-zip-file [factura opts]
+    (let [{:keys [id data_creare]} factura
+          date-path (build-path data_creare)
+          path (str "facturi/" date-path)]
+      (descarca-factura id path opts)))
+
+  (defn verifica-descarca-facturi [opts]
+    (let [l (obtine-lista-facturi opts)
+          facturi (:mesaje l)
+          local-dir "facturi"]
+      (doseq [f facturi]
+        (let [zip-name (str (:id f) ".zip")]
+          (if (is-file-in-dir? zip-name local-dir)
+            (println "factura" zip-name "exista salvata local")
+            (download-zip-file f opts))))))
   
+  (verifica-descarca-facturi {:endpoint :prod})
+  
+
   )
