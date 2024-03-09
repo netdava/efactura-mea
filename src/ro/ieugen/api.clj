@@ -3,12 +3,21 @@
             [clojure.java.io :as io]
             [jsonista.core :as j]
             [ro.ieugen.oauth2-anaf :refer [make-query-string]]
-            [next.jdbc :as jdbc])
+            [next.jdbc :as jdbc]
+            [hugsql.core :as hugsql])
   (:import [java.util.zip ZipFile]))
 
-(def db-spec {:dbtype "sqlite"
-              :dbname "facturi-anaf.db"})
-(def ds (jdbc/get-datasource db-spec))
+(def config {:target {:endpoint :prod}
+             :cif "35586426"
+             :db-spec {:dbtype "sqlite"
+                      :dbname "facturi-anaf.db"}})
+
+(hugsql/def-db-fns "ro/ieugen/facturi.sql")
+
+(comment
+  (create-facturi-anaf-table (:db-spec config)))
+
+(def ds (jdbc/get-datasource (:db-spec config)))
 
 (defn get-access-token [name]
   (let [env (System/getenv)
@@ -16,10 +25,10 @@
     access-token))
 
 (defn build-url
-  "Build a url from a base and a opts-map {:endpoint <type>}
+  "Build a url from a base and a target {:endpoint <type>}
    - <type> can be :prod or :test;"
-  [url-base opts]
-  (let [type (:endpoint opts)]
+  [url-base target]
+  (let [type (:endpoint target)]
     (format url-base (name type))))
 
 (comment
@@ -38,12 +47,12 @@
    - primeste un map {:endpoint <type>}, <type> poate fi :prod sau :test ."
   ([]
    (obtine-lista-facturi {:endpoint :test}))
-  ([opts]
+  ([target]
    (let [a-token (get-access-token "EFACTURA_ACCESS_TOKEN")
          headers {:headers {"Authorization" (str "Bearer " a-token)}}
          format-url "https://api.anaf.ro/%s/FCTEL/rest/listaMesajeFactura"
-         base-url (build-url format-url opts)
-         cif "35586426"
+         base-url (build-url format-url target)
+         cif (:cif config)
          q-str {"zile" "60"
                 "cif" cif}
          endpoint (str base-url "?" (make-query-string q-str))
@@ -54,11 +63,12 @@
      lista-facturi)))
 
 (defn scrie-factura->db [factura]
-  (let [{:keys [id data_creare tip cif id_solicitare detalii]} factura
-        q "INSERT INTO facturi_anaf
-           (abstract_id, data_creare, tip, cif, id_solicitare, detalii)
-           VALUES (?, ?, ?, ?, ?, ?)"]
-    (jdbc/execute! ds [q id data_creare tip cif id_solicitare detalii])))
+  (let [{:keys [id data_creare tip cif id_solicitare detalii]} factura]
+    (insert-row-factura (:db-spec config) {:id id
+                                           :data_creare data_creare
+                                           :tip tip
+                                           :cif cif
+                                           :id_solicitare id_solicitare :detalii detalii})))
 
 
 (comment
@@ -67,12 +77,12 @@
 (defn descarca-factura
   "Descarcă factura în format zip pe baza id-ului.
    - funcționează doar cu endpointurile de test/prod;
-   - opts un map {:endpoint <type>}, <type> poate fi :prod sau :test ."
-  [id download-to opts]
+   - target un map {:endpoint <type>}, <type> poate fi :prod sau :test ."
+  [id download-to target]
   (let [a-token (get-access-token "EFACTURA_ACCESS_TOKEN")
         headers {:headers {"Authorization" (str "Bearer " a-token)} :as :stream}
         format-url "https://api.anaf.ro/%s/FCTEL/rest/descarcare"
-        base-url (build-url format-url opts)
+        base-url (build-url format-url target)
         endpoint (str base-url "?id=" id)
         response (http/get endpoint headers)
         data (:body response)
@@ -103,14 +113,15 @@
         luna (subs data-creare 4 6)]
     (str an "/" luna)))
 
-(defn download-zip-file [factura opts]
+(defn download-zip-file [factura target]
   (let [{:keys [id data_creare]} factura
         date-path (build-path data_creare)
         path (str "facturi/" date-path)]
-    (descarca-factura id path opts)))
+    (descarca-factura id path target)))
 
-(defn verifica-descarca-facturi [opts]
-  (let [l (obtine-lista-facturi opts)
+(defn verifica-descarca-facturi [config]
+  (let [target (:target config)
+        l (obtine-lista-facturi target)
         facturi (:mesaje l)]
     (doseq [f facturi]
       (let [id (:id f)
@@ -118,10 +129,10 @@
             test-file-exist (jdbc/execute! ds ["select id from facturi_anaf where
                       abstract_id = ? " id])]
         (if (empty? test-file-exist)
-          (do (download-zip-file f opts)
+          (do (download-zip-file f target)
               (scrie-factura->db f))
           (println "factura" zip-name "exista salvata local"))))))
 
 (comment
-  (verifica-descarca-facturi {:endpoint :prod})
+  (verifica-descarca-facturi config)
   )
