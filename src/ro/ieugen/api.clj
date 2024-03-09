@@ -4,8 +4,7 @@
             [jsonista.core :as j]
             [ro.ieugen.oauth2-anaf :refer [make-query-string]]
             [next.jdbc :as jdbc]
-            [hugsql.core :as hugsql])
-  (:import [java.util.zip ZipFile]))
+            [hugsql.core :as hugsql]))
 
 (def config {:target {:endpoint :prod}
              :cif "35586426"
@@ -16,8 +15,6 @@
 
 (comment
   (create-facturi-anaf-table (:db-spec config)))
-
-(def ds (jdbc/get-datasource (:db-spec config)))
 
 (defn get-access-token [name]
   (let [env (System/getenv)
@@ -38,7 +35,7 @@
   (let [f (io/file file-path)
         _ (doto (-> (.getParentFile f)
                     (.mkdirs)))]
-    (with-open [output-stream (io/output-stream file-path)]
+    (with-open [output-stream (io/output-stream f)]
       (io/copy (io/input-stream data) output-stream))))
 
 (defn obtine-lista-facturi
@@ -70,10 +67,6 @@
                                            :cif cif
                                            :id_solicitare id_solicitare :detalii detalii})))
 
-
-(comment
-  (obtine-lista-facturi {:endpoint :prod}))
-
 (defn descarca-factura
   "Descarcă factura în format zip pe baza id-ului.
    - funcționează doar cu endpointurile de test/prod;
@@ -90,24 +83,6 @@
     (save-zip-file data file-path)
     (println "Am descărcat" (str id ".zip") "pe calea" file-path)))
 
-#_(defn list-files-from-dir [dir]
-  (let [directory (clojure.java.io/file dir)
-        dir? #(.isDirectory %)]
-    (map #(.getName %) ;; .getPath?!
-         (filter (comp not dir?)
-                 (tree-seq dir? #(.listFiles %) directory)))))
-
-#_(defn is-file-in-dir? [file dir]
-  (let [files (list-files-from-dir dir)]
-    (some #(= file %) files)))
-#_(defn entries [zipfile]
-  (enumeration-seq (.entries zipfile)))
-
-#_(defn walkzip [fileName]
-  (with-open [z (ZipFile. fileName)]
-    (doseq [e (entries z)]
-      (println (.getName e)))))
-
 (defn build-path [data-creare]
   (let [an (subs data-creare 0 4)
         luna (subs data-creare 4 6)]
@@ -119,15 +94,14 @@
         path (str "facturi/" date-path)]
     (descarca-factura id path target)))
 
-(defn verifica-descarca-facturi [config]
-  (let [target (:target config)
+(defn verifica-descarca-facturi [cfg]
+  (let [target (:target cfg)
         l (obtine-lista-facturi target)
         facturi (:mesaje l)]
     (doseq [f facturi]
       (let [id (:id f)
             zip-name (str id ".zip")
-            test-file-exist (jdbc/execute! ds ["select id from facturi_anaf where
-                      abstract_id = ? " id])]
+            test-file-exist (test-factura-descarcata? (:db-spec cfg) {:id id})]
         (if (empty? test-file-exist)
           (do (download-zip-file f target)
               (scrie-factura->db f))
@@ -135,4 +109,5 @@
 
 (comment
   (verifica-descarca-facturi config)
+  (obtine-lista-facturi {:endpoint :prod})
   )
