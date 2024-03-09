@@ -6,8 +6,9 @@
             [next.jdbc :as jdbc]
             [hugsql.core :as hugsql]))
 
-(def config {:target {:endpoint :prod}
-             :cif "35586426"
+(def config {:cif "35586426"
+             :write-to "facturi"
+             :target {:endpoint :prod}
              :db-spec {:dbtype "sqlite"
                       :dbname "facturi-anaf.db"}})
 
@@ -88,10 +89,11 @@
         luna (subs data-creare 4 6)]
     (str an "/" luna)))
 
-(defn download-zip-file [factura target]
+(defn download-zip-file [factura cfg]
   (let [{:keys [id data_creare]} factura
+        {:keys [write-to target]} cfg
         date-path (build-path data_creare)
-        path (str "facturi/" date-path)]
+        path (str write-to "/" date-path)]
     (descarca-factura id path target)))
 
 (defn verifica-descarca-facturi [cfg]
@@ -103,7 +105,7 @@
             zip-name (str id ".zip")
             test-file-exist (test-factura-descarcata? (:db-spec cfg) {:id id})]
         (if (empty? test-file-exist)
-          (do (download-zip-file f target)
+          (do (download-zip-file f cfg)
               (scrie-factura->db f))
           (println "factura" zip-name "exista salvata local"))))))
 
