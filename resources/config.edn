@@ -1,8 +1,12 @@
 ;; Default configuration options
 ;; Are used as defaults
 ;; Override them via file, env, system properties
-{:anaf {:client-id "replace-me"
+{:target {:endpoint :prod}
+ :db-spec {:dbtype "sqlite"
+           :dbname "facturi-anaf.db"}
+ :anaf {:client-id "replace-me"
         :client-secret "replace-me"
         :redirect-uri "replace-me"}
  :server {:public-path "public"
-          :templates-path "templates"}}
+          :templates-path "templates"
+          :download-dir "DATA_DIR/"}}
