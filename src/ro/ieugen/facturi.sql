@@ -1,7 +1,7 @@
 -- :name create-facturi-anaf-table
 -- :command :execute
 -- :result :raw
-create table facturi_anaf (
+CREATE TABLE IF NOT EXISTS facturi_anaf (
     id INTEGER PRIMARY KEY,
     abstract_id TEXT,
     data_creare TEXT,
@@ -9,28 +9,28 @@ create table facturi_anaf (
     cif TEXT,
     id_solicitare TEXT,
     detalii TEXT  
-)
+) STRICT;
 
 -- :name create-company-table
 -- :command :execute
 -- :result :raw
-CREATE TABLE company (
+CREATE TABLE IF NOT EXISTS company (
     id INTEGER PRIMARY KEY,
     cif TEXT,
     name TEXT
-);
+) STRICT;
 
 -- :name create-tokens-table
 -- :command :execute
 -- :result :raw
-CREATE TABLE tokens (
+CREATE TABLE IF NOT EXISTS tokens (
     id INTEGER PRIMARY KEY,
     cif TEXT,
     access_token TEXT,
     refresh_token TEXT,
     expiration_date TEXT,
     FOREIGN KEY (cif) REFERENCES company(cif)
-);
+) STRICT;
 
 
 -- :name insert-row-factura :insert :*
@@ -54,6 +54,11 @@ select id from facturi_anaf where abstract_id = :id
 -- :command :execute
 -- :result :raw
 select cif from company where id = :id
+
+-- :name select-access-token :? :1
+-- :command :execute
+-- :result :raw
+select access_token from tokens where cif = :cif
 
 -- :name insert-company :insert :*
 -- :command :execute
