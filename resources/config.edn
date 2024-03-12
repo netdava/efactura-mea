@@ -9,4 +9,4 @@
         :redirect-uri "replace-me"}
  :server {:public-path "public"
           :templates-path "templates"
-          :download-dir "DATA_DIR/"}}
+          :download-dir "facturi-anaf/"}}

@@ -4,11 +4,12 @@
             [jsonista.core :as j]
             [ro.ieugen.oauth2-anaf :refer [make-query-string]]
             [next.jdbc :as jdbc]
-            [hugsql.core :as hugsql]))
+            [hugsql.core :as hugsql]
+            [hugsql.adapter.next-jdbc :as next-adapter]))
 
 (def config {:cif "35586426"
              :write-to "facturi"
-             :target {:endpoint :prod}
+             :target {:endpoint :test}
              :db-spec {:dbtype "sqlite"
                        :dbname "facturi-anaf.db"}})
 
@@ -18,7 +19,7 @@
 (defn insert-company->db [db cif name]
   (insert-company db {:cif cif :name name}))
 
-(hugsql/def-db-fns "ro/ieugen/facturi.sql")
+(hugsql/def-db-fns "ro/ieugen/facturi.sql" {:adapter (next-adapter/hugsql-adapter-next-jdbc)})
 
 (comment
   (insert-company->db (:db-spec config) "35586426" "Netdava International")
@@ -53,12 +54,12 @@
   "Obtine lista de facturi pe o perioada de 60 zile din urmă;
    - apeleaza mediul de :test din oficiu;
    - primeste app-state si {:endpoint <type>}, <type> poate fi :prod sau :test ."
-  ([target db-spec]
+  ([target ds]
    (let [a-token (get-access-token "EFACTURA_ACCESS_TOKEN")
          headers {:headers {"Authorization" (str "Bearer " a-token)}}
          format-url "https://api.anaf.ro/%s/FCTEL/rest/listaMesajeFactura"
          base-url (build-url format-url target)
-         cif (fetch-cif db-spec 1)
+         cif (fetch-cif ds 1)
          q-str {"zile" "60"
                 "cif" cif}
          endpoint (str base-url "?" (make-query-string q-str))
@@ -69,16 +70,17 @@
      lista-facturi)))
 
 (comment 
-  (let [app-state {:target {:endpoint :prod}
+  (let [app-state {:target {:endpoint :test}
                    :db-spec {:dbtype "sqlite"
                              :dbname "facturi-anaf.db"}}
         target (:target app-state)
-        db-spec (:db-spec app-state)]
-   (obtine-lista-facturi target db-spec)))
+        db-spec (:db-spec app-state)
+        ds (jdbc/get-datasource db-spec)]
+   (obtine-lista-facturi target ds)))
 
-(defn scrie-factura->db [factura db-spec]
+(defn scrie-factura->db [factura ds]
   (let [{:keys [id data_creare tip cif id_solicitare detalii]} factura]
-    (insert-row-factura db-spec {:id id
+    (insert-row-factura ds {:id id
                                            :data_creare data_creare
                                            :tip tip
                                            :cif cif
@@ -106,8 +108,8 @@
         luna (subs data-creare 4 6)]
     (str an "/" luna)))
 
-(defn download-zip-file [factura target db-spec download-to]
-  (let [cif (fetch-cif db-spec 1)
+(defn download-zip-file [factura target ds download-to]
+  (let [cif (fetch-cif ds 1)
         {:keys [id data_creare]} factura
         date-path (build-path data_creare)
         path (str download-to "/" cif "/" date-path)]
@@ -116,20 +118,21 @@
 (defn verifica-descarca-facturi [app-state]
   (let [target (:target app-state)
         db-spec (:db-spec app-state)
+        ds (jdbc/get-datasource db-spec)
         download-to (get-in app-state [:server :download-dir])
-        l (obtine-lista-facturi target db-spec)
+        l (obtine-lista-facturi target ds)
         facturi (:mesaje l)]
     (doseq [f facturi]
       (let [id (:id f)
             zip-name (str id ".zip")
-            test-file-exist (test-factura-descarcata? db-spec {:id id})]
+            test-file-exist (test-factura-descarcata? ds {:id id})]
         (if (empty? test-file-exist)
-          (do (download-zip-file f target db-spec download-to)
-              (scrie-factura->db f db-spec))
+          (do (download-zip-file f target ds download-to)
+              (scrie-factura->db f ds))
           (println "factura" zip-name "exista salvata local"))))))
 
 (comment
-  (verifica-descarca-facturi {:target {:endpoint :prod}
+  (verifica-descarca-facturi {:target {:endpoint :test}
                               :db-spec {:dbtype "sqlite"
                                         :dbname "facturi-anaf.db"}
                               :anaf {:client-id "replace-me"
@@ -138,4 +141,8 @@
                               :server {:public-path "public"
                                        :templates-path "templates"
                                        :download-dir "DATA_DIR/"}})
+  
+  (let [ds (jdbc/get-datasource {:dbtype "sqlite"
+                                 :dbname "facturi-anaf.db"})]
+    (fetch-cif ds 1))
   )
