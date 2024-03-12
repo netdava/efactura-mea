@@ -1,7 +1,6 @@
 (ns ro.ieugen.efacturier
   (:require [babashka.http-client :as http]
             [clj-commons.byte-streams :as bs]
-            [clojure.tools.logging :as log]
             [cprop.core :refer [load-config]]
             [hiccup2.core :as h]
             [jsonista.core :as j]
@@ -9,16 +8,24 @@
             [mount.core :as mount :refer [defstate]]
             [muuntaja.core :as m]
             [muuntaja.middleware :as middleware]
+            [next.jdbc :as jdbc]
             [reitit.ring :as reitit]
             [ring.adapter.jetty9 :refer [run-jetty stop-server]]
             [ring.middleware.defaults :as rmd]
             [ring.middleware.file :refer [wrap-file]]
+            [ro.ieugen.api :as api]
+            [ro.ieugen.next-jdbc-adapter :as adapter]
             [ro.ieugen.oauth2-anaf :as o2a]))
 
 (mu/on-upndown :info mu/log :before)
 
 (defstate conf
   :start (load-config))
+
+(defstate ds :start
+  (let [db-spec (:db-spec conf)]
+    (adapter/set-next-jdbc-adapter)
+    (jdbc/get-datasource db-spec)))
 
 (def object-mapper (j/object-mapper {:pretty true}))
 
@@ -92,23 +99,25 @@
 
 (defstate server
   :start (run-jetty (app conf) {:port 8080
-                           :join? false
-                           :h2c? true  ;; enable cleartext http/2
-                           :h2? true   ;; enable http/2
-                           :ssl? true  ;; ssl is required for http/2
-                           :ssl-port 8123
-                           :send-server-version? false
-                           :keystore "dev-resources/keystore.jks"
-                           :key-password "dev123"
-                           :keystore-type "jks"
-                           :sni-host-check? false})
+                                :join? false
+                                :h2c? true  ;; enable cleartext http/2
+                                :h2? true   ;; enable http/2
+                                :ssl? true  ;; ssl is required for http/2
+                                :ssl-port 8123
+                                :send-server-version? false
+                                :keystore "dev-resources/keystore.jks"
+                                :key-password "dev123"
+                                :keystore-type "jks"
+                                :sni-host-check? false})
   :stop (stop-server server))
 
 (defn -main [& args]
-  (mount/start))
+  (mount/start)
+  (api/create-sql-tables ds)
+  (api/obtine-lista-facturi {:endpoint :test} ds))
 
 (comment
-
+  (-main)
   (mount/start)
   (mount/stop)
 
@@ -120,5 +129,4 @@
   (http/get "https://www.ieugen.ro/")
 
 
-  0
-  )
+  0)
