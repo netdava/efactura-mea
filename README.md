@@ -1,25 +1,33 @@
-Limite la apelarea API eFactura
+# eFactura mea
 
-LImita pentru toate metodele
-- max. 1000 apeluri/minut
+Aplicație pentru interacțiune cu API ANAF pentru eFactură.
+Obiectivul inițial este de a descărca facturile urcate la ANAF. Ulterior vom analiza și urcarea.
 
-Limite specifice/ metoda
-1. /upload
-- max. 1000 fisiere tip RASP (raspuns la factura)/ zi /CUI
-- NU exista limita la upload fisiere tip factura
+Aplicația folosește limbajul Clojure și salvează datele intr-o bază de date sqlite și pe disc.
 
-2. /stare
-- max 10 interogari/ un anumit mesaj/ zi
-- NU exista limitari la numarul total de interogari/ zi/ CUI
+Are nevoie de:
+- Java 21+ (OpenJDK)
+- Clojure 1.11 +
 
-3. /lista
-- max 1500 interogari/ zi/ CUI la lista simpla
-- max 100.000 interogari/zi/CUI la lista cu paginatie
+## Comenzi utile
 
-4. /descarcare
-- max 10 descarcari/ zi/ un anumit mesaj
-- NU exista limitari la numarul total de descarcari /zi/ CUI
+```shell
 
-Obs.
-1. Limitele pot fi modificate. Daca primiti eroare de depasire a numarului maxim de apeluri si considerati ca ar trebui sa puteti interoga peste valorile stabilite, va rugam sa ne scrieti pe formularul de contact din SPV sau www.anaf.ro pentru revizuirea acestora.
-2. Ignorarea repetata a mesajelor de depasire a limitelor maxime poate duce la blocarea accesului la API pentru respectivul utilizator si, in cazurile grave, la blocarea accesului aplicatiei. 
+# Pornește aplicația local
+# TODO:
+
+# Pornește un REPL pentru dezvoltare
+clojure -Sdeps '{:deps {nrepl/nrepl {:mvn/version,"1.0.0"},cider/cider-nrepl {:mvn/version,"0.28.5"}}}' -M:dev -m nrepl.cmdline --middleware "[cider.nrepl/cider-middleware]
+
+# Rulează testele
+clj -M:test
+
+# Vezi actualizări pentru bibliotecile de funcții
+clj -M:outdated
+
+```
+
+
+## Folosire cu Docker
+
+

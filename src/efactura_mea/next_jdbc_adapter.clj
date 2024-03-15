@@ -1,4 +1,4 @@
-(ns ro.ieugen.next-jdbc-adapter
+(ns efactura-mea.next-jdbc-adapter
   (:require [hugsql.core :as hugsql]
             [hugsql.adapter.next-jdbc :as next-adapter]))
 

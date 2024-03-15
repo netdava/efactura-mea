@@ -1,4 +1,4 @@
-(ns ro.ieugen.efacturier
+(ns efactura-mea.main
   (:require [babashka.http-client :as http]
             [clj-commons.byte-streams :as bs]
             [cprop.core :refer [load-config]]
@@ -13,9 +13,9 @@
             [ring.adapter.jetty9 :refer [run-jetty stop-server]]
             [ring.middleware.defaults :as rmd]
             [ring.middleware.file :refer [wrap-file]]
-            [ro.ieugen.api :as api]
-            [ro.ieugen.next-jdbc-adapter :as adapter]
-            [ro.ieugen.oauth2-anaf :as o2a]))
+            [efactura-mea.api :as api]
+            [efactura-mea.next-jdbc-adapter :as adapter]
+            [efactura-mea.oauth2-anaf :as o2a]))
 
 (mu/on-upndown :info mu/log :before)
 

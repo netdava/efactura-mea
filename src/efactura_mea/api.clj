@@ -1,11 +1,11 @@
-(ns ro.ieugen.api
+(ns efactura-mea.api
   (:require [babashka.http-client :as http]
             [clojure.java.io :as io]
             [hugsql.core :as hugsql]
             [jsonista.core :as j]
-            [ro.ieugen.oauth2-anaf :refer [make-query-string]]))
+            [efactura-mea.oauth2-anaf :refer [make-query-string]]))
 
-(hugsql/def-db-fns "ro/ieugen/facturi.sql")
+(hugsql/def-db-fns "efactura_mea/facturi.sql")
 
 (defn fetch-cif [db id]
   (:cif (select-company-cif db {:id id})))

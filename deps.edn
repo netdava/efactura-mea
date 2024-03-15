@@ -25,7 +25,8 @@
                                io.github.matthewdowney/rich-comment-tests {:mvn/version "v1.0.3"}}
                   :main-opts ["-m" "kaocha.runner"]}
            :dev {:extra-paths ["dev" "dev-resources"]
-                 :extra-deps {djblue/portal {:mvn/version "0.52.2"}}
+                 :extra-deps {djblue/portal {:mvn/version "0.52.2"}
+                              io.github.matthewdowney/rich-comment-tests {:mvn/version "v1.0.3"}}
                  :jvm-opts ["-Dconf=conf/efactura.dev.edn"]}
            :debug {:jvm-opts [;; enable logging for java.net.http
                               "-Djdk.httpclient.HttpClient.log=errors,requests,headers,frames[:control:data:window:all..],content,ssl,trace,channel"]}
@@ -33,6 +34,9 @@
                       :deps {com.github.liquidz/antq {:mvn/version "RELEASE"}
                              org.slf4j/slf4j-simple {:mvn/version "2.0.12"}}
                       :main-opts ["-m" "antq.core"]}
+           ;; add this to :aliases in deps.edn:
+           :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.0"}}
+                   :ns-default build}
            :fetch-api {:paths ["fetch_api"]
                        :extra-deps {io.swagger.parser.v3/swagger-parser {:mvn/version "2.1.21"}
                                     org.babashka/http-client {:mvn/version "0.4.16"}}
