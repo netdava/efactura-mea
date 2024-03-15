@@ -3,7 +3,8 @@
             [clojure.java.io :as io]
             [hugsql.core :as hugsql]
             [jsonista.core :as j]
-            [efactura-mea.oauth2-anaf :refer [make-query-string]]))
+            [efactura-mea.oauth2-anaf :refer [make-query-string]]
+            [efactura-mea.config :as c]))
 
 (hugsql/def-db-fns "efactura_mea/facturi.sql")
 
@@ -91,7 +92,7 @@
 
 (defn verifica-descarca-facturi [cfg ds]
   (let [target (:target cfg)
-        download-to (:data-dir cfg)
+        download-to (c/download-dir cfg)
         l (obtine-lista-facturi target ds)
         facturi (:mesaje l)]
     (doseq [f facturi]

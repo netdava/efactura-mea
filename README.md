@@ -36,7 +36,11 @@ clj -M:outdated
 docker build -t efactura-mea . --load
 
 # Pornim aplicația
-docker run --rm -e DEBUG=y  -p 8080:8080 -p 8123:8123  -v $PWD/data:/app/data efactura-mea
+docker run --rm \
+-e DEBUG=y  \
+-e DATA__DIR="data" \
+-p 8080:8080 -p 8123:8123  -v $PWD/data:/app/data \
+efactura-mea
 
 ```
 
