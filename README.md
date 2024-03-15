@@ -30,4 +30,13 @@ clj -M:outdated
 
 ## Folosire cu Docker
 
+```shell
+
+# Construim imaginea docker
+docker build -t efactura-mea . --load
+
+# Pornim aplicația
+docker run --rm -e DEBUG=y  -p 8080:8080 -p 8123:8123 efactura-mea
+
+```
 

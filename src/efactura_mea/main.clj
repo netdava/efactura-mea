@@ -13,9 +13,11 @@
             [ring.adapter.jetty9 :refer [run-jetty stop-server]]
             [ring.middleware.defaults :as rmd]
             [ring.middleware.file :refer [wrap-file]]
+            [ring.middleware.webjars :refer [wrap-webjars]]
             [efactura-mea.api :as api]
             [efactura-mea.next-jdbc-adapter :as adapter]
-            [efactura-mea.oauth2-anaf :as o2a]))
+            [efactura-mea.oauth2-anaf :as o2a])
+  (:gen-class))
 
 (mu/on-upndown :info mu/log :before)
 
@@ -95,20 +97,10 @@
       (middleware/wrap-format)
       (rmd/wrap-defaults rmd/site-defaults)
       (wrap-file (get-in conf [:server :public-path]))
-      (wrap-file "node_modules")))
+      (wrap-webjars)))
 
 (defstate server
-  :start (run-jetty (app conf) {:port 8080
-                                :join? false
-                                :h2c? true  ;; enable cleartext http/2
-                                :h2? true   ;; enable http/2
-                                :ssl? true  ;; ssl is required for http/2
-                                :ssl-port 8123
-                                :send-server-version? false
-                                :keystore "dev-resources/keystore.jks"
-                                :key-password "dev123"
-                                :keystore-type "jks"
-                                :sni-host-check? false})
+  :start (run-jetty (app conf) (:jetty conf))
   :stop (stop-server server))
 
 (defn -main [& args]

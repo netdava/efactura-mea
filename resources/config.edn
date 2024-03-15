@@ -9,4 +9,15 @@
         :client-secret "replace-me"
         :redirect-uri "replace-me"}
  :server {:public-path "public"
-          :templates-path "templates"}}
+          :templates-path "templates"}
+ :jetty {:port 8080
+         :join? false
+         :h2c? true  ;; enable cleartext http/2
+         :h2? true   ;; enable http/2
+         :ssl? true  ;; ssl is required for http/2
+         :ssl-port 8123
+         :send-server-version? false
+         :keystore "dev-resources/keystore.jks"
+         :key-password "dev123"
+         :keystore-type "jks"
+         :sni-host-check? false}}

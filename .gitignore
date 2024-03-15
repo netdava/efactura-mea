@@ -5,6 +5,11 @@
 .calva
 .nrepl-port
 
+.vscode
 node_modules/
 .envrc
 conf/efactura.dev.edn
+
+target/
+
+facturi-anaf.db
