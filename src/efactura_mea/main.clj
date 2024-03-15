@@ -14,9 +14,9 @@
             [ring.middleware.defaults :as rmd]
             [ring.middleware.file :refer [wrap-file]]
             [ring.middleware.webjars :refer [wrap-webjars]]
-            [efactura-mea.api :as api]
-            [efactura-mea.next-jdbc-adapter :as adapter]
-            [efactura-mea.oauth2-anaf :as o2a])
+            [efactura-mea.web.api :as api]
+            [efactura-mea.db.next-jdbc-adapter :as adapter]
+            [efactura-mea.web.oauth2-anaf :as o2a])
   (:gen-class))
 
 (mu/on-upndown :info mu/log :before)

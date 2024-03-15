@@ -1,4 +1,4 @@
-(ns efactura-mea.oauth2-anaf
+(ns efactura-mea.web.oauth2-anaf
   (:require [ring.util.codec :refer [url-encode]]
             [babashka.http-client :as http]
             [clojure.tools.logging :as log]))

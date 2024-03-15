@@ -1,24 +1,22 @@
-(ns efactura-mea.api
+(ns efactura-mea.web.api
   (:require [babashka.http-client :as http]
             [clojure.java.io :as io]
-            [hugsql.core :as hugsql]
             [jsonista.core :as j]
-            [efactura-mea.oauth2-anaf :refer [make-query-string]]
+            [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
+            [efactura-mea.db.facturi :as facturi]
             [efactura-mea.config :as c]))
 
-(hugsql/def-db-fns "efactura_mea/facturi.sql")
-
 (defn fetch-cif [db id]
-  (:cif (select-company-cif db {:id id})))
+  (:cif (facturi/select-company-cif db {:id id})))
 
 (defn fetch-access-token [db cif]
-  (:access_token (select-access-token db {:cif cif})))
+  (:access_token (facturi/select-access-token db {:cif cif})))
 
 (defn create-sql-tables
   [ds]
-  (create-facturi-anaf-table ds)
-  (create-company-table ds)
-  (create-tokens-table ds))
+  (facturi/create-facturi-anaf-table ds)
+  (facturi/create-company-table ds)
+  (facturi/create-tokens-table ds))
 
 (defn build-url
   "Build a url from a base and a target {:endpoint <type>}
@@ -55,7 +53,7 @@
 
 (defn scrie-factura->db [factura ds]
   (let [{:keys [id data_creare tip cif id_solicitare detalii]} factura]
-    (insert-row-factura ds {:id id
+    (facturi/insert-row-factura ds {:id id
                             :data_creare data_creare
                             :tip tip
                             :cif cif
@@ -98,7 +96,7 @@
     (doseq [f facturi]
       (let [id (:id f)
             zip-name (str id ".zip")
-            test-file-exist (test-factura-descarcata? ds {:id id})]
+            test-file-exist (facturi/test-factura-descarcata? ds {:id id})]
         (if (empty? test-file-exist)
           (do (download-zip-file f target ds download-to)
               (scrie-factura->db f ds))

@@ -13,6 +13,9 @@ Are nevoie de:
 
 ```shell
 
+# Construiește aplicația
+clj -T:build uber
+
 # Pornește aplicația local
 # TODO:
 
@@ -21,6 +24,9 @@ clojure -Sdeps '{:deps {nrepl/nrepl {:mvn/version,"1.0.0"},cider/cider-nrepl {:m
 
 # Rulează testele
 clj -M:test
+
+# Rulează testele pentru fiecare modificările
+clj -M:test --watch
 
 # Vezi actualizări pentru bibliotecile de funcții
 clj -M:outdated

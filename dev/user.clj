@@ -7,3 +7,5 @@
 ;; https://github.com/djblue/portal?tab=readme-ov-file#api
 (def p (p/open {:launcher :vs-code}))  ; jvm / node only
 (add-tap #'p/submit) ; Add portal as a tap> target
+
+; (com.mjdowney.rich-comment-tests/run-ns-tests! *ns*)
