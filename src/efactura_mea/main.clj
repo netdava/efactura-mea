@@ -105,8 +105,7 @@
 
 (defn -main [& args]
   (mount/start)
-  (api/create-sql-tables ds)
-  (api/obtine-lista-facturi {:endpoint :test} ds))
+  (api/create-sql-tables ds))
 
 (comment
   (-main)
