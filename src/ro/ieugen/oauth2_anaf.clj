@@ -1,6 +1,5 @@
 (ns ro.ieugen.oauth2-anaf
   (:require [ring.util.codec :refer [url-encode]]
-            [hyperfiddle.rcf :refer [tests tap %]]
             [babashka.http-client :as http]
             [clojure.tools.logging :as log]))
 
@@ -46,18 +45,21 @@
   ([logingert-url api-version]
    (str logingert-url "/anaf-oauth2/" api-version "/token")))
 
-(tests
+^:rct/test
+(comment
 
- "authorization url builds with params"
- (authorization-url "1" "https://localhost/callback")
- := "https://logincert.anaf.ro/anaf-oauth2/v1/authorize?response_type=code&client_id=1&redirect_uri=https%3A%2F%2Flocalhost%2Fcallback&token_content_type=jwt&approval_prompt=auto"
+  "authorization url builds with params"
+  (authorization-url "1" "https://localhost/callback")
+  ;=> "https://logincert.anaf.ro/anaf-oauth2/v1/authorize?response_type=code&client_id=1&redirect_uri=https%3A%2F%2Flocalhost%2Fcallback&token_content_type=jwt&approval_prompt=auto"
 
- "token url"
+  "token url"
 
- (token-url)
- := "https://logincert.anaf.ro/anaf-oauth2/v1/token"
- (token-url default-anaf-url-logincert default-anaf-api-version)
- := "https://logincert.anaf.ro/anaf-oauth2/v1/token")
+  (token-url)
+  ;=> "https://logincert.anaf.ro/anaf-oauth2/v1/token"
+  (token-url default-anaf-url-logincert default-anaf-api-version)
+  ;=> "https://logincert.anaf.ro/anaf-oauth2/v1/token"
+
+  )
 
 
 (defn make-anaf-login-handler

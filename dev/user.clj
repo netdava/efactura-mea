@@ -1,8 +1,8 @@
 (ns user
-  (:require [hyperfiddle.rcf]
+  (:require ;;[hyperfiddle.rcf]
             [portal.api :as p]))
 
-(hyperfiddle.rcf/enable!)
+;; (hyperfiddle.rcf/enable!)
 
 ;; https://github.com/djblue/portal?tab=readme-ov-file#api
 (def p (p/open {:launcher :vs-code}))  ; jvm / node only
