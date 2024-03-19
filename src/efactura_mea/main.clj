@@ -61,6 +61,25 @@
                                   :reitit.core/match)))]
     (bs/to-string bis)))
 
+(defn listeaza-mesaje
+  [req]
+  (let [q (:query-params req)
+        querry-params (-> q
+                          (j/write-value-as-bytes j/default-object-mapper)
+                          (j/read-value j/keyword-keys-object-mapper))
+        zile (:zile querry-params)
+        target (:target conf)
+        lista-mesaje (api/obtine-lista-facturi target ds zile)]
+    {:status 200
+     :body (str (h/html
+                 [:div.facturi
+                  [:h4 "Facturi ANAF"]
+                  [:div {:style {"width" "600px"
+                                 "word-wrap" "break-word"}}
+                   lista-mesaje]]))
+     :headers {"content-type" "text/html"}}
+    ))
+
 (defn echo-request
   [req]
   ;; (tap> req)
@@ -84,7 +103,8 @@
    ["/api/v1/oauth/anaf-callback" (o2a/make-authorization-token-handler
                                    (anaf-conf :client-id)
                                    (anaf-conf :client-secret)
-                                   (anaf-conf :redirect-uri))]])
+                                   (anaf-conf :redirect-uri))]
+   ["/lista-mesaje" {:get listeaza-mesaje}]])
 
 (defn handler
   [conf]

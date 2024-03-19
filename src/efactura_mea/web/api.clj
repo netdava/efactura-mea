@@ -36,13 +36,13 @@
   "Obtine lista de facturi pe o perioada de 60 zile din urmă;
    - apeleaza mediul de :test din oficiu;
    - primeste app-state si {:endpoint <type>}, <type> poate fi :prod sau :test ."
-  ([target ds]
+  ([target ds zile]
    (let [cif (fetch-cif ds 1)
          a-token (fetch-access-token ds cif)
          headers {:headers {"Authorization" (str "Bearer " a-token)}}
          format-url "https://api.anaf.ro/%s/FCTEL/rest/listaMesajeFactura"
          base-url (build-url format-url target)
-         q-str {"zile" "60"
+         q-str {"zile" zile
                 "cif" cif}
          endpoint (str base-url "?" (make-query-string q-str))
          r (http/get endpoint headers)
@@ -88,10 +88,10 @@
         path (str download-to "/" cif "/" date-path)]
     (descarca-factura id path target a-token)))
 
-(defn verifica-descarca-facturi [cfg ds]
+(defn verifica-descarca-facturi [cfg ds zile]
   (let [target (:target cfg)
         download-to (c/download-dir cfg)
-        l (obtine-lista-facturi target ds)
+        l (obtine-lista-facturi target ds zile)
         facturi (:mesaje l)]
     (doseq [f facturi]
       (let [id (:id f)
