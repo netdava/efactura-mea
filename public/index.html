@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="css/style.css">
     <title>Factură electronică</title>
     <script src="assets/htmx.org/dist/htmx.min.js"></script>
   </head>
@@ -21,20 +22,19 @@
 
     <hr /> -->
 
-    <p>Vizualizează facturi pentru intervalul de timp:</p>
+    <h4>Vizualizează facturi pentru intervalul de timp:</h4>
 
     <form hx-get="/lista-mesaje" hx-target="#facturi-anaf">
-      <label for="zile">Selectează intervalul:</label>
-      <select name="zile" id="zile">
-      <option value="1">1</option>
-      <option value="2">2</option>
-      <option value="3">3</option>
-      <option value="5">5</option>
-      <option value="10">10</option>
-      <option value="60">60</option>
-      </select> 
+      <label for="zile">Introdu intervalul de zile, între 1 și 60:</label>
+      <input type="text" id="zile" name="zile" />
 
-    </br>
+      <label for="cif">CIF:</label>
+      <input type="text" list="cif" id="cif" name="cif" />
+      <datalist id="cif">
+        <option>35586426</option>
+      </datalist>
+
+        </br>
     <button type="submit">
       vezi facturi
     </button>
