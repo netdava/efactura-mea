@@ -1,0 +1,11 @@
+.facturi table th {
+    font-weight: normal;
+    text-align: left;
+    font-size: 16px;
+}
+
+.facturi table td {
+    font-weight: normal;
+    text-align: left;
+    font-size: 12px;
+}
