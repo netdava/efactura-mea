@@ -16,7 +16,8 @@
             [ring.middleware.webjars :refer [wrap-webjars]]
             [efactura-mea.web.api :as api]
             [efactura-mea.db.next-jdbc-adapter :as adapter]
-            [efactura-mea.web.oauth2-anaf :as o2a])
+            [efactura-mea.web.oauth2-anaf :as o2a]
+            [efactura-mea.ui.listare-mesaje :as lm])
   (:gen-class))
 
 (mu/on-upndown :info mu/log :before)
@@ -61,25 +62,6 @@
                                   :reitit.core/match)))]
     (bs/to-string bis)))
 
-(defn listeaza-mesaje
-  [req]
-  (let [q (:query-params req)
-        querry-params (-> q
-                          (j/write-value-as-bytes j/default-object-mapper)
-                          (j/read-value j/keyword-keys-object-mapper))
-        zile (:zile querry-params)
-        target (:target conf)
-        lista-mesaje (api/obtine-lista-facturi target ds zile)]
-    {:status 200
-     :body (str (h/html
-                 [:div.facturi
-                  [:h4 "Facturi ANAF"]
-                  [:div {:style {"width" "600px"
-                                 "word-wrap" "break-word"}}
-                   lista-mesaje]]))
-     :headers {"content-type" "text/html"}}
-    ))
-
 (defn echo-request
   [req]
   ;; (tap> req)
@@ -104,7 +86,8 @@
                                    (anaf-conf :client-id)
                                    (anaf-conf :client-secret)
                                    (anaf-conf :redirect-uri))]
-   ["/lista-mesaje" {:get listeaza-mesaje}]])
+   ["/lista-mesaje" (fn [request]
+                      (lm/listeaza-mesaje (req->str request) conf ds))]])
 
 (defn handler
   [conf]
