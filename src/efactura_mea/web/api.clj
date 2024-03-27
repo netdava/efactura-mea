@@ -50,6 +50,15 @@
          lista-facturi (j/read-value body object-mapper)]
      lista-facturi)))
 
+(defn upload-factura [ds cif]
+  (let [a-token (fetch-access-token ds cif)
+        f (slurp "facturi-anaf/pt-upload/4142058901.xml")
+        test-url "https://api.anaf.ro/test/FCTEL/rest/upload?standard=UBL&cif=35586426"
+        r (http/post test-url {:headers {"Authorization" (str "Bearer " a-token)}
+                               :body f
+                               :content-type "application/xml"})]
+    (:body r)))
+
 (defn scrie-factura->db [factura ds]
   (let [{:keys [id data_creare tip cif id_solicitare detalii]} factura]
     (facturi/insert-row-factura ds {:id id

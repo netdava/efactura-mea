@@ -87,7 +87,7 @@
                                    (anaf-conf :client-secret)
                                    (anaf-conf :redirect-uri))]
    ["/lista-mesaje" (fn [request]
-                      (lm/listeaza-mesaje (req->str request) conf ds))]])
+                      (lm/listeaza-mesaje request conf ds))]])
 
 (defn handler
   [conf]
@@ -114,9 +114,6 @@
   (-main)
   (mount/start)
   (mount/stop)
-
-  (println conf)
-
 
   (bs/to-string (m/encode m "application/json" {"a" 123}))
 
