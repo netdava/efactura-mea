@@ -41,15 +41,18 @@
       [:td id]])))
 
 (defn call-for-lista-facturi [target ds zile cif]
-  (let [lista-mesaje (api/obtine-lista-facturi target ds zile cif)
-        err (:eroare lista-mesaje)
-        mesaje (:mesaje lista-mesaje)
-        parsed-messages (for [m mesaje]
-                          (parse-message m))]
-    (when mesaje
-      (table-header)
-      parsed-messages)
-    (when err err)))
+  (try (let [lista-mesaje (api/obtine-lista-facturi target ds zile cif)
+
+             err (:eroare lista-mesaje)
+             mesaje (:mesaje lista-mesaje)]
+         (if mesaje
+           (let [parsed-messages (for [m mesaje]
+                                   (parse-message m))
+                 theader (table-header)
+                 table-rows (cons theader parsed-messages)]
+             table-rows)
+           err))
+       (catch Exception e (str (.getMessage e) ": parametri cerere: {:zile " zile ":cif " cif "}"))))
 
 (defn parse-validation-result [validation-result]
   (let [err validation-result
@@ -74,8 +77,7 @@
         cif (:cif querry-params)
         validation-result  (v/validate-input-data zile-int cif)
         r (if (nil? validation-result)
-            (try (call-for-lista-facturi target ds zile cif)
-                 (catch Exception e (str (.getMessage e) ": parametri cerere " querry-params)))
+            (call-for-lista-facturi target ds zile cif)
             (parse-validation-result validation-result))]
     {:status 200
      :body (str (h/html
