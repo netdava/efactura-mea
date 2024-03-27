@@ -2,13 +2,14 @@
 -- :command :execute
 -- :result :raw
 CREATE TABLE IF NOT EXISTS facturi_anaf (
-    id INTEGER PRIMARY KEY,
-    abstract_id TEXT,
-    data_creare TEXT,
-    tip TEXT,
+    id INTEGER,
+    data_descarcare TEXT,
+    id_descarcare TEXT PRIMARY KEY,
     cif TEXT,
-    id_solicitare TEXT,
-    detalii TEXT  
+    tip TEXT,
+    detalii TEXT,
+    data_creare TEXT,
+    id_solicitare TEXT
 ) STRICT;
 
 -- :name create-company-table
@@ -37,18 +38,19 @@ CREATE TABLE IF NOT EXISTS tokens (
 -- :command :execute
 -- :result :raw
 insert into facturi_anaf (
-    abstract_id,
-    data_creare,
-    tip,
+    data_descarcare,
+    id_descarcare,
     cif,
-    id_solicitare,
-    detalii)
-    values (:id, :data_creare, :tip, :cif, :id_solicitare, :detalii)
+    tip,
+    detalii,
+    data_creare,
+    id_solicitare)
+    values (:data_descarcare, :id_descarcare, :cif, :tip, :detalii, :data_creare, :id_solicitare)
 
 -- :name test-factura-descarcata? :? :*
 -- :command :execute
 -- :result :raw
-select id from facturi_anaf where abstract_id = :id
+select id from facturi_anaf where id_descarcare = :id
 
 -- :name select-company-cif :? :1
 -- :command :execute
