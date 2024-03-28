@@ -16,7 +16,8 @@
   [ds]
   (facturi/create-facturi-anaf-table ds)
   (facturi/create-company-table ds)
-  (facturi/create-tokens-table ds))
+  (facturi/create-tokens-table ds)
+  (facturi/create-apeluri-api-anaf ds))
 
 (defn build-url
   "Build a url from a base and a target {:endpoint <type>}

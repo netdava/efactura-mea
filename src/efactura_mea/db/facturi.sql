@@ -33,6 +33,17 @@ CREATE TABLE IF NOT EXISTS tokens (
     FOREIGN KEY (cif) REFERENCES company(cif)
 ) STRICT;
 
+-- :name create-apeluri-api-anaf
+-- :command :execute
+-- :result :raw
+CREATE TABLE IF NOT EXISTS apeluri_api_anaf (
+    id INTEGER PRIMARY KEY,
+    data_apel TEXT,
+    tip_apel TEXT,
+    status_code INTEGER,
+    response TEXT,
+    parametri_apel TEXT
+) STRICT;
 
 -- :name insert-row-factura :insert :*
 -- :command :execute
