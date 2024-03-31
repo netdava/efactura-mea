@@ -51,22 +51,25 @@
    - apeleaza mediul de :test din oficiu;
    - primeste app-state si {:endpoint <type>}, <type> poate fi :prod sau :test ."
   [target ds zile cif]
-  (let [a-token (fetch-access-token ds cif)
-        headers {:headers {"Authorization" (str "Bearer " a-token)}}
-        format-url "https://api.anaf.ro/%s/FCTEL/rest/listaMesajeFactura"
-        base-url (build-url format-url target)
-        q-str {"zile" zile
-               "cif" cif}
-        endpoint (str base-url "?" (make-query-string q-str))
-        r (http/get endpoint headers)
-        body (:body r)
-        status (:status r)
-        tip-apel "lista-mesaje"
-        _ (log-api-calls ds r tip-apel)
-        object-mapper (j/object-mapper {:decode-key-fn true})
-        response (j/read-value body object-mapper)]
-    {:status status
-     :body response}))
+  (let [a-token (fetch-access-token ds cif)]
+    (if (nil? a-token)
+      {:status 403
+       :body (str "Access-token for cif " cif " not found.")}
+      (let [headers {:headers {"Authorization" (str "Bearer " a-token)}}
+            format-url "https://api.anaf.ro/%s/FCTEL/rest/listaMesajeFactura"
+            base-url (build-url format-url target)
+            q-str {"zile" zile
+                   "cif" cif}
+            endpoint (str base-url "?" (make-query-string q-str))
+            r (http/get endpoint headers)
+            body (:body r)
+            status (:status r)
+            tip-apel "lista-mesaje"
+            _ (log-api-calls ds r tip-apel)
+            object-mapper (j/object-mapper {:decode-key-fn true})
+            response (j/read-value body object-mapper)]
+        {:status status
+         :body response}))))
 
 (defn upload-factura [ds cif]
   (let [a-token (fetch-access-token ds cif)
@@ -80,10 +83,10 @@
 (defn scrie-factura->db [factura ds]
   (let [{:keys [id data_creare tip cif id_solicitare detalii]} factura]
     (facturi/insert-row-factura ds {:id id
-                            :data_creare data_creare
-                            :tip tip
-                            :cif cif
-                            :id_solicitare id_solicitare :detalii detalii})))
+                                    :data_creare data_creare
+                                    :tip tip
+                                    :cif cif
+                                    :id_solicitare id_solicitare :detalii detalii})))
 
 (defn descarca-factura
   "Descarcă factura în format zip pe baza id-ului.
@@ -130,7 +133,6 @@
 
 
 (comment
-  
 
-  0
-  )
+
+  0)
