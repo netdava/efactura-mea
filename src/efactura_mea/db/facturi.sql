@@ -38,11 +38,11 @@ CREATE TABLE IF NOT EXISTS tokens (
 -- :result :raw
 CREATE TABLE IF NOT EXISTS apeluri_api_anaf (
     id INTEGER PRIMARY KEY,
-    data_apel TEXT,
-    tip_apel TEXT,
+    data_apelare TEXT,
+    url  TEXT,
+    tip TEXT,
     status_code INTEGER,
-    response TEXT,
-    parametri_apel TEXT
+    response TEXT
 ) STRICT;
 
 -- :name insert-row-factura :insert :*
@@ -57,6 +57,18 @@ insert into facturi_anaf (
     data_creare,
     id_solicitare)
     values (:data_descarcare, :id_descarcare, :cif, :tip, :detalii, :data_creare, :id_solicitare)
+
+-- :name insert-row-apel-api :insert :*
+-- :command :execute
+-- :result :raw
+insert into apeluri_api_anaf (
+    data_apelare,
+    url,
+    tip,
+    status_code,
+    response
+    )
+    values (:data_apelare, :url, :tip, :status_code, :response)
 
 -- :name test-factura-descarcata? :? :*
 -- :command :execute

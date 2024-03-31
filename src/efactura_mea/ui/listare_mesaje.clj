@@ -3,7 +3,9 @@
             [hiccup2.core :as h]
             [jsonista.core :as j]
             [efactura-mea.web.api :as api]
-            [efactura-mea.ui.input-validation :as v]))
+            [efactura-mea.ui.input-validation :as v]
+            [efactura-mea.db.facturi :as facturi])
+  (:import [java.time ZonedDateTime]))
 
 (defn table-header []
   (h/html
@@ -40,19 +42,34 @@
       [:td detalii]
       [:td id]])))
 
-(defn call-for-lista-facturi [target ds zile cif]
-  (try (let [lista-mesaje (api/obtine-lista-facturi target ds zile cif)
+(defn log-calls-with-error [ds e tip-apel]
+  (let [now (ZonedDateTime/now)
+        data (.getData e)
+        url (.toString (:uri data))
+        status (:status data)
+        err-msg (.getMessage e)]
+    (facturi/insert-row-apel-api ds {:data_apelare now
+                                     :url url
+                                     :tip tip-apel
+                                     :status_code status
+                                     :response err-msg})))
 
-             err (:eroare lista-mesaje)
-             mesaje (:mesaje lista-mesaje)]
-         (if mesaje
+(defn call-for-lista-facturi [target ds zile cif]
+  (try (let [apel-lista-mesaje (api/obtine-lista-facturi target ds zile cif)
+             status (:status apel-lista-mesaje)
+             body (:body apel-lista-mesaje)
+             err (:eroare body)
+             mesaje (:mesaje body)]
+         (if (and (= 200 status) mesaje)
            (let [parsed-messages (for [m mesaje]
                                    (parse-message m))
                  theader (table-header)
                  table-rows (cons theader parsed-messages)]
              table-rows)
            err))
-       (catch Exception e (str (.getMessage e) ": parametri cerere: {:zile " zile ":cif " cif "}"))))
+       (catch Exception e 
+         (str (.getMessage e) ": parametri cerere: {:zile " zile ":cif " cif "}" e)
+         (log-calls-with-error ds e "lista-mesaje"))))
 
 (defn parse-validation-result [validation-result]
   (let [err validation-result

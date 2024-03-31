@@ -4,7 +4,8 @@
             [jsonista.core :as j]
             [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
             [efactura-mea.db.facturi :as facturi]
-            [efactura-mea.config :as c]))
+            [efactura-mea.config :as c])
+  (:import [java.time ZonedDateTime]))
 
 (defn fetch-cif [db id]
   (:cif (facturi/select-company-cif db {:id id})))
@@ -18,6 +19,18 @@
   (facturi/create-company-table ds)
   (facturi/create-tokens-table ds)
   (facturi/create-apeluri-api-anaf ds))
+
+(defn log-api-calls [ds response tip-apel]
+  (let [now (ZonedDateTime/now)
+        uri (:uri (:request response))
+        url (.toString uri)
+        status (:status response)
+        response (:body response)]
+    (facturi/insert-row-apel-api ds {:data_apelare now
+                                     :url url
+                                     :tip tip-apel
+                                     :status_code status
+                                     :response response})))
 
 (defn build-url
   "Build a url from a base and a target {:endpoint <type>}
@@ -37,19 +50,23 @@
   "Obtine lista de facturi pe o perioada de 60 zile din urmă;
    - apeleaza mediul de :test din oficiu;
    - primeste app-state si {:endpoint <type>}, <type> poate fi :prod sau :test ."
-  ([target ds zile cif]
-   (let [a-token (fetch-access-token ds cif)
-         headers {:headers {"Authorization" (str "Bearer " a-token)}}
-         format-url "https://api.anaf.ro/%s/FCTEL/rest/listaMesajeFactura"
-         base-url (build-url format-url target)
-         q-str {"zile" zile
-                "cif" cif}
-         endpoint (str base-url "?" (make-query-string q-str))
-         r (http/get endpoint headers)
-         body (:body r)
-         object-mapper (j/object-mapper {:decode-key-fn true})
-         lista-facturi (j/read-value body object-mapper)]
-     lista-facturi)))
+  [target ds zile cif]
+  (let [a-token (fetch-access-token ds cif)
+        headers {:headers {"Authorization" (str "Bearer " a-token)}}
+        format-url "https://api.anaf.ro/%s/FCTEL/rest/listaMesajeFactura"
+        base-url (build-url format-url target)
+        q-str {"zile" zile
+               "cif" cif}
+        endpoint (str base-url "?" (make-query-string q-str))
+        r (http/get endpoint headers)
+        body (:body r)
+        status (:status r)
+        tip-apel "lista-mesaje"
+        _ (log-api-calls ds r tip-apel)
+        object-mapper (j/object-mapper {:decode-key-fn true})
+        response (j/read-value body object-mapper)]
+    {:status status
+     :body response}))
 
 (defn upload-factura [ds cif]
   (let [a-token (fetch-access-token ds cif)
@@ -112,3 +129,8 @@
           (println "factura" zip-name "exista salvata local"))))))
 
 
+(comment
+  
+
+  0
+  )
