@@ -55,21 +55,20 @@
                                      :response err-msg})))
 
 (defn call-for-lista-facturi [target ds zile cif]
-  (try (let [apel-lista-mesaje (api/obtine-lista-facturi target ds zile cif)
-             status (:status apel-lista-mesaje)
-             body (:body apel-lista-mesaje)
-             err (:eroare body)
-             mesaje (:mesaje body)]
-         (if (and (= 200 status) mesaje)
-           (let [parsed-messages (for [m mesaje]
-                                   (parse-message m))
-                 theader (table-header)
-                 table-rows (cons theader parsed-messages)]
-             table-rows)
-           err))
-       (catch Exception e 
-         (str (.getMessage e) ": parametri cerere: {:zile " zile ":cif " cif "}" e)
-         (log-calls-with-error ds e "lista-mesaje"))))
+  (let [apel-lista-mesaje (api/obtine-lista-facturi target ds zile cif)
+        status (:status apel-lista-mesaje)
+        body (:body apel-lista-mesaje)
+        err (:eroare body)
+        mesaje (:mesaje body)]
+    (if (= 200 status)
+      (if mesaje
+        (let [parsed-messages (for [m mesaje]
+                                (parse-message m))
+              theader (table-header)
+              table-rows (cons theader parsed-messages)]
+          table-rows)
+        err)
+      body)))
 
 (defn parse-validation-result [validation-result]
   (let [err validation-result
