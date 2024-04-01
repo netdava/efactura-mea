@@ -1,10 +1,12 @@
 (ns efactura-mea.ui.listare-mesaje
   (:require [clojure.string :as s]
+            [clojure.edn :as edn]
             [hiccup2.core :as h]
             [jsonista.core :as j]
             [efactura-mea.web.api :as api]
             [efactura-mea.ui.input-validation :as v]
-            [efactura-mea.db.facturi :as facturi])
+            [efactura-mea.db.facturi :as facturi]
+            [efactura-mea.config :as c])
   (:import [java.time ZonedDateTime]))
 
 (defn table-header []
@@ -105,7 +107,7 @@
                     r]]]))
      :headers {"content-type" "text/html"}}))
 
-(defn fetch-lista-mesaje [target ds zile cif]
+(defn fetch-lista-mesaje [target ds zile cif conf]
   (let [apel-lista-mesaje (api/obtine-lista-facturi target ds zile cif)
         status (:status apel-lista-mesaje)
         body (:body apel-lista-mesaje)
@@ -114,8 +116,26 @@
     (if (= 200 status)
       (if mesaje
         (let [_ (api/track-descarcare-mesaje ds mesaje)
-              queue-lista-mesaje (facturi/select-queue-lista-mesaje ds)]
-          (println "MMMMMMMMMMMMMMM" queue-lista-mesaje))
+              queue-lista-mesaje (facturi/select-queue-lista-mesaje ds)
+              queue-id (:id queue-lista-mesaje)
+              lm-str (:lista_mesaje queue-lista-mesaje)
+              lista-mesaje (edn/read-string lm-str)
+              download-to (c/download-dir conf)
+              raport-descarcare-facturi (reduce
+                                         (fn [acc f]
+                                           (let [id (:id f)
+                                                 zip-name (str id ".zip")
+                                                 test-file-exist (facturi/test-factura-descarcata? ds {:id id})]
+                                             (if (empty? test-file-exist)
+                                               (do (api/download-zip-file f target ds download-to)
+                                                   (api/scrie-factura->db f ds)
+                                                   (conj acc (str "am descarcat mesajul " zip-name)))
+                                               (conj acc (str "factura " zip-name " exista salvata local")))))
+                                         [] lista-mesaje)]
+          (facturi/delete-row-download-queue ds {:id queue-id})
+          (h/html [:ul
+                   (for [item raport-descarcare-facturi]
+                     [:li item])]))
         err)
       body)))
 
@@ -123,7 +143,7 @@
   [req conf ds]
   (let [target (:target conf)
         q (:query-params req)
-        
+
         querry-params (-> q
                           (j/write-value-as-bytes j/default-object-mapper)
                           (j/read-value j/keyword-keys-object-mapper))
@@ -135,8 +155,7 @@
         cif (:cif querry-params)
         validation-result  (v/validate-input-data zile-int cif)
         r (if (nil? validation-result)
-            (let [lista-mesaje (fetch-lista-mesaje target ds zile cif)]
-              (println lista-mesaje))
+            (fetch-lista-mesaje target ds zile cif conf)
             (parse-validation-result validation-result))]
     {:status 200
      :body (str (h/html
@@ -144,6 +163,5 @@
                   [:h4 "Facturi ANAF"]
                   [:div {:style {"width" "1000px"
                                  "word-wrap" "break-word"}}
-                   [:table
-                    r]]]))
+                   r]]))
      :headers {"content-type" "text/html"}}))

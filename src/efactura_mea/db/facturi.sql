@@ -2,9 +2,9 @@
 -- :command :execute
 -- :result :raw
 CREATE TABLE IF NOT EXISTS facturi_anaf (
-    id INTEGER,
+    id INTEGER PRIMARY KEY,
     data_descarcare TEXT,
-    id_descarcare TEXT PRIMARY KEY,
+    id_descarcare TEXT ,
     cif TEXT,
     tip TEXT,
     detalii TEXT,
@@ -138,3 +138,6 @@ insert into descarcare_lista_mesaje (
     data_start_procedura,
     lista_mesaje)
     values (:data_start_procedura, :lista_mesaje)
+
+-- :name delete-row-download-queue
+DELETE FROM descarcare_lista_mesaje WHERE id = :id
