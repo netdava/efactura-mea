@@ -104,3 +104,46 @@
                    [:table
                     r]]]))
      :headers {"content-type" "text/html"}}))
+
+(defn fetch-lista-mesaje [target ds zile cif]
+  (let [apel-lista-mesaje (api/obtine-lista-facturi target ds zile cif)
+        status (:status apel-lista-mesaje)
+        body (:body apel-lista-mesaje)
+        err (:eroare body)
+        mesaje (:mesaje body)]
+    (if (= 200 status)
+      (if mesaje
+        (let [_ (api/track-descarcare-mesaje ds mesaje)
+              queue-lista-mesaje (facturi/select-queue-lista-mesaje ds)]
+          (println "MMMMMMMMMMMMMMM" queue-lista-mesaje))
+        err)
+      body)))
+
+(defn descarca-mesaje
+  [req conf ds]
+  (let [target (:target conf)
+        q (:query-params req)
+        
+        querry-params (-> q
+                          (j/write-value-as-bytes j/default-object-mapper)
+                          (j/read-value j/keyword-keys-object-mapper))
+        zile (:zile querry-params)
+        zile-int (if (contains? querry-params :zile)
+                   (try (Integer/parseInt zile)
+                        (catch Exception _ zile))
+                   nil)
+        cif (:cif querry-params)
+        validation-result  (v/validate-input-data zile-int cif)
+        r (if (nil? validation-result)
+            (let [lista-mesaje (fetch-lista-mesaje target ds zile cif)]
+              (println lista-mesaje))
+            (parse-validation-result validation-result))]
+    {:status 200
+     :body (str (h/html
+                 [:div.facturi
+                  [:h4 "Facturi ANAF"]
+                  [:div {:style {"width" "1000px"
+                                 "word-wrap" "break-word"}}
+                   [:table
+                    r]]]))
+     :headers {"content-type" "text/html"}}))
