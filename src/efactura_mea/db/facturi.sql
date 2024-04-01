@@ -45,6 +45,15 @@ CREATE TABLE IF NOT EXISTS apeluri_api_anaf (
     response TEXT
 ) STRICT;
 
+-- :name create-descarcare-lista-mesaje
+-- :command :execute
+-- :result :raw
+CREATE TABLE IF NOT EXISTS descarcare_lista_mesaje (
+    id INTEGER PRIMARY KEY,
+    data_start_procedura TEXT,
+    lista_mesaje TEXT
+) STRICT;
+
 -- :name insert-row-factura :insert :*
 -- :command :execute
 -- :result :raw
@@ -59,6 +68,18 @@ insert into facturi_anaf (
     values (:data_descarcare, :id_descarcare, :cif, :tip, :detalii, :data_creare, :id_solicitare)
 
 -- :name insert-row-apel-api :insert :*
+-- :command :execute
+-- :result :raw
+insert into apeluri_api_anaf (
+    data_apelare,
+    url,
+    tip,
+    status_code,
+    response
+    )
+    values (:data_apelare, :url, :tip, :status_code, :response)
+
+-- :name insert-row-apel-api-lista-mesaje :insert :*
 -- :command :execute
 -- :result :raw
 insert into apeluri_api_anaf (
@@ -85,6 +106,13 @@ select cif from company where id = :id
 -- :result :raw
 select access_token from tokens where cif = :cif
 
+-- :name select-queue-lista-mesaje :? :1
+-- :command :execute
+-- :result :raw
+SELECT * FROM descarcare_lista_mesaje ORDER BY id DESC LIMIT 1
+
+
+
 -- :name insert-company :insert :*
 -- :command :execute
 -- :result :raw
@@ -103,3 +131,10 @@ insert into tokens (
     expiration_date)
     values (:cif, :access_token, :refresh_token, :expiration_date)
 
+-- :name insert-into-descarcare-lista-mesaje :insert :*
+-- :command :execute
+-- :result :raw
+insert into descarcare_lista_mesaje (
+    data_start_procedura,
+    lista_mesaje)
+    values (:data_start_procedura, :lista_mesaje)

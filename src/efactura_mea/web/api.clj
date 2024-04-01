@@ -18,7 +18,8 @@
   (facturi/create-facturi-anaf-table ds)
   (facturi/create-company-table ds)
   (facturi/create-tokens-table ds)
-  (facturi/create-apeluri-api-anaf ds))
+  (facturi/create-apeluri-api-anaf ds)
+  (facturi/create-descarcare-lista-mesaje ds))
 
 (defn log-api-calls [ds response tip-apel]
   (let [now (ZonedDateTime/now)
@@ -31,6 +32,11 @@
                                      :tip tip-apel
                                      :status_code status
                                      :response response})))
+
+(defn track-descarcare-mesaje [ds lista-mesaje]
+  (let [now (ZonedDateTime/now)]
+    (facturi/insert-into-descarcare-lista-mesaje ds {:data_start_procedura now
+                                                     :lista_mesaje lista-mesaje})))
 
 (defn build-url
   "Build a url from a base and a target {:endpoint <type>}
