@@ -87,12 +87,15 @@
     (:body r)))
 
 (defn scrie-factura->db [factura ds]
-  (let [{:keys [id data_creare tip cif id_solicitare detalii]} factura]
-    (facturi/insert-row-factura ds {:id id
-                                    :data_creare data_creare
-                                    :tip tip
+  (let [now (ZonedDateTime/now)
+        {:keys [id data_creare tip cif id_solicitare detalii]} factura]
+    (facturi/insert-row-factura ds {:data_descarcare now
+                                    :id_descarcare id
                                     :cif cif
-                                    :id_solicitare id_solicitare :detalii detalii})))
+                                    :tip tip
+                                    :detalii detalii
+                                    :data_creare data_creare
+                                    :id_solicitare id_solicitare})))
 
 (defn descarca-factura
   "Descarcă factura în format zip pe baza id-ului.
@@ -123,12 +126,9 @@
         path (str download-to "/" cif "/" date-path)]
     (descarca-factura id path target a-token)))
 
-(defn verifica-descarca-facturi [cfg ds zile]
-  (let [target (:target cfg)
-        download-to (c/download-dir cfg)
-        l (obtine-lista-facturi target ds zile)
-        facturi (:mesaje l)]
-    (doseq [f facturi]
+#_(defn verifica-descarca-facturi [mesaje cfg target ]
+  (let [download-to (c/download-dir cfg)]
+    (doseq [f mesaje]
       (let [id (:id f)
             zip-name (str id ".zip")
             test-file-exist (facturi/test-factura-descarcata? ds {:id id})]
