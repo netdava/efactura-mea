@@ -2,6 +2,10 @@
   (:require [babashka.http-client :as http]
             [clj-commons.byte-streams :as bs]
             [cprop.core :refer [load-config]]
+            [efactura-mea.db.next-jdbc-adapter :as adapter]
+            [efactura-mea.web.api :as api]
+            [efactura-mea.db.db-ops :as db]
+            [efactura-mea.web.oauth2-anaf :as o2a]
             [hiccup2.core :as h]
             [jsonista.core :as j]
             [mount-up.core :as mu]
@@ -13,11 +17,7 @@
             [ring.adapter.jetty9 :refer [run-jetty stop-server]]
             [ring.middleware.defaults :as rmd]
             [ring.middleware.file :refer [wrap-file]]
-            [ring.middleware.webjars :refer [wrap-webjars]]
-            [efactura-mea.web.api :as api]
-            [efactura-mea.db.next-jdbc-adapter :as adapter]
-            [efactura-mea.web.oauth2-anaf :as o2a]
-            [efactura-mea.ui.listare-mesaje :as lm])
+            [ring.middleware.webjars :refer [wrap-webjars]])
   (:gen-class))
 
 (mu/on-upndown :info mu/log :before)
@@ -87,9 +87,9 @@
                                    (anaf-conf :client-secret)
                                    (anaf-conf :redirect-uri))]
    ["/lista-mesaje" (fn [request]
-                      (lm/listeaza-mesaje request conf ds))]
+                      (api/listeaza-mesaje request conf ds))]
    ["/factura-download" (fn [request]
-                          (lm/descarca-mesaje request conf ds))]])
+                          (api/descarca-mesaje request conf ds))]])
 
 (defn handler
   [conf]
@@ -110,7 +110,7 @@
 
 (defn -main [& args]
   (mount/start)
-  (api/create-sql-tables ds))
+  (db/create-sql-tables ds))
 
 (comment
   (-main)
@@ -118,8 +118,5 @@
   (mount/stop)
 
   (bs/to-string (m/encode m "application/json" {"a" 123}))
-
-  (http/get "https://www.ieugen.ro/")
-
 
   0)

@@ -6,7 +6,11 @@
             [efactura-mea.web.api :as api]
             [efactura-mea.ui.input-validation :as v]
             [efactura-mea.db.facturi :as facturi]
-            [efactura-mea.config :as c])
+            [efactura-mea.config :as c]
+            [efactura-mea.util :as u]
+            [ring.middleware.file :refer [wrap-file]]
+            [ring.util.response :as r]
+            [ring.util.request :as ring-req])
   (:import [java.time ZonedDateTime]))
 
 (defn table-header []
@@ -131,11 +135,19 @@
                                                    (api/scrie-factura->db f ds)
                                                    (conj acc (str "am descarcat mesajul " zip-name)))
                                                (conj acc (str "factura " zip-name " exista salvata local")))))
-                                         [] lista-mesaje)]
+                                         [] lista-mesaje)
+              a (h/html [:ul
+                         (for [item raport-descarcare-facturi]
+                           [:li item])])
+              b (let [data-dir (c/download-dir conf)
+                      facturi-descarcate (u/list-files-from-dir data-dir)]
+                  (for [f facturi-descarcate]
+                    (let [vec-str (clojure.string/split f #"/")
+                          dropped (drop 1 vec-str)
+                          new-path (clojure.string/join "/" dropped)]
+                      [:a {:href new-path :target "_blank"} f])))]
           (facturi/delete-row-download-queue ds {:id queue-id})
-          (h/html [:ul
-                   (for [item raport-descarcare-facturi]
-                     [:li item])]))
+          (cons a b))
         err)
       body)))
 
@@ -165,3 +177,6 @@
                                  "word-wrap" "break-word"}}
                    r]]))
      :headers {"content-type" "text/html"}}))
+
+
+

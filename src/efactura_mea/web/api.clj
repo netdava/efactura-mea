@@ -1,49 +1,18 @@
 (ns efactura-mea.web.api
   (:require [babashka.http-client :as http]
+            [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [jsonista.core :as j]
-            [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
+            [clojure.string :as s]
+            [efactura-mea.config :as c]
+            [efactura-mea.db.db-ops :as db]
             [efactura-mea.db.facturi :as facturi]
-            [efactura-mea.config :as c])
-  (:import [java.time ZonedDateTime]))
+            [efactura-mea.ui.componente :as ui-comp]
+            [efactura-mea.ui.input-validation :as v]
+            [efactura-mea.util :as u]
+            [efactura-mea.web.api :as api]
+            [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
+            [hiccup2.core :as h]))
 
-(defn fetch-cif [db id]
-  (:cif (facturi/select-company-cif db {:id id})))
-
-(defn fetch-access-token [db cif]
-  (:access_token (facturi/select-access-token db {:cif cif})))
-
-(defn create-sql-tables
-  [ds]
-  (facturi/create-facturi-anaf-table ds)
-  (facturi/create-company-table ds)
-  (facturi/create-tokens-table ds)
-  (facturi/create-apeluri-api-anaf ds)
-  (facturi/create-descarcare-lista-mesaje ds))
-
-(defn log-api-calls [ds response tip-apel]
-  (let [now (ZonedDateTime/now)
-        uri (:uri (:request response))
-        url (.toString uri)
-        status (:status response)
-        response (:body response)]
-    (facturi/insert-row-apel-api ds {:data_apelare now
-                                     :url url
-                                     :tip tip-apel
-                                     :status_code status
-                                     :response response})))
-
-(defn track-descarcare-mesaje [ds lista-mesaje]
-  (let [now (ZonedDateTime/now)]
-    (facturi/insert-into-descarcare-lista-mesaje ds {:data_start_procedura now
-                                                     :lista_mesaje lista-mesaje})))
-
-(defn build-url
-  "Build a url from a base and a target {:endpoint <type>}
-   - <type> can be :prod or :test;"
-  [url-base target]
-  (let [type (:endpoint target)]
-    (format url-base (name type))))
 
 (defn save-zip-file [data file-path]
   (let [f (io/file file-path)
@@ -57,13 +26,13 @@
    - apeleaza mediul de :test din oficiu;
    - primeste app-state si {:endpoint <type>}, <type> poate fi :prod sau :test ."
   [target ds zile cif]
-  (let [a-token (fetch-access-token ds cif)]
+  (let [a-token (db/fetch-access-token ds cif)]
     (if (nil? a-token)
       {:status 403
        :body (str "Access-token for cif " cif " not found.")}
       (let [headers {:headers {"Authorization" (str "Bearer " a-token)}}
             format-url "https://api.anaf.ro/%s/FCTEL/rest/listaMesajeFactura"
-            base-url (build-url format-url target)
+            base-url (u/build-url format-url target)
             q-str {"zile" zile
                    "cif" cif}
             endpoint (str base-url "?" (make-query-string q-str))
@@ -71,31 +40,10 @@
             body (:body r)
             status (:status r)
             tip-apel "lista-mesaje"
-            _ (log-api-calls ds r tip-apel)
-            object-mapper (j/object-mapper {:decode-key-fn true})
-            response (j/read-value body object-mapper)]
+            _ (db/log-api-calls ds r tip-apel)
+            response (u/encode-body-json->edn body)]
         {:status status
          :body response}))))
-
-(defn upload-factura [ds cif]
-  (let [a-token (fetch-access-token ds cif)
-        f (slurp "facturi-anaf/pt-upload/4142058901.xml")
-        test-url "https://api.anaf.ro/test/FCTEL/rest/upload?standard=UBL&cif=35586426"
-        r (http/post test-url {:headers {"Authorization" (str "Bearer " a-token)}
-                               :body f
-                               :content-type "application/xml"})]
-    (:body r)))
-
-(defn scrie-factura->db [factura ds]
-  (let [now (ZonedDateTime/now)
-        {:keys [id data_creare tip cif id_solicitare detalii]} factura]
-    (facturi/insert-row-factura ds {:data_descarcare now
-                                    :id_descarcare id
-                                    :cif cif
-                                    :tip tip
-                                    :detalii detalii
-                                    :data_creare data_creare
-                                    :id_solicitare id_solicitare})))
 
 (defn descarca-factura
   "Descarcă factura în format zip pe baza id-ului.
@@ -104,7 +52,7 @@
   [id path target a-token]
   (let [headers {:headers {"Authorization" (str "Bearer " a-token)} :as :stream}
         format-url "https://api.anaf.ro/%s/FCTEL/rest/descarcare"
-        base-url (build-url format-url target)
+        base-url (u/build-url format-url target)
         endpoint (str base-url "?id=" id)
         response (http/get endpoint headers)
         data (:body response)
@@ -113,29 +61,118 @@
     (save-zip-file data file-path)
     (println "Am descărcat" (str id ".zip") "pe calea" file-path)))
 
-(defn build-path [data-creare]
-  (let [an (subs data-creare 0 4)
-        luna (subs data-creare 4 6)]
-    (str an "/" luna)))
-
 (defn download-zip-file [factura target ds download-to]
-  (let [cif (fetch-cif ds 1)
-        a-token (fetch-access-token ds cif)
+  (let [cif (db/fetch-cif ds 1)
+        a-token (db/fetch-access-token ds cif)
         {:keys [id data_creare]} factura
-        date-path (build-path data_creare)
+        date-path (u/build-path data_creare)
         path (str download-to "/" cif "/" date-path)]
     (descarca-factura id path target a-token)))
 
-#_(defn verifica-descarca-facturi [mesaje cfg target ]
-  (let [download-to (c/download-dir cfg)]
-    (doseq [f mesaje]
-      (let [id (:id f)
-            zip-name (str id ".zip")
-            test-file-exist (facturi/test-factura-descarcata? ds {:id id})]
-        (if (empty? test-file-exist)
-          (do (download-zip-file f target ds download-to)
-              (scrie-factura->db f ds))
-          (println "factura" zip-name "exista salvata local"))))))
+(defn parse-message [m]
+  (let [{:keys [data_creare tip id_solicitare detalii id]} m
+        data-creare-mesaj (u/parse-date data_creare)
+        d (:data_c data-creare-mesaj)
+        h (:ora_c data-creare-mesaj)
+        parsed-tip (s/lower-case tip)]
+    (ui-comp/table-row-factura d h parsed-tip id_solicitare detalii id)))
+
+(defn call-for-lista-facturi [target ds zile cif]
+  (let [apel-lista-mesaje (obtine-lista-facturi target ds zile cif)
+        status (:status apel-lista-mesaje)
+        body (:body apel-lista-mesaje)
+        err (:eroare body)
+        mesaje (:mesaje body)]
+    (if (= 200 status)
+      (if mesaje
+        (let [parsed-messages (for [m mesaje]
+                                (parse-message m))
+              theader (ui-comp/table-header-facturi)
+              table-rows (cons theader parsed-messages)]
+          table-rows)
+        err)
+      body)))
+
+(defn parse-validation-result [validation-result]
+  (let [err validation-result
+        valid-zile? (first (:zile err))
+        valid-cif? (first (:cif err))]
+    (ui-comp/validation-message valid-zile? valid-cif?)))
+
+(defn parse-to-int-when-present [q z]
+  (if (contains? q :zile)
+    (try (Integer/parseInt z)
+         (catch Exception _ z))
+    nil))
+
+(defn listeaza-mesaje
+  [req conf ds]
+  (let [target (:target conf)
+        querry-params (u/encode-request-params->edn req)
+        zile (:zile querry-params)
+        zile-int (parse-to-int-when-present querry-params zile)
+        cif (:cif querry-params)
+        validation-result  (v/validate-input-data zile-int cif)
+        r (if (nil? validation-result)
+            (call-for-lista-facturi target ds zile cif)
+            (parse-validation-result validation-result))]
+    (ui-comp/lista-mesaje r)))
+
+(defn fetch-lista-mesaje [target ds zile cif conf]
+  (let [apel-lista-mesaje (obtine-lista-facturi target ds zile cif)
+        status (:status apel-lista-mesaje)
+        body (:body apel-lista-mesaje)
+        err (:eroare body)
+        mesaje (:mesaje body)]
+    (if (= 200 status)
+      (if mesaje
+        (let [_ (db/track-descarcare-mesaje ds mesaje)
+              queue-lista-mesaje (facturi/select-queue-lista-mesaje ds)
+              queue-id (:id queue-lista-mesaje)
+              lm-str (:lista_mesaje queue-lista-mesaje)
+              lista-mesaje (edn/read-string lm-str)
+              download-to (c/download-dir conf)
+              raport-descarcare-facturi (reduce
+                                         (fn [acc f]
+                                           (let [id (:id f)
+                                                 zip-name (str id ".zip")
+                                                 test-file-exist (facturi/test-factura-descarcata? ds {:id id})]
+                                             (if (empty? test-file-exist)
+                                               (do (download-zip-file f target ds download-to)
+                                                   (db/scrie-factura->db f ds)
+                                                   (conj acc (str "am descarcat mesajul " zip-name)))
+                                               (conj acc (str "factura " zip-name " exista salvata local")))))
+                                         [] lista-mesaje)
+              a (h/html [:ul
+                         (for [item raport-descarcare-facturi]
+                           [:li item])])
+              b (let [data-dir (c/download-dir conf)
+                      facturi-descarcate (u/list-files-from-dir data-dir)]
+                  (for [f facturi-descarcate]
+                    (let [vec-str (clojure.string/split f #"/")
+                          dropped (drop 1 vec-str)
+                          new-path (clojure.string/join "/" dropped)]
+                      [:a {:href new-path :target "_blank"} f])))]
+          (facturi/delete-row-download-queue ds {:id queue-id})
+          (cons a b))
+        err)
+      body)))
+
+(defn descarca-mesaje
+  [req conf ds]
+  (let [target (:target conf)
+        querry-params (u/encode-request-params->edn req)
+        zile (:zile querry-params)
+        zile-int (if (contains? querry-params :zile)
+                   (try (Integer/parseInt zile)
+                        (catch Exception _ zile))
+                   nil)
+        cif (:cif querry-params)
+        validation-result  (v/validate-input-data zile-int cif)
+        r (if (nil? validation-result)
+            (fetch-lista-mesaje target ds zile cif conf)
+            (parse-validation-result validation-result))]
+    (ui-comp/lista-mesaje r)))
 
 
 (comment
