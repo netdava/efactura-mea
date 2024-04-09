@@ -86,10 +86,9 @@
                                    (anaf-conf :client-id)
                                    (anaf-conf :client-secret)
                                    (anaf-conf :redirect-uri))]
-   ["/lista-mesaje" (fn [request]
-                      (api/listeaza-mesaje request conf ds))]
-   ["/factura-download" (fn [request]
-                          (api/descarca-mesaje request conf ds))]])
+   ["/listare-sau-descarcare" (fn [request]
+                               (println request)
+                               (api/efactura-action-handler request conf ds))]])
 
 (defn handler
   [conf]
