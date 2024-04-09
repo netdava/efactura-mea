@@ -111,7 +111,8 @@ select access_token from tokens where cif = :cif
 -- :result :raw
 SELECT * FROM descarcare_lista_mesaje ORDER BY id DESC LIMIT 1
 
-
+-- :name select-lista-mesaje-descarcate
+SELECT * FROM facturi_anaf;
 
 -- :name insert-company :insert :*
 -- :command :execute
