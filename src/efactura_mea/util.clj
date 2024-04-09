@@ -58,9 +58,3 @@
   (let [q (:query-params req)
         edn-q-params (json-encode->edn q)]
     edn-q-params))
-
-(comment
-  (list-files-from-dir "facturi")
-  (let [z-files (list-files-from-dir "facturi")]
-    (doseq [z z-files]
-      (println (walkzip z)))))

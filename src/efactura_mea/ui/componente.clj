@@ -1,17 +1,27 @@
 (ns efactura-mea.ui.componente
   (:require [hiccup2.core :as h]))
 
-(defn table-header-facturi []
+(defn table-header-facturi-anaf []
   (h/html
    [:tr
     [:th {:style {"font-weight" "normal"
-                  "text-align" "left"}} "Dată răspuns"]
-    [:th "Tip"]
-    [:th "Număr înregistrare"]
-    [:th "Detalii"]
-    [:th "Id descărcare"]]))
+                  "text-align" "left"}} "dată răspuns"]
+    [:th "tip"]
+    [:th "număr înregistrare"]
+    [:th "detalii"]
+    [:th "id descărcare"]]))
 
-(defn table-row-factura [data ora tip-factura id_solicitare detalii id]
+(defn table-header-facturi-descarcate []
+  (h/html
+   [:tr
+    [:th {:style {"font-weight" "normal"
+                  "text-align" "left"}} "nume fișier"]
+    [:th "data creare"]
+    [:th "detalii"]
+    [:th "tip"]
+    [:th "număr înregistrare"]]))
+
+(defn row-factura-anaf [data ora tip-factura id_solicitare detalii id]
   (h/html
    [:tr
     [:td data [:br] ora]
@@ -19,6 +29,22 @@
     [:td id_solicitare]
     [:td detalii]
     [:td id]]))
+
+(defn row-factura-descarcata [href name creation-date detalii tip id_solicitare]
+  (h/html
+   [:tr
+    [:td [:a {:href href :target "_blank"} name]]
+    [:td creation-date]
+    [:td detalii]
+    [:td tip]
+    [:td id_solicitare]]))
+
+(defn tabel-facturi-descarcate [rows]
+  (h/html
+   [:table
+    (table-header-facturi-descarcate)
+    (for [r rows]
+      r)]))
 
 (defn validation-message [err-days err-cif]
   (h/html 

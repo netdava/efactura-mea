@@ -9,6 +9,9 @@
 (defn fetch-access-token [db cif]
   (:access_token (f/select-access-token db {:cif cif})))
 
+(defn fetch-facturi-descarcate [db]
+  (f/select-lista-mesaje-descarcate db))
+
 (defn create-sql-tables
   [ds]
   (f/create-facturi-anaf-table ds)
@@ -45,3 +48,4 @@
   (let [now (ZonedDateTime/now)]
     (f/insert-into-descarcare-lista-mesaje ds {:data_start_procedura now
                                                :lista_mesaje lista-mesaje})))
+

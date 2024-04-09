@@ -75,7 +75,7 @@
         d (:data_c data-creare-mesaj)
         h (:ora_c data-creare-mesaj)
         parsed-tip (s/lower-case tip)]
-    (ui-comp/table-row-factura d h parsed-tip id_solicitare detalii id)))
+    (ui-comp/row-factura-anaf d h parsed-tip id_solicitare detalii id)))
 
 (defn call-for-lista-facturi [target ds zile cif]
   (let [apel-lista-mesaje (obtine-lista-facturi target ds zile cif)
@@ -87,7 +87,7 @@
       (if mesaje
         (let [parsed-messages (for [m mesaje]
                                 (parse-message m))
-              theader (ui-comp/table-header-facturi)
+              theader (ui-comp/table-header-facturi-anaf)
               table-rows (cons theader parsed-messages)]
           table-rows)
         err)
@@ -146,15 +146,19 @@
               a (h/html [:ul
                          (for [item raport-descarcare-facturi]
                            [:li item])])
-              b (let [data-dir (c/download-dir conf)
-                      facturi-descarcate (u/list-files-from-dir data-dir)]
-                  (for [f facturi-descarcate]
-                    (let [vec-str (clojure.string/split f #"/")
-                          dropped (drop 1 vec-str)
-                          new-path (clojure.string/join "/" dropped)]
-                      [:a {:href new-path :target "_blank"} f])))]
+              b (let [fact-desc (db/fetch-facturi-descarcate ds)
+                      l (for [f fact-desc]
+                          (let [{:keys [id_descarcare cif tip detalii data_creare id_solicitare]} f
+                                path (u/build-path data_creare)
+                                f-name (str id_descarcare ".zip")
+                                final-path (str "date/" cif "/" path "/" f-name)
+                                parsed-date (u/parse-date data_creare)
+                                d (str (:data_c parsed-date) (:ora_c parsed-date))]
+                            (ui-comp/row-factura-descarcata
+                             final-path f-name d detalii tip id_solicitare)))]
+                  (ui-comp/tabel-facturi-descarcate l))]
           (facturi/delete-row-download-queue ds {:id queue-id})
-          (cons a b))
+          (h/html a b))
         err)
       body)))
 

@@ -101,6 +101,7 @@
   (-> (handler conf)
       (middleware/wrap-format)
       (rmd/wrap-defaults rmd/site-defaults)
+      (wrap-file "data")
       (wrap-file (get-in conf [:server :public-path]))
       (wrap-webjars)))
 
