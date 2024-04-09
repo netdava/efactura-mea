@@ -147,7 +147,8 @@
                          (for [item raport-descarcare-facturi]
                            [:li item])])
               b (let [fact-desc (db/fetch-facturi-descarcate ds)
-                      l (for [f fact-desc]
+                      sorted-fdesc (sort-by :data_creare fact-desc)
+                      l (for [f sorted-fdesc]
                           (let [{:keys [id_descarcare cif tip detalii data_creare id_solicitare]} f
                                 path (u/build-path data_creare)
                                 f-name (str id_descarcare ".zip")
@@ -178,8 +179,8 @@
             (parse-validation-result validation-result))]
     (ui-comp/lista-mesaje r)))
 
-
-(comment
-
-
-  0)
+(defn efactura-action-handler [req conf ds]
+  (let [params (:params req)]
+    (case (:action params)
+      "listare" (listeaza-mesaje req conf ds)
+      "descarcare" (descarca-mesaje req conf ds))))

@@ -11,22 +11,8 @@
 </head>
 
 <body>
-  <!-- <p>Aici este aplicația.</p>
-
-    <a href="/login-anaf">Autentificare ANAF</a>
-
-    <hr />
-
-    <button hx-get="/xui/echo" hx-trigger="click" hx-target="#request-echo">
-      Echo
-    </button>
-    <div id="request-echo"></div>
-
-    <hr /> -->
-
-  <h4>Vizualizează facturi pentru intervalul de timp:</h4>
-
-  <form hx-get="/lista-mesaje" hx-target="#facturi-anaf">
+  
+  <form hx-get="/listare-sau-descarcare" hx-target="#facturi-anaf">
     <label for="zile">Introdu intervalul de zile, între 1 și 60:</label>
     <input type="text" id="zile" name="zile" required />
 
@@ -37,30 +23,14 @@
     </datalist>
 
     </br>
-    <button type="submit">
+    <button type="submit" name="action" value="listare">
       vezi facturi
     </button>
-  </form>
 
-  <h4>Descarcă facturi pentru intervalul de timp:</h4>
-
-  <form hx-get="/factura-download" hx-target="#facturi-anaf">
-    <label for="zile">Introdu intervalul de zile, între 1 și 60:</label>
-    <input type="text" id="zile" name="zile" required />
-
-    <label for="cif">CIF:</label>
-    <input type="text" list="cif" id="cif" name="cif" />
-    <datalist id="cif">
-      <option>35586426</option>
-    </datalist>
-    <br>
-    <button type="submit">
+    <button type="submit" name="action" value="descarcare">
       descarca facturi
     </button>
   </form>
-
-
-
   <div id="facturi-anaf"></div>
 
 </body>
