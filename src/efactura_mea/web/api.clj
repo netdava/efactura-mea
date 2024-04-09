@@ -118,6 +118,30 @@
             (parse-validation-result validation-result))]
     (ui-comp/lista-mesaje r)))
 
+(defn verifica-descarca-facturi [target ds mesaje path]
+  (reduce
+   (fn [acc f]
+     (let [id (:id f)
+           zip-name (str id ".zip")
+           test-file-exist (facturi/test-factura-descarcata? ds {:id id})]
+       (if (empty? test-file-exist)
+         (do (download-zip-file f target ds path)
+             (db/scrie-factura->db f ds)
+             (conj acc (str "am descarcat mesajul " zip-name)))
+         (conj acc (str "factura " zip-name " exista salvata local")))))
+   [] mesaje))
+
+(defn opis-facturi-descarcate [facturi]
+  (for [f facturi]
+    (let [{:keys [id_descarcare cif tip detalii data_creare id_solicitare]} f
+          path (u/build-path data_creare)
+          f-name (str id_descarcare ".zip")
+          final-path (str "date/" cif "/" path "/" f-name)
+          parsed-date (u/parse-date data_creare)
+          d (str (:data_c parsed-date) (:ora_c parsed-date))]
+      (ui-comp/row-factura-descarcata
+       final-path f-name d detalii tip id_solicitare))))
+
 (defn fetch-lista-mesaje [target ds zile cif conf]
   (let [apel-lista-mesaje (obtine-lista-facturi target ds zile cif)
         status (:status apel-lista-mesaje)
@@ -132,34 +156,16 @@
               lm-str (:lista_mesaje queue-lista-mesaje)
               lista-mesaje (edn/read-string lm-str)
               download-to (c/download-dir conf)
-              raport-descarcare-facturi (reduce
-                                         (fn [acc f]
-                                           (let [id (:id f)
-                                                 zip-name (str id ".zip")
-                                                 test-file-exist (facturi/test-factura-descarcata? ds {:id id})]
-                                             (if (empty? test-file-exist)
-                                               (do (download-zip-file f target ds download-to)
-                                                   (db/scrie-factura->db f ds)
-                                                   (conj acc (str "am descarcat mesajul " zip-name)))
-                                               (conj acc (str "factura " zip-name " exista salvata local")))))
-                                         [] lista-mesaje)
-              a (h/html [:ul
+              raport-descarcare-facturi (verifica-descarca-facturi target ds lista-mesaje download-to)
+              raport-descarcare-facturi->ui (h/html [:ul
                          (for [item raport-descarcare-facturi]
                            [:li item])])
-              b (let [fact-desc (db/fetch-facturi-descarcate ds)
+              facturi-descarcate->ui (let [fact-desc (db/fetch-facturi-descarcate ds)
                       sorted-fdesc (sort-by :data_creare fact-desc)
-                      l (for [f sorted-fdesc]
-                          (let [{:keys [id_descarcare cif tip detalii data_creare id_solicitare]} f
-                                path (u/build-path data_creare)
-                                f-name (str id_descarcare ".zip")
-                                final-path (str "date/" cif "/" path "/" f-name)
-                                parsed-date (u/parse-date data_creare)
-                                d (str (:data_c parsed-date) (:ora_c parsed-date))]
-                            (ui-comp/row-factura-descarcata
-                             final-path f-name d detalii tip id_solicitare)))]
-                  (ui-comp/tabel-facturi-descarcate l))]
+                      fd (opis-facturi-descarcate sorted-fdesc)]
+                  (ui-comp/tabel-facturi-descarcate fd))]
           (facturi/delete-row-download-queue ds {:id queue-id})
-          (h/html a b))
+          (h/html raport-descarcare-facturi->ui facturi-descarcate->ui))
         err)
       body)))
 
