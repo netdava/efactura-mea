@@ -13,9 +13,10 @@
 <body>
   
   <form hx-get="/listare-sau-descarcare" hx-target="#facturi-anaf">
-    <label for="zile">Introdu intervalul de zile, între 1 și 60:</label>
-    <input type="text" id="zile" name="zile" required />
-
+    <label for="zile">Număr de zile pentru vizualizare/descărcare facturi anaf:</label>
+    <select id="zile" name="zile" hx-get="/gen-opts-days" hx-trigger="load" hx-target="#zile" >
+    </select>
+    <br>
     <label for="cif">CIF:</label>
     <input type="text" list="cif" id="cif" name="cif" />
     <datalist id="cif">
@@ -31,7 +32,10 @@
       descarca facturi
     </button>
   </form>
+
   <div id="facturi-anaf"></div>
+
+  
 
 </body>
 

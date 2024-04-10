@@ -190,3 +190,10 @@
     (case (:action params)
       "listare" (listeaza-mesaje req conf ds)
       "descarcare" (descarca-mesaje req conf ds))))
+
+(defn gen-opts-days [_]
+  {:status 200
+   :body (str (h/html
+               (ui-comp/days-select-options (range 1 61))))
+   :headers {"content-type" "text/html"}}
+  )
