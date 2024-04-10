@@ -54,7 +54,7 @@
   {:status 200
    :body (str (h/html
                [:div.facturi
-                [:h4 "Facturi ANAF"]
+                [:h4 "Facturi disponibile pentru descărcat:"]
                 [:div {:style {"width" "1000px"
                                "word-wrap" "break-word"}}
                  [:table
