@@ -88,7 +88,8 @@
                                    (anaf-conf :redirect-uri))]
    ["/listare-sau-descarcare" (fn [request]
                                (println request)
-                               (api/efactura-action-handler request conf ds))]])
+                               (api/efactura-action-handler request conf ds))]
+   ["/gen-opts-days" {:get api/gen-opts-days}]])
 
 (defn handler
   [conf]

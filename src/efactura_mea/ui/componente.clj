@@ -62,3 +62,8 @@
                  [:table
                   r]]]))
    :headers {"content-type" "text/html"}})
+
+(defn days-select-options [days]
+  (h/html
+   (for [n days]
+     [:option {:value n} n])))
