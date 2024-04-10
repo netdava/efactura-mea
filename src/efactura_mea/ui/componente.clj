@@ -4,8 +4,7 @@
 (defn table-header-facturi-anaf []
   (h/html
    [:tr
-    [:th {:style {"font-weight" "normal"
-                  "text-align" "left"}} "dată răspuns"]
+    [:th "dată răspuns"]
     [:th "tip"]
     [:th "număr înregistrare"]
     [:th "detalii"]
@@ -14,8 +13,7 @@
 (defn table-header-facturi-descarcate []
   (h/html
    [:tr
-    [:th {:style {"font-weight" "normal"
-                  "text-align" "left"}} "nume fișier"]
+    [:th "nume fișier"]
     [:th "data creare"]
     [:th "detalii"]
     [:th "tip"]
