@@ -158,16 +158,21 @@
               download-to (c/download-dir conf)
               raport-descarcare-facturi (verifica-descarca-facturi target ds lista-mesaje download-to)
               raport-descarcare-facturi->ui (h/html [:ul
-                         (for [item raport-descarcare-facturi]
-                           [:li item])])
-              facturi-descarcate->ui (let [fact-desc (db/fetch-facturi-descarcate ds)
-                      sorted-fdesc (sort-by :data_creare fact-desc)
-                      fd (opis-facturi-descarcate sorted-fdesc)]
-                  (ui-comp/tabel-facturi-descarcate fd))]
+                                                     (for [item raport-descarcare-facturi]
+                                                       [:li item])])]
           (facturi/delete-row-download-queue ds {:id queue-id})
-          (h/html raport-descarcare-facturi->ui facturi-descarcate->ui))
+          (h/html raport-descarcare-facturi->ui))
         err)
       body)))
+
+(defn afisare-facturile-mele [_ ds]
+  (let [fact-desc (db/fetch-facturi-descarcate ds)
+        sorted-fdesc (sort-by :data_creare fact-desc)
+        fd (opis-facturi-descarcate sorted-fdesc)
+        r (h/html (ui-comp/tabel-facturi-descarcate fd))]
+    {:status 200
+     :body (str r)
+     :headers {"content-type" "text/html"}}))
 
 (defn descarca-mesaje
   [req conf ds]

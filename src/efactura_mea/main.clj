@@ -2,9 +2,9 @@
   (:require [babashka.http-client :as http]
             [clj-commons.byte-streams :as bs]
             [cprop.core :refer [load-config]]
+            [efactura-mea.db.db-ops :as db]
             [efactura-mea.db.next-jdbc-adapter :as adapter]
             [efactura-mea.web.api :as api]
-            [efactura-mea.db.db-ops :as db]
             [efactura-mea.web.oauth2-anaf :as o2a]
             [hiccup2.core :as h]
             [jsonista.core :as j]
@@ -89,7 +89,8 @@
    ["/listare-sau-descarcare" (fn [request]
                                (println request)
                                (api/efactura-action-handler request conf ds))]
-   ["/gen-opts-days" {:get api/gen-opts-days}]])
+   ["/gen-opts-days" {:get api/gen-opts-days}]
+   ["/facturile-mele" (fn [request] (api/afisare-facturile-mele request ds))]])
 
 (defn handler
   [conf]
