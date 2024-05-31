@@ -1,6 +1,5 @@
 (ns efactura-mea.main
-  (:require [babashka.http-client :as http]
-            [clj-commons.byte-streams :as bs]
+  (:require [clj-commons.byte-streams :as bs]
             [cprop.core :refer [load-config]]
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.db.next-jdbc-adapter :as adapter]
