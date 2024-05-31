@@ -1,21 +1,3 @@
-
-table {
-    border-collapse: collapse;
-  }
-   th {
-    background: #ccc;
-  }
-  
-  th, td {
-    border: 1px solid #ccc;
-    padding: 5px 15px;
-    text-align: left;
-  }
-  
-  tr:nth-child(even) {
-    background: #efefef;
-  }
-  
-  tr:hover {
-    background: #d1d1d1;
-  }
+.top-nav {
+  border-top: 5px solid #3498DB;
+}

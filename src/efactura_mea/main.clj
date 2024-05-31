@@ -16,7 +16,9 @@
             [ring.adapter.jetty9 :refer [run-jetty stop-server]]
             [ring.middleware.defaults :as rmd]
             [ring.middleware.file :refer [wrap-file]]
-            [ring.middleware.webjars :refer [wrap-webjars]])
+            [ring.middleware.webjars :refer [wrap-webjars]]
+            [efactura-mea.layout :as layout]
+            [efactura-mea.ui.componente :as ui])
   (:gen-class))
 
 (mu/on-upndown :info mu/log :before)
@@ -76,7 +78,8 @@
 
 (defn routes
   [anaf-conf]
-  [["/" html-handler]
+  [["/" (fn [req] (layout/main-layout (ui/facturi-descarcate)))]
+   ["/facturi-spv" (fn [req] (layout/main-layout (ui/facturi-spv)))]
    ["/login-anaf" (o2a/make-anaf-login-handler
                    (anaf-conf :client-id)
                    (anaf-conf :client-secret))]
@@ -88,7 +91,7 @@
    ["/listare-sau-descarcare" (fn [request]
                                (println request)
                                (api/efactura-action-handler request conf ds))]
-   ["/gen-opts-days" {:get api/gen-opts-days}]
+   
    ["/facturile-mele" (fn [request] (api/afisare-facturile-mele request ds))]])
 
 (defn handler
