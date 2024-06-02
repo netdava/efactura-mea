@@ -56,7 +56,8 @@
     (h/html
      [:div#main-container.block
       (title "Aici poți vizualiza și descărca facturile din SPV:")
-      [:form
+      [:form {:hx-get "/listare-sau-descarcare"
+              :hx-target "#facturi-anaf"}
        [:div.field
         [:label.label "CIF:"]
         [:input.input {:type "text"
@@ -66,11 +67,14 @@
         [:datalist {:id "cif"} [:option "35586426"]]]
        [:div.field
         [:label.label "Număr de zile pentru vizualizare/descărcare facturi anaf:"]
-        [:div.select [:select
+        [:div.select [:select {:id "zile" :name "zile"}
                       days-select-vals]]]
        [:div.buttons
-        [:button.button.is-small.is-link {:type "submit" :name "action" :value "listare"} "vezi facturi"]
-        [:button.button.is-small.is-link {:type "submit" :name "action" :value "descarcare"} "descarca facturi"]]]])))
+        [:button.button.is-small.is-link {:type "submit"
+                                          :name "action"
+                                          :value "listare"} "vezi facturi"]
+        [:button.button.is-small.is-link {:type "submit" :name "action" :value "descarcare"} "descarca facturi"]]]
+      [:div#facturi-anaf]])))
 
 (defn table-header-facturi-anaf []
   (h/html

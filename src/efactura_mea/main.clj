@@ -89,7 +89,6 @@
                                    (anaf-conf :client-secret)
                                    (anaf-conf :redirect-uri))]
    ["/listare-sau-descarcare" (fn [request]
-                               (println request)
                                (api/efactura-action-handler request conf ds))]
    
    ["/facturile-mele" (fn [request] (api/afisare-facturile-mele request ds))]])

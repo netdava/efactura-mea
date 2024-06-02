@@ -110,6 +110,7 @@
   (let [target (:target conf)
         querry-params (u/encode-request-params->edn req)
         zile (:zile querry-params)
+        _ (println "zilele meleeee: " zile)
         zile-int (parse-to-int-when-present querry-params zile)
         cif (:cif querry-params)
         validation-result  (v/validate-input-data zile-int cif)
@@ -195,10 +196,3 @@
     (case (:action params)
       "listare" (listeaza-mesaje req conf ds)
       "descarcare" (descarca-mesaje req conf ds))))
-
-(defn gen-opts-days [_]
-  {:status 200
-   :body (str (h/html
-               (ui-comp/days-select-options (range 1 61))))
-   :headers {"content-type" "text/html"}}
-  )

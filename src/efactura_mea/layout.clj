@@ -24,18 +24,7 @@
   [:main.main
    [:div.page-content
     [:div#nebula-cert-main-container.card
-          ;;    {:class "card"
-          ;;     :hx-get "/nebula-cert"
-          ;;     :hx-trigger "load delay:100ms"
-          ;;     :hx-target "#nebula-cert-main-container"
-          ;;     :hx-swap  "innerHTML"}
-     content]
-    #_[:div#upload-form {:hx-get "/upload-form"
-                         :hx-target "#upload-form"
-                         :hx-trigger "load"}]
-    #_[:div#upload-file-form {:hx-get "/upload-file"
-                              :hx-target "#upload-file-form"
-                              :hx-trigger "load"}]]])
+     content]]])
 
 (defn main-layout
   ([content]
