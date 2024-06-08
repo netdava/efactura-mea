@@ -1,7 +1,10 @@
 (ns efactura-mea.web.oauth2-anaf
-  (:require [ring.util.codec :refer [url-encode]]
-            [babashka.http-client :as http]
-            [clojure.tools.logging :as log]))
+  (:require [babashka.http-client :as http]
+            [clj-commons.byte-streams :as bs]
+            [clojure.tools.logging :as log]
+            [muuntaja.core :as m]
+            [efactura-mea.web.json :as wj]
+            [ring.util.codec :refer [url-encode]]))
 
 (def default-anaf-url-logincert "https://logincert.anaf.ro")
 
@@ -95,6 +98,18 @@
       (log/warn e "Exception")
       (ex-data e))))
 
+(defn res->str
+  [res]
+  (let [body (:body res)
+        bis (m/encode wj/m
+                      "application/json"
+                      (-> res
+                          (assoc :body (bs/to-string body))
+                          (dissoc :body
+                                  :reitit.core/router
+                                  :reitit.core/match)))]
+    (bs/to-string bis)))
+
 (defn make-authorization-token-handler
   "Crează un handler ring pentru procesul oauth2 de conversie cod autorizare
    în jeton autentificare și jeton de împrospătare.
@@ -111,7 +126,8 @@
     (let [{:keys [query-params]} req
           code (get query-params "code")
           res (authorization-code->tokens! client-id client-secret redirect-uri code)]
+      (println "Body" (:body res))
       {:status 200
-       :body "" ;;(res->str res)
+       :body (res->str res)
        :headers {"content-type" "application/json"}})))
 

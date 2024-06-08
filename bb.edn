@@ -1,0 +1,8 @@
+{:paths ["src"]
+ :deps  {}
+ :tasks {test
+         {:docs "Run unit tests."
+          :extra-deps {io.github.matthewdowney/rich-comment-tests {:mvn/version "v1.0.3"}}
+          :requires ([com.mjdowney.rich-comment-tests.test-runner :as rct])
+          :task (rct/run-tests-in-file-tree! {:dirs #{"src"}})}}}
+

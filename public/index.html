@@ -12,6 +12,10 @@
 
 <body>
   
+  <div> 
+     <a href="/login-anaf">Autentificare anaf</a>
+  </div>
+
   <form hx-get="/listare-sau-descarcare" hx-target="#facturi-anaf">
     <label for="zile">Număr de zile pentru vizualizare/descărcare facturi anaf:</label>
     <select id="zile" name="zile" hx-get="/gen-opts-days" hx-trigger="load" hx-target="#zile" >
