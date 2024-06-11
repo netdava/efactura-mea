@@ -110,7 +110,6 @@
   (let [target (:target conf)
         querry-params (u/encode-request-params->edn req)
         zile (:zile querry-params)
-        _ (println "zilele meleeee: " zile)
         zile-int (parse-to-int-when-present querry-params zile)
         cif (:cif querry-params)
         validation-result  (v/validate-input-data zile-int cif)
@@ -132,6 +131,14 @@
          (conj acc (str "factura " zip-name " exista salvata local")))))
    [] mesaje))
 
+(defn parse-tip-factura [tip-factura]
+  (let [tip (s/lower-case tip-factura)]
+    (case tip
+      "factura primita" "primita"
+      "factura trimisa" "trimisa"
+      "erori factura" "eroare"
+      tip)))
+
 (defn opis-facturi-descarcate [facturi]
   (for [f facturi]
     (let [{:keys [id_descarcare cif tip detalii data_creare id_solicitare]} f
@@ -139,9 +146,10 @@
           f-name (str id_descarcare ".zip")
           final-path (str "date/" cif "/" path "/" f-name)
           parsed-date (u/parse-date data_creare)
-          d (str (:data_c parsed-date) (:ora_c parsed-date))]
+          d (str (:data_c parsed-date) (:ora_c parsed-date))
+          tip-factura (parse-tip-factura tip)]
       (ui-comp/row-factura-descarcata
-       final-path f-name d detalii tip id_solicitare))))
+       final-path f-name d detalii tip-factura id_solicitare))))
 
 (defn fetch-lista-mesaje [target ds zile cif conf]
   (let [apel-lista-mesaje (obtine-lista-facturi target ds zile cif)

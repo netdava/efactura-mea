@@ -15,7 +15,7 @@
      [:div.navbar-start
       #_[:a.navbar-item {:href "/"} "Home"]]
      [:div.navbar-end
-      [:div.navbar-item.has-dropdown
+      [:div.navbar-item.has-dropdown.is-hoverable
        [:a.navbar-link {:href "#"} user-name]
        [:div.navbar-dropdown.is-boxed
         [:a.navbar-item {:href "#"} "Profile"]
@@ -56,8 +56,8 @@
     (h/html
      [:div#main-container.block
       (title "Aici poți vizualiza și descărca facturile din SPV:")
-      [:form {:hx-get "/listare-sau-descarcare"
-              :hx-target "#facturi-anaf"}
+      [:form.block {:hx-get "/listare-sau-descarcare"
+                    :hx-target "#facturi-anaf"}
        [:div.field
         [:label.label "CIF:"]
         [:input.input {:type "text"
@@ -80,18 +80,18 @@
   (h/html
    [:tr
     [:th "dată răspuns"]
-    [:th "tip"]
-    [:th "număr înregistrare"]
+    [:th "tip factură"]
+    [:th "id solicitare"]
     [:th "detalii"]
-    [:th "id descărcare"]]))
+    [:th "id factură"]]))
 
 (defn table-header-facturi-descarcate []
   (h/html
    [:tr
     [:th "nume fișier"]
-    [:th "data creare"]
+    [:th "dată creare"]
     [:th "detalii"]
-    [:th "tip"]
+    [:th "tip factură"]
     [:th "număr înregistrare"]]))
 
 (defn row-factura-anaf [data ora tip-factura id_solicitare detalii id]
@@ -103,14 +103,25 @@
     [:td.is-size-7 detalii]
     [:td.is-size-7 id]]))
 
+(defn tag-tip-factura [tip]
+  (case tip
+    "primita" "is-info"
+    "trimisa" "is-success"
+    "eroare" "is-danger"
+    "is-warning"))
+
+(tag-tip-factura "primita")
+
 (defn row-factura-descarcata [href name creation-date detalii tip id_solicitare]
-  (h/html
-   [:tr
-    [:td.is-size-7 [:a {:href href :target "_blank"} name]]
-    [:td.is-size-7 creation-date]
-    [:td.is-size-7 detalii]
-    [:td.is-size-7 tip]
-    [:td.is-size-7 id_solicitare]]))
+  (let [type (tag-tip-factura tip)
+        tag-opts (update {:class "tag is-normal "} :class str type)]
+    (h/html
+        [:tr
+         [:td.is-size-7 [:a {:href href :target "_blank"} name]]
+         [:td.is-size-7 creation-date]
+         [:td.is-size-7 detalii]
+         [:td.is-size-7 [:span tag-opts tip]]
+         [:td.is-size-7 id_solicitare]])))
 
 (defn tabel-facturi-descarcate [rows]
   (h/html
@@ -128,10 +139,8 @@
 (defn lista-mesaje [r]
   {:status 200
    :body (str (h/html
-               [:div.facturi
-                [:h4 "Facturi disponibile pentru descărcat:"]
-                [:div {:style {"width" "1000px"
-                               "word-wrap" "break-word"}}
-                 [:table
-                  r]]]))
+               [:div.content.block
+                [:h2 "Facturi disponibile pentru descărcat:"]
+                [:table
+                 r]]))
    :headers {"content-type" "text/html"}})
