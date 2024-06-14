@@ -38,7 +38,7 @@
 (defn req->str
   [req]
   (let [body (:body req)
-        bis (m/encode m
+        bis (m/encode wj/m
                       "application/json"
                       (-> req
                           (assoc :body (bs/to-string body))

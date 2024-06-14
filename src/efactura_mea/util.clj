@@ -1,5 +1,6 @@
 (ns efactura-mea.util
-  (:require [clojure.java.io :as io]
+  (:require [clojure.data.xml :as xml]
+            [clojure.java.io :as io]
             [jsonista.core :as j])
   (:import (java.util.zip ZipFile)))
 
@@ -58,3 +59,64 @@
   (let [q (:query-params req)
         edn-q-params (json-encode->edn q)]
     edn-q-params))
+
+(defn zip-file->xml-to-bytearray [filepath]
+  (let [is (io/input-stream filepath)
+        zin (java.util.zip.ZipInputStream. is)]
+    ((fn proc-entry [zin]
+       (if-let [entry (.getNextEntry zin)]
+         (if (not (.isDirectory entry))
+           (let [entry-name (.getName entry)]
+             (when (not (.contains entry-name "semnatura_"))
+               (do
+                 (let [in (java.io.BufferedInputStream. zin)
+                       out (java.io.ByteArrayOutputStream.)]
+                   (io/copy in out)
+                   (.closeEntry zin)
+                   (lazy-seq (cons {:entry entry :contents (.toByteArray out)} (proc-entry zin)))))))
+           (lazy-seq (proc-entry zin)))
+         (do
+           (println "Closing")
+           (.close is)
+           (.close zin)))) zin)))
+
+(defn parse-xml-byte-array
+  [byte-array]
+  (with-open [stream (java.io.ByteArrayInputStream. byte-array)]
+    (xml/parse stream)))
+
+(defn extract-nested-field [edn tags]
+  (if (empty? tags)
+    (first (:content edn))
+    (let [tag (first tags)
+          next-edn (some #(when (= tag (:tag %)) %) (:content edn))]
+      (if next-edn
+        (recur next-edn (rest tags))
+        nil))))
+
+(defn parse-invoice-data [data]
+  (let [serie-numar (extract-nested-field data [:ID])
+        data-emitere (extract-nested-field data [:IssueDate])
+        data-scadenta (extract-nested-field data [:DueDate])
+        valuta (extract-nested-field data [:DocumentCurrencyCode])
+        furnizor (extract-nested-field data [:AccountingSupplierParty :Party :PartyName :Name])
+        client (extract-nested-field data [:AccountingCustomerParty :Party :PartyName :Name])
+        suma-de-plata (extract-nested-field data [:LegalMonetaryTotal :PayableAmount])]
+    {:serie-numar serie-numar
+     :data-emitere data-emitere
+     :data-scadenta data-scadenta
+     :furnizor furnizor
+     :client client
+     :total suma-de-plata
+     :valuta valuta}))
+
+(defn get-invoice-data [path]
+  (let [xml-data-from-zip (zip-file->xml-to-bytearray path)
+        inv-byte-arr (:contents (first xml-data-from-zip))
+        edn-inv-content (parse-xml-byte-array inv-byte-arr)]
+    (parse-invoice-data edn-inv-content)))
+
+(comment
+  (get-invoice-data "/home/nas/proiecte/efactura-mea/data/date/35586426/2024/04/3370038663.zip")
+  0
+  )

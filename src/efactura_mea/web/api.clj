@@ -166,9 +166,11 @@
               lista-mesaje (edn/read-string lm-str)
               download-to (c/download-dir conf)
               raport-descarcare-facturi (verifica-descarca-facturi target ds lista-mesaje download-to)
-              raport-descarcare-facturi->ui (h/html [:ul
-                                                     (for [item raport-descarcare-facturi]
-                                                       [:li item])])]
+              raport-descarcare-facturi->ui (h/html [:article.message.is-info
+                                                     [:div.message-body
+                                                      [:ul
+                                                       (for [item raport-descarcare-facturi]
+                                                         [:li item])]]])]
           (facturi/delete-row-download-queue ds {:id queue-id})
           (h/html raport-descarcare-facturi->ui))
         err)
