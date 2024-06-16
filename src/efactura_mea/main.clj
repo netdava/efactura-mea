@@ -74,7 +74,7 @@
    ["/listare-sau-descarcare" (fn [request]
                                (api/efactura-action-handler request conf ds))]
    
-   ["/facturile-mele" (fn [request] (api/afisare-facturile-mele request ds))]])
+   ["/facturile-mele" (fn [request] (api/afisare-facturile-mele request ds conf))]])
 
 (defn handler
   [conf]
@@ -103,9 +103,8 @@
   (mount/start)
   (mount/stop)
 
-  conf
-
   (bs/to-string (m/encode wj/m "application/json" {"a" 123}))
+  
 
   0
   )

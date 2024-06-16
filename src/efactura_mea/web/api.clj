@@ -141,15 +141,16 @@
 
 (defn opis-facturi-descarcate [facturi]
   (for [f facturi]
-    (let [{:keys [id_descarcare cif tip detalii data_creare id_solicitare]} f
+    (let [{:keys [tip data_creare id_descarcare cif]} f
           path (u/build-path data_creare)
           f-name (str id_descarcare ".zip")
           final-path (str "date/" cif "/" path "/" f-name)
-          parsed-date (u/parse-date data_creare)
-          d (str (:data_c parsed-date) (:ora_c parsed-date))
-          tip-factura (parse-tip-factura tip)]
-      (ui-comp/row-factura-descarcata
-       final-path f-name d detalii tip-factura id_solicitare))))
+          dc (u/parse-date data_creare)
+          d (str (:data_c dc) "-" (:ora_c dc))
+          tip-factura (parse-tip-factura tip)
+          invoice-details (assoc f :href final-path :tip tip-factura :data_creare d)]
+      (ui-comp/row-factura-descarcata-detalii invoice-details))))
+
 
 (defn fetch-lista-mesaje [target ds zile cif conf]
   (let [apel-lista-mesaje (obtine-lista-facturi target ds zile cif)
@@ -176,11 +177,27 @@
         err)
       body)))
 
-(defn afisare-facturile-mele [_ ds]
-  (let [fact-desc (db/fetch-facturi-descarcate ds)
-        sorted-fdesc (sort-by :data_creare fact-desc)
-        fd (opis-facturi-descarcate sorted-fdesc)
-        r (h/html (ui-comp/tabel-facturi-descarcate fd))]
+(defn combine-invoice-data [ds invoice-path]
+  (let [id-mesaj-anaf (u/path->id-mesaj invoice-path)
+        detalii-anaf (first (facturi/select-factura-descarcata ds {:id id-mesaj-anaf}))
+        detalii-xml (u/get-invoice-data invoice-path)
+        detalii-xml (assoc detalii-xml :href invoice-path)]
+    (merge detalii-anaf detalii-xml)))
+
+
+(defn gather-invoices-data [ds paths-fact-desc-local]
+  (reduce (fn [acc invoice-path]
+            (merge acc (combine-invoice-data ds invoice-path)))
+          []
+          paths-fact-desc-local))
+
+(defn afisare-facturile-mele [_ ds conf]
+  (let [dd (c/download-dir conf)
+        paths-fact-desc-local (u/list-files-from-dir dd)
+        detalii-combinate-facturi (gather-invoices-data ds paths-fact-desc-local)
+        detalii-sortate (sort #(compare (:data_creare %1) (:data_creare %2)) detalii-combinate-facturi)
+        detalii->table-rows (opis-facturi-descarcate detalii-sortate)
+        r (h/html (ui-comp/tabel-facturi-descarcate detalii->table-rows))]
     {:status 200
      :body (str r)
      :headers {"content-type" "text/html"}}))

@@ -1,5 +1,6 @@
 (ns efactura-mea.util
-  (:require [clojure.data.xml :as xml]
+  (:require [clojure.string :as s]
+            [clojure.data.xml :as xml]
             [clojure.java.io :as io]
             [jsonista.core :as j])
   (:import (java.util.zip ZipFile)))
@@ -11,11 +12,16 @@
          (filter (comp not dir?)
                  (tree-seq dir? #(.listFiles %) directory)))))
 
+
 (defn is-file-in-dir? [file dir]
   (let [files (list-files-from-dir dir)]
     (some #(= file %) files)))
 (defn entries [zipfile]
   (enumeration-seq (.entries zipfile)))
+
+(defn file-in-dir? [dir file-name]
+  (let [dir-file (io/file dir)]
+    (some #(= (.getName %) file-name) (file-seq dir-file))))
 
 (defn walkzip [fileName]
   (with-open [z (ZipFile. fileName)]
@@ -65,18 +71,15 @@
         zin (java.util.zip.ZipInputStream. is)]
     ((fn proc-entry [zin]
        (if-let [entry (.getNextEntry zin)]
-         (if (not (.isDirectory entry))
-           (let [entry-name (.getName entry)]
-             (when (not (.contains entry-name "semnatura_"))
-               (do
-                 (let [in (java.io.BufferedInputStream. zin)
-                       out (java.io.ByteArrayOutputStream.)]
-                   (io/copy in out)
-                   (.closeEntry zin)
-                   (lazy-seq (cons {:entry entry :contents (.toByteArray out)} (proc-entry zin)))))))
+         (if (and (not (.isDirectory entry)) (not (.contains (.getName entry) "semnatura")))
+           (do
+             (let [in (java.io.BufferedInputStream. zin)
+                   out (java.io.ByteArrayOutputStream.)]
+               (io/copy in out)
+               (.closeEntry zin)
+               (lazy-seq (cons {:entry entry :contents (.toByteArray out)} (proc-entry zin)))))
            (lazy-seq (proc-entry zin)))
          (do
-           (println "Closing")
            (.close is)
            (.close zin)))) zin)))
 
@@ -99,8 +102,10 @@
         data-emitere (extract-nested-field data [:IssueDate])
         data-scadenta (extract-nested-field data [:DueDate])
         valuta (extract-nested-field data [:DocumentCurrencyCode])
-        furnizor (extract-nested-field data [:AccountingSupplierParty :Party :PartyName :Name])
-        client (extract-nested-field data [:AccountingCustomerParty :Party :PartyName :Name])
+        furnizor (or (extract-nested-field data [:AccountingSupplierParty :Party :PartyName :Name])
+                     (extract-nested-field data [:AccountingSupplierParty :Party :PartyLegalEntity :RegistrationName]))
+        client (or (extract-nested-field data [:AccountingCustomerParty :Party :PartyName :Name])
+                   (extract-nested-field data [:AccountingCustomerParty :Party :PartyLegalEntity :RegistrationName]))
         suma-de-plata (extract-nested-field data [:LegalMonetaryTotal :PayableAmount])]
     {:serie-numar serie-numar
      :data-emitere data-emitere
@@ -116,7 +121,17 @@
         edn-inv-content (parse-xml-byte-array inv-byte-arr)]
     (parse-invoice-data edn-inv-content)))
 
+(defn path->id-mesaj [invoice-local-path]
+  (let [zip-file-name (last (s/split invoice-local-path #"/"))
+        id (first (s/split zip-file-name #"\.zip"))]
+    id))
+
 (comment
-  (get-invoice-data "/home/nas/proiecte/efactura-mea/data/date/35586426/2024/04/3370038663.zip")
+  (file-in-dir? "/home/nas/proiecte/efactura-mea/data/date/35586426/2024/04/" "3370038663.zip")
+ (let [e  (zip-file->xml-to-bytearray "/home/nas/proiecte/efactura-mea/data/date/35586426/2024/04/3411299045.zip")]
+   e)
+  (get-invoice-data "/home/nas/proiecte/efactura-mea/data/date/35586426/2024/05/3412523350.zip")
+  
+  (list-files-from-dir "data/date")
   0
   )

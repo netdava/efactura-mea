@@ -23,8 +23,6 @@
         [:hr.navbar-divider]
         [:a.navbar-item.is-selected {:href "#"} "Logout"]]]]]]])
 
-
-
 (defn sidebar []
   [:div.p-3
    [:div.menu-wrapper
@@ -46,8 +44,7 @@
     (title "Facturi descărcate local")
     [:div#facturi-descarcate {:hx-get "/facturile-mele"
                               :hx-target "#facturi-descarcate"
-                              :hx-trigger "load"}]
-    ]))
+                              :hx-trigger "load"}]]))
 
 (defn facturi-spv []
   (let [days (range 1 61)
@@ -85,16 +82,8 @@
     [:th "detalii"]
     [:th "id factură"]]))
 
-(defn table-header-facturi-descarcate []
-  (h/html
-   [:tr
-    [:th "nume fișier"]
-    [:th "dată creare"]
-    [:th "detalii"]
-    [:th "tip factură"]
-    [:th "număr înregistrare"]]))
-
-(defn row-factura-anaf [data ora tip-factura id_solicitare detalii id]
+(defn row-factura-anaf 
+  [data ora tip-factura id_solicitare detalii id]
   (h/html
    [:tr
     [:td.is-size-7 data [:br] ora]
@@ -102,6 +91,21 @@
     [:td.is-size-7 id_solicitare]
     [:td.is-size-7 detalii]
     [:td.is-size-7 id]]))
+
+(defn table-header-facturi-descarcate []
+  (h/html
+   [:tr
+    [:th "cif"]
+    [:th "serie/număr"]
+    [:th "data urcare SPV"]
+    [:th "data emiterii"]
+    [:th "data scadenței"]
+    [:th "furnizor"]
+    [:th "client"]
+    [:th "valoare"]
+    [:th "moneda"]
+    [:th "tip"]
+    [:th "download"]]))
 
 (defn tag-tip-factura [tip]
   (case tip
@@ -112,16 +116,25 @@
 
 (tag-tip-factura "primita")
 
-(defn row-factura-descarcata [href name creation-date detalii tip id_solicitare]
+(defn row-factura-descarcata-detalii 
+  [{:keys [data_creare client id_descarcare cif tip furnizor valuta total data-scadenta data-emitere serie-numar href]}]
   (let [type (tag-tip-factura tip)
-        tag-opts (update {:class "tag is-normal "} :class str type)]
+        tag-opts (update {:class "tag is-normal "} :class str type)
+        link-opts {:href href :target "_blank"}
+        zip-file (str id_descarcare ".zip")]
     (h/html
-        [:tr
-         [:td.is-size-7 [:a {:href href :target "_blank"} name]]
-         [:td.is-size-7 creation-date]
-         [:td.is-size-7 detalii]
-         [:td.is-size-7 [:span tag-opts tip]]
-         [:td.is-size-7 id_solicitare]])))
+     [:tr
+      [:td.is-size-7 cif]
+      [:td.is-size-7 serie-numar]
+      [:td.is-size-7 data_creare]
+      [:td.is-size-7 data-emitere]
+      [:td.is-size-7 data-scadenta]
+      [:td.is-size-7 furnizor]
+      [:td.is-size-7 client]
+      [:td.is-size-7 total]
+      [:td.is-size-7 valuta]
+      [:td.is-size-7 [:span tag-opts tip]]
+      [:td.is-size-7 [:a link-opts zip-file]]])))
 
 (defn tabel-facturi-descarcate [rows]
   (h/html

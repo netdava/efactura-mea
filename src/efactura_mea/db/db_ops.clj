@@ -15,6 +15,7 @@
 (defn create-sql-tables
   [ds]
   (f/create-facturi-anaf-table ds)
+  (f/create-detalii-facturi-anaf-table ds)
   (f/create-company-table ds)
   (f/create-tokens-table ds)
   (f/create-apeluri-api-anaf ds)
@@ -30,6 +31,20 @@
                               :detalii detalii
                               :data_creare data_creare
                               :id_solicitare id_solicitare})))
+
+(defn scrie-detalii-factura-anaf->db [factura ds]
+  (let [{:keys [id_descarcare data_creare cif tip serie_numar data_emitere data_scadenta furnizor client total valuta]} factura]
+    (f/insert-row-detalii-factura ds {:id_descarcare id_descarcare
+                                      :data_creare data_creare
+                                      :cif cif
+                                      :tip tip 
+                                      :serie_numar serie_numar
+                                      :data_emitere data_emitere
+                                      :data_scadenta data_scadenta
+                                      :furnizor furnizor
+                                      :client client
+                                      :total total
+                                      :valuta valuta})))
 
 
 (defn log-api-calls [ds response tip-apel]
