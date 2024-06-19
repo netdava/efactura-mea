@@ -126,12 +126,11 @@
         id (first (s/split zip-file-name #"\.zip"))]
     id))
 
-(comment
-  (file-in-dir? "/home/nas/proiecte/efactura-mea/data/date/35586426/2024/04/" "3370038663.zip")
- (let [e  (zip-file->xml-to-bytearray "/home/nas/proiecte/efactura-mea/data/date/35586426/2024/04/3411299045.zip")]
-   e)
-  (get-invoice-data "/home/nas/proiecte/efactura-mea/data/date/35586426/2024/05/3412523350.zip")
-  
-  (list-files-from-dir "data/date")
-  0
-  )
+(defn input-stream-to-byte-array [input-stream]
+  (with-open [baos (java.io.ByteArrayOutputStream.)]
+    (io/copy input-stream baos)
+    (.toByteArray baos)))
+
+(defn input-stream-to-bytes [stream]
+  (let [bytes (input-stream-to-byte-array stream)]
+    (vec (map byte bytes))))

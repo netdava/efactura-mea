@@ -25,7 +25,7 @@
   "Obtine lista de facturi pe o perioada de 60 zile din urmă;
    - apeleaza mediul de :test din oficiu;
    - primeste app-state si {:endpoint <type>}, <type> poate fi :prod sau :test ."
-  [target ds zile cif]
+  [target ds zile cif tip-apel]
   (let [a-token (db/fetch-access-token ds cif)]
     (if (nil? a-token)
       {:status 403
@@ -39,22 +39,25 @@
             r (http/get endpoint headers)
             body (:body r)
             status (:status r)
-            tip-apel "lista-mesaje"
             _ (db/log-api-calls ds r tip-apel)
             response (u/encode-body-json->edn body)]
         {:status status
          :body response}))))
 
+
+
 (defn descarca-factura
   "Descarcă factura în format zip pe baza id-ului.
    - funcționează doar cu endpointurile de test/prod;
    - target un map {:endpoint <type>}, <type> poate fi :prod sau :test ."
-  [id path target a-token]
+  [ds id path target a-token]
   (let [headers {:headers {"Authorization" (str "Bearer " a-token)} :as :stream}
         format-url "https://api.anaf.ro/%s/FCTEL/rest/descarcare"
         base-url (u/build-url format-url target)
         endpoint (str base-url "?id=" id)
         response (http/get endpoint headers)
+        tip-apel "descarcare"
+        _ (db/log-api-calls ds response tip-apel)
         data (:body response)
         app-dir (System/getProperty "user.dir")
         file-path (str app-dir "/" path "/" id ".zip")]
@@ -67,7 +70,7 @@
         {:keys [id data_creare]} factura
         date-path (u/build-path data_creare)
         path (str download-to "/" cif "/" date-path)]
-    (descarca-factura id path target a-token)))
+    (descarca-factura ds id path target a-token)))
 
 (defn parse-message [m]
   (let [{:keys [data_creare tip id_solicitare detalii id]} m
@@ -78,7 +81,8 @@
     (ui-comp/row-factura-anaf d h parsed-tip id_solicitare detalii id)))
 
 (defn call-for-lista-facturi [target ds zile cif]
-  (let [apel-lista-mesaje (obtine-lista-facturi target ds zile cif)
+  (let [tip-apel "lista-mesaje"
+        apel-lista-mesaje (obtine-lista-facturi target ds zile cif tip-apel)
         status (:status apel-lista-mesaje)
         body (:body apel-lista-mesaje)
         err (:eroare body)
@@ -153,7 +157,8 @@
 
 
 (defn fetch-lista-mesaje [target ds zile cif conf]
-  (let [apel-lista-mesaje (obtine-lista-facturi target ds zile cif)
+  (let [tip-apel "lista-mesaje-descarcare"
+        apel-lista-mesaje (obtine-lista-facturi target ds zile cif tip-apel)
         status (:status apel-lista-mesaje)
         body (:body apel-lista-mesaje)
         err (:eroare body)

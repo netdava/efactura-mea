@@ -1,5 +1,6 @@
 (ns efactura-mea.db.db-ops
-  (:require [efactura-mea.db.facturi :as f])
+  (:require [efactura-mea.db.facturi :as f]
+            [efactura-mea.util :as u])
   (:import [java.time ZonedDateTime]))
 
 
@@ -52,7 +53,9 @@
         uri (:uri (:request response))
         url (.toString uri)
         status (:status response)
-        response (:body response)]
+        response (case tip-apel
+                   "descarcare" (u/input-stream-to-bytes (:body response))
+                   (:body response))]
     (f/insert-row-apel-api ds {:data_apelare now
                                :url url
                                :tip tip-apel
