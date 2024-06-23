@@ -34,8 +34,9 @@
                               :id_solicitare id_solicitare})))
 
 (defn scrie-detalii-factura-anaf->db [factura ds]
-  (let [{:keys [id_descarcare data_creare cif tip serie_numar data_emitere data_scadenta furnizor client total valuta]} factura]
+  (let [{:keys [id_descarcare id_solicitare data_creare cif tip serie_numar data_emitere data_scadenta furnizor client total valuta]} factura]
     (f/insert-row-detalii-factura ds {:id_descarcare id_descarcare
+                                      :id_solicitare id_solicitare
                                       :data_creare data_creare
                                       :cif cif
                                       :tip tip 

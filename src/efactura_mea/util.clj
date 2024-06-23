@@ -107,9 +107,9 @@
         client (or (extract-nested-field data [:AccountingCustomerParty :Party :PartyName :Name])
                    (extract-nested-field data [:AccountingCustomerParty :Party :PartyLegalEntity :RegistrationName]))
         suma-de-plata (extract-nested-field data [:LegalMonetaryTotal :PayableAmount])]
-    {:serie-numar serie-numar
-     :data-emitere data-emitere
-     :data-scadenta data-scadenta
+    {:serie_numar serie-numar
+     :data_emitere data-emitere
+     :data_scadenta data-scadenta
      :furnizor furnizor
      :client client
      :total suma-de-plata
@@ -134,3 +134,16 @@
 (defn input-stream-to-bytes [stream]
   (let [bytes (input-stream-to-byte-array stream)]
     (vec (map byte bytes))))
+
+(defn read-file-from-zip [zip-file-path file-name-inside-zip]
+  (with-open [zip-file (ZipFile. zip-file-path)]
+    (let [entry (.getEntry zip-file file-name-inside-zip)]
+      (if entry
+        (with-open [stream (.getInputStream zip-file entry)]
+          (slurp (io/reader stream)))
+        (throw (Exception. (str "File " file-name-inside-zip " not found in " zip-file-path)))))))
+
+(comment
+  (read-file-from-zip "/data/date/2024/04/3336772688.zip" "4220052896.xml")
+  (list-files-from-dir  "data/date/")
+  0)

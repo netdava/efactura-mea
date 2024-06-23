@@ -1,5 +1,8 @@
 (ns efactura-mea.ui.componente
-  (:require [hiccup2.core :as h]))
+  (:require [hiccup2.core :as h]
+            [efactura-mea.db.db-ops :as db]
+            [efactura-mea.util :as u]
+            [babashka.http-client :as http]))
 
 (defn navbar [user-name]
   [:nav.navbar.is-white.top-nav
@@ -95,7 +98,6 @@
 (defn table-header-facturi-descarcate []
   (h/html
    [:tr
-    [:th "cif"]
     [:th "serie/număr"]
     [:th "data urcare SPV"]
     [:th "data emiterii"]
@@ -114,27 +116,47 @@
     "eroare" "is-danger"
     "is-warning"))
 
-(tag-tip-factura "primita")
-
 (defn row-factura-descarcata-detalii 
-  [{:keys [data_creare client id_descarcare cif tip furnizor valuta total data-scadenta data-emitere serie-numar href]}]
-  (let [type (tag-tip-factura tip)
+  [ds {:keys [data_creare client id_descarcare id_solicitare tip furnizor valuta total data_scadenta data_emitere serie_numar href cif]}]
+  (let [dc (u/parse-date data_creare)
+        parsed_date (str (:data_c dc) "-" (:ora_c dc))
+        path (u/build-path data_creare)
+        zip-file-name (str id_descarcare ".zip")
+        final-path (str "date/" cif "/" path "/" zip-file-name)
+        app-dir (System/getProperty "user.dir")
+        full-path (str app-dir "/" href)
+        xml-name (str id_solicitare ".xml")
+        xml-content (u/read-file-from-zip full-path xml-name)
+        type (tag-tip-factura tip)
         tag-opts (update {:class "tag is-normal "} :class str type)
-        link-opts {:href href :target "_blank"}
-        zip-file (str id_descarcare ".zip")]
+        link-opts {:href final-path :target "_blank"}]
     (h/html
      [:tr
-      [:td.is-size-7 cif]
-      [:td.is-size-7 serie-numar]
-      [:td.is-size-7 data_creare]
-      [:td.is-size-7 data-emitere]
-      [:td.is-size-7 data-scadenta]
+      [:td.is-size-7 serie_numar]
+      [:td.is-size-7 parsed_date]
+      [:td.is-size-7 data_emitere]
+      [:td.is-size-7 data_scadenta]
       [:td.is-size-7 furnizor]
       [:td.is-size-7 client]
       [:td.is-size-7 total]
       [:td.is-size-7 valuta]
       [:td.is-size-7 [:span tag-opts tip]]
-      [:td.is-size-7 [:a link-opts zip-file]]])))
+      [:td.is-size-7.has-text-centered
+       [:div.dropdown.is-hoverable
+        [:div.dropdown-trigger
+         [:button.button.is-small {:aria-haspopup "true" :aria-controls "dropdown-menu3"}
+          [:i {:class "fa fa-ellipsis-h "
+               :aria-hidden true}]]]
+        [:div.dropdown-menu {:id "dropdown-menu3" :role "menu"}
+         [:div.dropdown-content
+          [:a.dropdown-item link-opts zip-file-name]
+          [:a.dropdown-item
+           [:form {:hx-get "/transformare-xml-pdf"
+                   :hx-swap "none"}
+            [:input {:type "hidden" :name "id_descarcare" :value id_descarcare}]
+            [:button.button {:type "submit"} "Pdf"]]]]]]]])))
+
+
 
 (defn tabel-facturi-descarcate [rows]
   (h/html

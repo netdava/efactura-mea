@@ -1,6 +1,8 @@
 (ns efactura-mea.main
   (:require [clj-commons.byte-streams :as bs]
+            [clojure.java.io :as io]
             [cprop.core :refer [load-config]]
+            [babashka.http-client :as http]
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.db.next-jdbc-adapter :as adapter]
             [efactura-mea.web.api :as api]
@@ -18,7 +20,8 @@
             [ring.middleware.file :refer [wrap-file]]
             [ring.middleware.webjars :refer [wrap-webjars]]
             [efactura-mea.layout :as layout]
-            [efactura-mea.ui.componente :as ui])
+            [efactura-mea.ui.componente :as ui]
+            [efactura-mea.db.facturi :as f])
   (:gen-class))
 
 (mu/on-upndown :info mu/log :before)
@@ -74,7 +77,8 @@
    ["/listare-sau-descarcare" (fn [request]
                                (api/efactura-action-handler request conf ds))]
    
-   ["/facturile-mele" (fn [request] (api/afisare-facturile-mele request ds conf))]])
+   ["/facturile-mele" (fn [request] (api/afisare-facturile-mele request ds conf))]
+   ["/transformare-xml-pdf" (fn [req] (api/transformare-xml-to-pdf req ds conf))]])
 
 (defn handler
   [conf]
@@ -104,7 +108,27 @@
   (mount/stop)
 
   (bs/to-string (m/encode wj/m "application/json" {"a" 123}))
-  
 
+
+  (defn save-pdf [pdf-content]
+    (io/copy pdf-content (io/file "my.pdf")))
+
+  (defn upload-factura [ds cif]
+    (let [a-token (db/fetch-access-token ds cif)
+          f (slurp "facturi-anaf/pt-upload/3513634141/4313475697.xml")
+          url "https://api.anaf.ro/prod/FCTEL/rest/transformare/FACT1"
+          r (http/post url {:headers {"Authorization" (str "Bearer " a-token)
+                                      "Content-Type" "text/plain"}
+                            :body f
+                            :as :stream})]
+      (:body r)))
+
+  (defn fetch-and-save-pdf [ds cif]
+    (let [pdf-content (upload-factura ds cif)]
+      (save-pdf pdf-content)))
+
+
+  (upload-factura ds "35586426")
+  (fetch-and-save-pdf ds "35586426")
   0
   )

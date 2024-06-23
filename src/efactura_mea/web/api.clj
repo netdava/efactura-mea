@@ -143,17 +143,14 @@
       "erori factura" "eroare"
       tip)))
 
-(defn opis-facturi-descarcate [facturi]
+(defn opis-facturi-descarcate [ds facturi]
   (for [f facturi]
-    (let [{:keys [tip data_creare id_descarcare cif]} f
-          path (u/build-path data_creare)
-          f-name (str id_descarcare ".zip")
-          final-path (str "date/" cif "/" path "/" f-name)
-          dc (u/parse-date data_creare)
-          d (str (:data_c dc) "-" (:ora_c dc))
+    (let [{:keys [tip id_descarcare]} f
+          is-downloaded? (not (> (count (facturi/test-factura-descarcata? ds {:id id_descarcare})) 0))
           tip-factura (parse-tip-factura tip)
-          invoice-details (assoc f :href final-path :tip tip-factura :data_creare d)]
-      (ui-comp/row-factura-descarcata-detalii invoice-details))))
+          invoice-details (assoc f :tip tip-factura)
+          _ (when is-downloaded? (db/scrie-detalii-factura-anaf->db invoice-details ds))]
+      (ui-comp/row-factura-descarcata-detalii ds invoice-details))))
 
 
 (defn fetch-lista-mesaje [target ds zile cif conf]
@@ -201,7 +198,7 @@
         paths-fact-desc-local (u/list-files-from-dir dd)
         detalii-combinate-facturi (gather-invoices-data ds paths-fact-desc-local)
         detalii-sortate (sort #(compare (:data_creare %1) (:data_creare %2)) detalii-combinate-facturi)
-        detalii->table-rows (opis-facturi-descarcate detalii-sortate)
+        detalii->table-rows (opis-facturi-descarcate ds detalii-sortate)
         r (h/html (ui-comp/tabel-facturi-descarcate detalii->table-rows))]
     {:status 200
      :body (str r)
@@ -228,3 +225,33 @@
     (case (:action params)
       "listare" (listeaza-mesaje req conf ds)
       "descarcare" (descarca-mesaje req conf ds))))
+
+(defn save-pdf [path pdf-name pdf-content]
+  (let [save-to (str path "/" pdf-name)]
+    (io/copy pdf-content (io/file save-to))))
+
+(defn transformare-xml-to-pdf [req ds conf]
+  (let [p (:params req)
+        id-descarcare (:id_descarcare p)
+        detalii-fact (first (facturi/select-detalii-factura-descarcata ds {:id id-descarcare}))
+        {:keys [cif data_creare id_solicitare]} detalii-fact
+        download-dir (c/download-dir conf)
+        date->path (u/build-path data_creare)
+        app-dir (System/getProperty "user.dir")
+        zip-file-name (str id-descarcare ".zip")
+        final-path (str app-dir "/" download-dir "/" cif "/" date->path)
+        zip-path (str final-path "/" zip-file-name)
+        xml-name (str id_solicitare ".xml")
+        xml-content (u/read-file-from-zip zip-path xml-name)
+        a-token (db/fetch-access-token ds cif)
+        url "https://api.anaf.ro/prod/FCTEL/rest/transformare/FACT1"
+        r (http/post url {:headers {"Authorization" (str "Bearer " a-token)
+                                    "Content-Type" "text/plain"}
+                          :body xml-content
+                          :as :stream})
+        body (:body r)
+        _ (save-pdf app-dir (str id-descarcare ".pdf")  body)]
+    {:status 200
+     :body "ok"
+     :headers {"content-type" "text/html"}}))
+

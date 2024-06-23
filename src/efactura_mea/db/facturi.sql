@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS facturi_anaf (
 CREATE TABLE IF NOT EXISTS detalii_facturi_anaf (
     id INTEGER PRIMARY KEY,
     id_descarcare text,
+    id_solicitare text,
     data_creare TEXT,
     cif TEXT,
     tip TEXT ,
@@ -90,6 +91,7 @@ insert into facturi_anaf (
 -- :result :raw
 insert into detalii_facturi_anaf (
     id_descarcare,
+    id_solicitare,
     data_creare,
     cif,
     tip,
@@ -100,7 +102,7 @@ insert into detalii_facturi_anaf (
     client,
     total,
     valuta)
-    values (:id_descarcare, :data_creare, :cif, :tip, :serie_numar, :data_emitere, :data_scadenta, :furnizor, :client, :total, :valuta)
+    values (:id_descarcare, :id_solicitare, :data_creare, :cif, :tip, :serie_numar, :data_emitere, :data_scadenta, :furnizor, :client, :total, :valuta)
 
 -- :name insert-row-apel-api :insert :*
 -- :command :execute
@@ -129,12 +131,17 @@ insert into apeluri_api_anaf (
 -- :name test-factura-descarcata? :? :*
 -- :command :execute
 -- :result :raw
-select id from facturi_anaf where id_descarcare = :id
+select id from detalii_facturi_anaf where id_descarcare = :id
 
 -- :name select-factura-descarcata :? :*
 -- :command :execute
 -- :result :raw
 select * from facturi_anaf where id_descarcare = :id
+
+-- :name select-detalii-factura-descarcata :? :*
+-- :command :execute
+-- :result :raw
+select * from detalii_facturi_anaf where id_descarcare = :id
 
 -- :name select-company-cif :? :1
 -- :command :execute
