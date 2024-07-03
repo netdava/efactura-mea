@@ -10,6 +10,9 @@
 (defn fetch-access-token [db cif]
   (:access_token (f/select-access-token db {:cif cif})))
 
+(defn fetch-apeluri-anaf-logs [db cif]
+  (f/select-apeluri-api-anaf db {:cif cif}))
+
 (defn fetch-facturi-descarcate [db]
   (f/select-lista-mesaje-descarcate db))
 
@@ -49,15 +52,17 @@
                                       :valuta valuta})))
 
 
-(defn log-api-calls [ds response tip-apel]
+(defn log-api-calls [ds cif response tip-apel]
   (let [now (ZonedDateTime/now)
         uri (:uri (:request response))
         url (.toString uri)
         status (:status response)
+        _ (println "responseeee : " (:headers response))
         response (case tip-apel
-                   "descarcare" (u/input-stream-to-bytes (:body response))
+                   "descarcare" (:headers response)
                    (:body response))]
-    (f/insert-row-apel-api ds {:data_apelare now
+    (f/insert-row-apel-api ds {:cif cif
+                               :data_apelare now
                                :url url
                                :tip tip-apel
                                :status_code status

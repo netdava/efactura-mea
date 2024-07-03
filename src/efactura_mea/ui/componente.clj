@@ -32,8 +32,9 @@
     [:aside.menu
      [:p.menu-label "Facturi"]
      [:ul.menu-list
-      [:li [:a {:href "/"} "Descărcate"]]
-      [:li [:a {:href "/facturi-spv"} "Spațiul Public Virtual"]]]]]])
+      [:li [:a {:href "/facturi/35586426"} "Descărcate"]]
+      [:li [:a {:href "/facturi-spv/35586426"} "Spațiul Public Virtual"]]
+      [:li [:a {:href "/logs/35586426"} "Jurnal actiuni"]]]]]])
 
 (defn title [title-text & args]
   (h/html
@@ -41,16 +42,19 @@
     [:p.title.is-4 (str title-text (apply str args))]
     [:hr.title-hr]]))
 
-(defn facturi-descarcate []
-  (h/html
-   [:div#main-container.block
-    (title "Facturi descărcate local")
-    [:div#facturi-descarcate {:hx-get "/facturile-mele"
-                              :hx-target "#facturi-descarcate"
-                              :hx-trigger "load"}]]))
+(defn facturi-descarcate [{:keys [path-params]}]
+  (let [cif (:cif path-params)
+        get-url (str "/facturile-mele/" cif)]
+    (h/html
+     [:div#main-container.block
+      (title "Facturi descărcate local")
+      [:div#facturi-descarcate {:hx-get get-url
+                                :hx-target "#facturi-descarcate"
+                                :hx-trigger "load"}]])))
 
-(defn facturi-spv []
-  (let [days (range 1 61)
+(defn facturi-spv [{:keys [path-params]}]
+  (let [cif (:cif path-params)
+        days (range 1 61)
         days-select-vals (for [n days]
                            [:option {:value n} n])]
     (h/html
@@ -60,11 +64,13 @@
                     :hx-target "#facturi-anaf"}
        [:div.field
         [:label.label "CIF:"]
-        [:input.input {:type "text"
-                 :id "cif-number"
-                 :list "cif"
-                 :name "cif"}]
-        [:datalist {:id "cif"} [:option "35586426"]]]
+        [:input.input {:readonly "readonly"
+                       :type "text"
+                       :id "cif-number"
+                       :list "cif"
+                       :name "cif"
+                       :value cif
+                       :placeholder cif}]]
        [:div.field
         [:label.label "Număr de zile pentru vizualizare/descărcare facturi anaf:"]
         [:div.select [:select {:id "zile" :name "zile"}
@@ -154,13 +160,13 @@
            [:form {:hx-get "/transformare-xml-pdf"
                    :hx-swap "none"}
             [:input {:type "hidden" :name "id_descarcare" :value id_descarcare}]
-            [:button.button {:type "submit"} "Pdf"]]]]]]]])))
+            [:button.button.is-ghost {:type "submit"} "pdf"]]]]]]]])))
 
 
 
 (defn tabel-facturi-descarcate [rows]
   (h/html
-   [:table.table.is-hoverable.is-fullwidth
+   [:table.table.is-hoverable
     (table-header-facturi-descarcate)
     (for [r rows]
       r)]))

@@ -64,8 +64,9 @@
 
 (defn routes
   [anaf-conf]
-  [["/" (fn [req] (layout/main-layout (ui/facturi-descarcate)))]
-   ["/facturi-spv" (fn [req] (layout/main-layout (ui/facturi-spv)))]
+  [["/" (fn [req] (layout/main-layout "Hello, Admin!"))]
+   ["/facturi/:cif" (fn [req] (layout/main-layout (ui/facturi-descarcate req)))]
+   ["/facturi-spv/:cif" (fn [req] (layout/main-layout (ui/facturi-spv req)))]
    ["/login-anaf" (o2a/make-anaf-login-handler
                    (anaf-conf :client-id)
                    (anaf-conf :redirect-uri))]
@@ -77,8 +78,9 @@
    ["/listare-sau-descarcare" (fn [request]
                                (api/efactura-action-handler request conf ds))]
    
-   ["/facturile-mele" (fn [request] (api/afisare-facturile-mele request ds conf))]
-   ["/transformare-xml-pdf" (fn [req] (api/transformare-xml-to-pdf req ds conf))]])
+   ["/facturile-mele/:cif" (fn [request] (api/afisare-facturile-mele request ds conf))]
+   ["/transformare-xml-pdf" (fn [req] (api/transformare-xml-to-pdf req ds conf))]
+   ["/logs/:cif" (fn [req] (layout/main-layout "logs here"))]])
 
 (defn handler
   [conf]

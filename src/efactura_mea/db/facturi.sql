@@ -1,7 +1,7 @@
 -- :name create-facturi-anaf-table
 -- :command :execute
 -- :result :raw
-CREATE TABLE IF NOT EXISTS facturi_anaf (
+CREATE TABLE IF NOT EXISTS lista_mesaje (
     id INTEGER PRIMARY KEY,
     data_descarcare TEXT,
     id_descarcare TEXT ,
@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS tokens (
 -- :result :raw
 CREATE TABLE IF NOT EXISTS apeluri_api_anaf (
     id INTEGER PRIMARY KEY,
+    cif TEXT,
     data_apelare TEXT,
     url  TEXT,
     tip TEXT,
@@ -76,7 +77,7 @@ CREATE TABLE IF NOT EXISTS descarcare_lista_mesaje (
 -- :name insert-row-factura :insert :*
 -- :command :execute
 -- :result :raw
-insert into facturi_anaf (
+insert into lista_mesaje (
     data_descarcare,
     id_descarcare,
     cif,
@@ -108,40 +109,47 @@ insert into detalii_facturi_anaf (
 -- :command :execute
 -- :result :raw
 insert into apeluri_api_anaf (
+    cif,
     data_apelare,
     url,
     tip,
     status_code,
     response
     )
-    values (:data_apelare, :url, :tip, :status_code, :response)
+    values (:cif, :data_apelare, :url, :tip, :status_code, :response)
 
 -- :name insert-row-apel-api-lista-mesaje :insert :*
 -- :command :execute
 -- :result :raw
 insert into apeluri_api_anaf (
+    cif,
     data_apelare,
     url,
     tip,
     status_code,
     response
     )
-    values (:data_apelare, :url, :tip, :status_code, :response)
+    values (:cif, :data_apelare, :url, :tip, :status_code, :response)
 
 -- :name test-factura-descarcata? :? :*
 -- :command :execute
 -- :result :raw
-select id from detalii_facturi_anaf where id_descarcare = :id
+select id from lista_mesaje where id_descarcare = :id
 
 -- :name select-factura-descarcata :? :*
 -- :command :execute
 -- :result :raw
-select * from facturi_anaf where id_descarcare = :id
+select * from lista_mesaje where id_descarcare = :id
 
 -- :name select-detalii-factura-descarcata :? :*
 -- :command :execute
 -- :result :raw
 select * from detalii_facturi_anaf where id_descarcare = :id
+
+-- :name select-apeluri-api-anaf
+-- :command :execute
+-- :result :raw
+select * from apeluri_api_anaf where cif = :cif
 
 -- :name select-company-cif :? :1
 -- :command :execute
@@ -159,7 +167,7 @@ select access_token from tokens where cif = :cif
 SELECT * FROM descarcare_lista_mesaje ORDER BY id DESC LIMIT 1
 
 -- :name select-lista-mesaje-descarcate
-SELECT * FROM facturi_anaf;
+SELECT * FROM lista_mesaje;
 
 -- :name insert-company :insert :*
 -- :command :execute

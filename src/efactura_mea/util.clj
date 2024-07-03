@@ -106,7 +106,7 @@
                      (extract-nested-field data [:AccountingSupplierParty :Party :PartyLegalEntity :RegistrationName]))
         client (or (extract-nested-field data [:AccountingCustomerParty :Party :PartyName :Name])
                    (extract-nested-field data [:AccountingCustomerParty :Party :PartyLegalEntity :RegistrationName]))
-        suma-de-plata (extract-nested-field data [:LegalMonetaryTotal :PayableAmount])]
+        suma-de-plata (extract-nested-field data [:LegalMonetaryTotal :TaxInclusiveAmount])]
     {:serie_numar serie-numar
      :data_emitere data-emitere
      :data_scadenta data-scadenta
@@ -146,4 +146,6 @@
 (comment
   (read-file-from-zip "/data/date/2024/04/3336772688.zip" "4220052896.xml")
   (list-files-from-dir  "data/date/")
+
+  (get-invoice-data "/home/nas/proiecte/efactura-mea/data/date/35586426/2024/06/3558875589.zip")
   0)
