@@ -146,7 +146,6 @@
 (defn opis-facturi-descarcate [ds facturi]
   (for [f facturi]
     (when f (let [{:keys [tip id_descarcare]} f
-                  _ (println "oppopoopo: " f)
                   is-downloaded? (not (> (count (facturi/test-factura-descarcata? ds {:id id_descarcare})) 0))
                   tip-factura (parse-tip-factura tip)
                   invoice-details (assoc f :tip tip-factura)
@@ -203,11 +202,8 @@
 (defn afisare-facturile-mele [_ ds conf]
   (let [dd (c/download-dir conf)
         paths-fact-desc-local (u/list-files-from-dir dd)
-        _ (println "paths locale are: " paths-fact-desc-local)
         detalii-combinate-facturi (gather-invoices-data ds paths-fact-desc-local)
-        _ (println "detalii combooooooooooooooo " detalii-combinate-facturi)
         det (sort #(compare (:data_creare %1) (:data_creare %2)) detalii-combinate-facturi)
-        _ (println "detalii sortateeeeeeee " det)
         detalii->table-rows (opis-facturi-descarcate ds det)
         r (h/html (ui-comp/tabel-facturi-descarcate detalii->table-rows))]
     {:status 200
@@ -265,8 +261,7 @@
      :body "ok"
      :headers {"content-type" "text/html"}}))
 
-(comment 
-  (let [det [{:data_descarcare "2024-07-01T18:06:56.970635596+03:00[Europe/Bucharest]", :data_creare "202405081800", :data_scadenta "2024-05-31", :client "NETDAVA INTERNATIONAL SRL", :cif "35586426", :tip "FACTURA PRIMITA", :furnizor "RCS & RDS S.A.", :id_solicitare "4261047732", :id_descarcare "3413296732", :data_emitere "2024-05-08", :valuta "RON", :total "72.83", :serie_numar "FDB24 40746329", :id 6, :detalii "Factura cu id_incarcare=4261047732 emisa de cif_emitent=5888716 pentru cif_beneficiar=35586426", :href "data/date/35586426/2024/05/3413296732.zip"} {:data_descarcare "2024-07-01T18:06:56.864833053+03:00[Europe/Bucharest]", :data_creare "202405081424", :data_scadenta "2024-04-01", :client "NETDAVA INTERNATIONAL S.R.L.", :cif "35586426", :tip "FACTURA PRIMITA", :furnizor "SC HSEQ CONSULTING SRL", :id_solicitare "4260652006", :id_descarcare "3412523350", :data_emitere "2024-04-01", :valuta "RON", :total "119", :serie_numar "PH HSE 0083964", :id 5, :detalii "Factura cu id_incarcare=4260652006 emisa de cif_emitent=18147765 pentru cif_beneficiar=35586426", :href "data/date/35586426/2024/05/3412523350.zip"}]]
-    (sort #(compare (:data_creare %1) (:data_creare %2)) det))
-  
-  0)
+(defn afisare-loguri
+  [{:keys [path-params]} ds]
+  (let [cif (:cif path-params)]))
+

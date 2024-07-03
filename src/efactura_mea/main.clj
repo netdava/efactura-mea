@@ -80,7 +80,7 @@
    
    ["/facturile-mele/:cif" (fn [request] (api/afisare-facturile-mele request ds conf))]
    ["/transformare-xml-pdf" (fn [req] (api/transformare-xml-to-pdf req ds conf))]
-   ["/logs/:cif" (fn [req] (layout/main-layout "logs here"))]])
+   ["/logs/:cif" (fn [req] (layout/main-layout (ui/logs-api-calls req ds)))]])
 
 (defn handler
   [conf]

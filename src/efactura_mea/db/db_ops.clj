@@ -1,7 +1,6 @@
 (ns efactura-mea.db.db-ops
   (:require [efactura-mea.db.facturi :as f]
-            [efactura-mea.util :as u])
-  (:import [java.time ZonedDateTime]))
+            [java-time :as jt]))
 
 
 (defn fetch-cif [db id]
@@ -26,7 +25,7 @@
   (f/create-descarcare-lista-mesaje ds))
 
 (defn scrie-factura->db [factura ds]
-  (let [now (ZonedDateTime/now)
+  (let [now (jt/zoned-date-time)
         {:keys [id data_creare tip cif id_solicitare detalii]} factura]
     (f/insert-row-factura ds {:data_descarcare now
                               :id_descarcare id
@@ -53,11 +52,10 @@
 
 
 (defn log-api-calls [ds cif response tip-apel]
-  (let [now (ZonedDateTime/now)
+  (let [now (jt/zoned-date-time)
         uri (:uri (:request response))
         url (.toString uri)
         status (:status response)
-        _ (println "responseeee : " (:headers response))
         response (case tip-apel
                    "descarcare" (:headers response)
                    (:body response))]
@@ -69,7 +67,6 @@
                                :response response})))
 
 (defn track-descarcare-mesaje [ds lista-mesaje]
-  (let [now (ZonedDateTime/now)]
+  (let [now (jt/zoned-date-time)]
     (f/insert-into-descarcare-lista-mesaje ds {:data_start_procedura now
                                                :lista_mesaje lista-mesaje})))
-

@@ -2,7 +2,7 @@
   (:require [hiccup2.core :as h]
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.util :as u]
-            [babashka.http-client :as http]))
+            [java-time :as jt]))
 
 (defn navbar [user-name]
   [:nav.navbar.is-white.top-nav
@@ -115,6 +115,26 @@
     [:th "tip"]
     [:th "download"]]))
 
+(defn table-header-api-calls []
+  [:tr
+   [:th]
+   [:th "data"]
+   [:th "url"]
+   [:th "tip"]
+   [:th "status"]])
+
+(defn row-log-api-call
+  [{:keys [id data_apelare url tip status_code]}]
+  (let [zoned-time (jt/zoned-date-time data_apelare)
+        f-time (jt/format "H:m - MMMM dd, yyyy" zoned-time)]
+    (h/html
+     [:tr
+      [:td.is-size-7 id]
+      [:td.is-size-7 f-time]
+      [:td.is-size-7 url]
+      [:td.is-size-7 tip]
+      [:td.is-size-7 status_code]])))
+
 (defn tag-tip-factura [tip]
   (case tip
     "primita" "is-info"
@@ -123,7 +143,7 @@
     "is-warning"))
 
 (defn row-factura-descarcata-detalii 
-  [ds {:keys [data_creare client id_descarcare id_solicitare tip furnizor valuta total data_scadenta data_emitere serie_numar href cif]}]
+  [_ {:keys [data_creare client id_descarcare id_solicitare tip furnizor valuta total data_scadenta data_emitere serie_numar href cif]}]
   (let [dc (u/parse-date data_creare)
         parsed_date (str (:data_c dc) "-" (:ora_c dc))
         path (u/build-path data_creare)
@@ -132,7 +152,7 @@
         app-dir (System/getProperty "user.dir")
         full-path (str app-dir "/" href)
         xml-name (str id_solicitare ".xml")
-        xml-content (u/read-file-from-zip full-path xml-name)
+        #_xml-content #_(u/read-file-from-zip full-path xml-name)
         type (tag-tip-factura tip)
         tag-opts (update {:class "tag is-normal "} :class str type)
         link-opts {:href final-path :target "_blank"}]
@@ -171,6 +191,13 @@
     (for [r rows]
       r)]))
 
+(defn tabel-logs-api-calls [rows]
+  (h/html
+   [:table.table.is-hoverable
+    (table-header-api-calls)
+    (for [r rows]
+      r)]))
+
 (defn validation-message [err-days err-cif]
   (h/html 
    [:ul.err-msg
@@ -185,3 +212,22 @@
                 [:table
                  r]]))
    :headers {"content-type" "text/html"}})
+
+(defn logs-api-calls
+  [req ds]
+  (let [cif (:cif (:path-params req))
+        t (str "Istoric apeluri api Anaf - cif " cif)
+        calls (db/fetch-apeluri-anaf-logs ds cif)]
+    (h/html
+     [:div#main-container.block
+      (title t)
+      [:table.table.is-hoverable
+       (for [c calls]
+         (row-log-api-call c))]])))
+
+
+
+#_{:status 200
+ :headers {"content-type" "text/html"}
+ :body "(str "}
+
