@@ -34,7 +34,10 @@
      [:ul.menu-list
       [:li [:a {:href "/facturi/35586426"} "Descărcate"]]
       [:li [:a {:href "/facturi-spv/35586426"} "Spațiul Public Virtual"]]
-      [:li [:a {:href "/logs/35586426"} "Jurnal actiuni"]]]]]])
+      [:li [:a {:href "/logs/35586426"} "Jurnal actiuni"]]]
+     [:p.menu-label "Administrare"]
+     [:ul.menu-list
+      [:li [:a {:href "/descarcare-automata/35586426"} "Descărcare automată facturi"]]]]]])
 
 (defn title [title-text & args]
   (h/html
@@ -54,7 +57,7 @@
 
 (defn facturi-spv [{:keys [path-params]}]
   (let [cif (:cif path-params)
-        days (range 1 61)
+        days (range 1 60)
         days-select-vals (for [n days]
                            [:option {:value n} n])]
     (h/html
@@ -227,7 +230,4 @@
 
 
 
-#_{:status 200
- :headers {"content-type" "text/html"}
- :body "(str "}
 
