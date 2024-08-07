@@ -12,8 +12,12 @@
 (defn fetch-apeluri-anaf-logs [db cif]
   (f/select-apeluri-api-anaf db {:cif cif}))
 
-(defn fetch-facturi-descarcate [db]
-  (f/select-lista-mesaje-descarcate db))
+(defn get-companies-data [db]
+  (let [companies (f/get-companies-cif db)
+        _ (println "companies by cif:" companies)]
+    (doseq [c companies]
+      (let [cif (:cif c)]
+        (f/insert-into-company-automated-processes db {:cif cif :desc_aut_status "off"})))))
 
 (defn create-sql-tables
   [ds]
@@ -22,7 +26,9 @@
   (f/create-company-table ds)
   (f/create-tokens-table ds)
   (f/create-apeluri-api-anaf ds)
-  (f/create-descarcare-lista-mesaje ds))
+  (f/create-descarcare-lista-mesaje ds)
+  (f/create-automated-processes-table ds)
+  (get-companies-data ds))
 
 (defn scrie-factura->db [factura ds]
   (let [now (jt/zoned-date-time)

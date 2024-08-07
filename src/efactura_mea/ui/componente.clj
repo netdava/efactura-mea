@@ -129,7 +129,7 @@
 (defn row-log-api-call
   [{:keys [id data_apelare url tip status_code]}]
   (let [zoned-time (jt/zoned-date-time data_apelare)
-        f-time (jt/format "H:m - MMMM dd, yyyy" zoned-time)]
+        f-time (jt/format "H:mm - MMMM dd, yyyy" zoned-time)]
     (h/html
      [:tr
       [:td.is-size-7 id]

@@ -74,6 +74,15 @@ CREATE TABLE IF NOT EXISTS descarcare_lista_mesaje (
     lista_mesaje TEXT
 ) STRICT;
 
+-- :name create-automated-processes-table
+-- :command :execute
+-- :result :raw
+CREATE TABLE IF NOT EXISTS company_automated_proc (
+    id INTEGER PRIMARY KEY,
+    cif TEXT,
+    desc_aut_status TEXT
+) STRICT;
+
 -- :name insert-row-factura :insert :*
 -- :command :execute
 -- :result :raw
@@ -118,6 +127,22 @@ insert into apeluri_api_anaf (
     )
     values (:cif, :data_apelare, :url, :tip, :status_code, :response)
 
+-- :name insert-into-company-automated-processes
+-- :command :execute
+-- :result :raw
+insert into company_automated_proc (
+    cif, 
+    desc_aut_status
+) values (:cif, :desc_aut_status)
+
+-- :name update-automated-download-status
+-- :command :execute
+-- :result :raw
+insert OR IGNORE into company_automated_proc (
+    cif, 
+    desc_aut_status
+) values (:cif, :desc_aut_status)
+
 -- :name insert-row-apel-api-lista-mesaje :insert :*
 -- :command :execute
 -- :result :raw
@@ -155,6 +180,11 @@ select * from apeluri_api_anaf where cif = :cif
 -- :command :execute
 -- :result :raw
 select cif from company where id = :id
+
+-- :name get-companies-cif
+-- :command :execute
+-- :result :raw
+select cif from company
 
 -- :name select-access-token :? :1
 -- :command :execute
