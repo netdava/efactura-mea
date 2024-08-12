@@ -11,7 +11,8 @@
             [efactura-mea.util :as u]
             [efactura-mea.web.api :as api]
             [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
-            [hiccup2.core :as h])
+            [hiccup2.core :as h]
+            [java-time :as jt])
   (:import [java.util Timer TimerTask Date]))
 
 
@@ -259,11 +260,14 @@
      :body "ok"
      :headers {"content-type" "text/html"}}))
  
- (defonce ^:private timer-atom (atom nil))
-
+ (defonce ^:private timer-atom (atom {:started nil
+                                      :status nil}))
+ 
  (defn set-descarcare-automata
    [req]
-   (let [cif (:cif (:path-params req))
+   (let [status ()
+         #_started-date #_(:started @timer-atom)
+         cif (:cif (:path-params req))
          t (str "Activare descărcare automată facturi")
          days (range 1 60)
          days-select-vals (for [n days]
@@ -272,9 +276,9 @@
       [:div#main-container.block
        (ui-comp/title t)
        [:article.message
-        [:div#status.message-body (if @timer-atom
-                                    "descărcarea automată a facturilor este pornită"
-                                    "descărcarea automată a facturilor este oprită")]]
+        [:div#status.message-body (if (:status @timer-atom)
+                                    (str " - descărcarea automată a facturilor a fost pornită")
+                                    "to be continued")]]
        [:form.block {:hx-get "/pornire-descarcare-automata"
                      :hx-target "#status"
                      :hx-swap "innerHTML swap:1s"}
@@ -291,30 +295,36 @@
          [:label.label "Număr de zile pentru descărcare automată facturi anaf:"]
          [:div.select [:select {:id "zile" :name "zile"}
                        days-select-vals]]]
-        [:div.field
-         [:label.label "Status"]]
-        [:div.radios
-         [:label.radio]
-         [:input {:type "radio"
-                  :name "action"
-                  :value "descarcare-automata-on"}
-          "on"]
-         [:label.radio]
-         [:input {:type "radio"
-                  :name "action"
-                  :value "descarcare-automata-off"}
-          "off"]]
+        [:div {:class "field"}
+         [:input {:id "descarcare-automata"
+                  :type "checkbox"
+                  :name "descarcare-automata"
+                  :class "switch is-rounded is-info"}]
+         [:label {:for "descarcare-automata"} "Activează descarcarea automată"]]
         [:button.button.is-small.is-link {:type "submit"} "Setează"]]])))
 
   (defn oprire-descarcare-automata []
-   (when-let [timer @timer-atom]
+   (when-let [timer (:status @timer-atom)]
      (.cancel timer)
-     (reset! timer-atom nil)
+     (reset! timer-atom {:started nil
+                         :status nil})
      (println "Timer cancelled.")))
+(comment 
+  (let [now (java.time.LocalDateTime/now)
+        formatter (jt/formatter "H:mm - MMMM dd, yyyy")
+        f-date (jt/format formatter now)]
+    f-date
+    
+    )
 
+  0)
+  
 (defn pornire-descarcare-automata [req conf ds]
   (oprire-descarcare-automata)
-  (let [timer (Timer. true)
+  (let [now (java.time.LocalDateTime/now)
+        formatter (jt/formatter "H:mm - MMMM dd, yyyy")
+        f-date (jt/format formatter now)
+        timer (Timer. true)
         timer-task (proxy [TimerTask] []
                      (run []
                        (try
@@ -324,30 +334,34 @@
                          (catch Exception e
                            (println (str "Task failed: " (.getMessage e)))
                            (.cancel timer))))) ;; Use the local timer to cancel the task if it fails
-        interval-24h (* 60 1000)]
-    (reset! timer-atom timer)
+        interval-24h (* 24 60 60 1000)]
+    (reset! timer-atom {:started f-date :status timer})
     (.scheduleAtFixedRate timer timer-task 0 interval-24h)))
- 
+
 
 
  (defn descarcare-automata-facturi [req conf ds]
    (let [params (:params req)
-         action (:action params)]
-     (case action
-       "descarcare-automata-on" (try
-                                  (println (str "Task ||< descarcare-automata-facturi >|| starting at: " (Date.)))
-                                  (pornire-descarcare-automata req conf ds)
-                                  (println "Task started.")
-                                  {:status 200
-                                   :body "Ai activat cu succes serviciul de descărcare automată"
-                                   :headers {"content-type" "text/html"}}
-                                  (catch Exception e
-                                    (println (str "Task failed to start: " (.getMessage e)))))
-       "descarcare-automata-off" (do (println "canceling timer")
-                                     (oprire-descarcare-automata)
-                                     {:status 200
-                                      :body "Ai dezactivat serviciul de descărcare automată"
-                                      :headers {"content-type" "text/html"}}))))
+         {:keys [cif descarcare-automata]} params
+         company-data (db/get-company-data ds cif)]
+     (if descarcare-automata
+       (try
+         (println (str "Task ||< descarcare-automata-facturi >|| starting at: " (Date.)))
+         (pornire-descarcare-automata req conf ds)
+         (println "Task started.")
+         (db/update-company-desc-aut-status ds (:id company-data) "on")
+         (println "something hapened : maby db updated")
+         {:status 200
+          :body "Ai activat cu succes serviciul de descărcare automată"
+          :headers {"content-type" "text/html"}}
+         (catch Exception e
+           (println (str "Task failed to start: " (.getMessage e)))))
+       (do (println "canceling timer")
+           (oprire-descarcare-automata)
+           (db/update-company-desc-aut-status ds (:id company-data) "off")
+           {:status 200
+            :body "Ai dezactivat serviciul de descărcare automată"
+            :headers {"content-type" "text/html"}}))))
 
 
  

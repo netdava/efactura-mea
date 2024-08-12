@@ -1,6 +1,11 @@
 (ns efactura-mea.db.db-ops
   (:require [efactura-mea.db.facturi :as f]
-            [java-time :as jt]))
+            [java-time :as jt]
+            [next.jdbc :as jdbc]))
+
+(defn enable-foreignkey-constraint [db-spec]
+  ;; Enable foreign key constraints
+(jdbc/execute! db-spec ["PRAGMA foreign_keys = ON"]))
 
 
 (defn fetch-cif [db id]
@@ -12,15 +17,25 @@
 (defn fetch-apeluri-anaf-logs [db cif]
   (f/select-apeluri-api-anaf db {:cif cif}))
 
-(defn get-companies-data [db]
-  (let [companies (f/get-companies-cif db)
+(defn init-automated-download [db]
+  (let [companies (f/get-companies-data db)
         _ (println "companies by cif:" companies)]
     (doseq [c companies]
-      (let [cif (:cif c)]
-        (f/insert-into-company-automated-processes db {:cif cif :desc_aut_status "off"})))))
+      (let [id (:id c)]
+        (f/insert-into-company-automated-processes db {:company_id id :desc_aut_status "off"})))))
+
+(defn get-company-data [db cif]
+  (first (f/get-company-data db {:cif cif})))
+
+(defn update-company-desc-aut-status [db id status]
+  (let [_ (println "id before statusssss: " id)
+        _ (println "statusssss: " status)]
+    (f/update-automated-download-status db {:id id :status status}))
+  )
 
 (defn create-sql-tables
   [ds]
+  (enable-foreignkey-constraint ds)
   (f/create-facturi-anaf-table ds)
   (f/create-detalii-facturi-anaf-table ds)
   (f/create-company-table ds)
@@ -28,7 +43,7 @@
   (f/create-apeluri-api-anaf ds)
   (f/create-descarcare-lista-mesaje ds)
   (f/create-automated-processes-table ds)
-  (get-companies-data ds))
+  (init-automated-download ds))
 
 (defn scrie-factura->db [factura ds]
   (let [now (jt/zoned-date-time)

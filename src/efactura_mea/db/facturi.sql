@@ -78,9 +78,9 @@ CREATE TABLE IF NOT EXISTS descarcare_lista_mesaje (
 -- :command :execute
 -- :result :raw
 CREATE TABLE IF NOT EXISTS company_automated_proc (
-    id INTEGER PRIMARY KEY,
-    cif TEXT,
-    desc_aut_status TEXT
+    company_id INTEGER,
+    desc_aut_status TEXT,
+    FOREIGN KEY(company_id) REFERENCES company(id) 
 ) STRICT;
 
 -- :name insert-row-factura :insert :*
@@ -130,18 +130,17 @@ insert into apeluri_api_anaf (
 -- :name insert-into-company-automated-processes
 -- :command :execute
 -- :result :raw
-insert into company_automated_proc (
-    cif, 
+insert OR IGNORE into company_automated_proc (
+    company_id,
     desc_aut_status
-) values (:cif, :desc_aut_status)
+) values (:company_id, :desc_aut_status)
 
 -- :name update-automated-download-status
 -- :command :execute
 -- :result :raw
-insert OR IGNORE into company_automated_proc (
-    cif, 
-    desc_aut_status
-) values (:cif, :desc_aut_status)
+update company_automated_proc
+set desc_aut_status = :status
+where company_id = :id;
 
 -- :name insert-row-apel-api-lista-mesaje :insert :*
 -- :command :execute
@@ -181,10 +180,19 @@ select * from apeluri_api_anaf where cif = :cif
 -- :result :raw
 select cif from company where id = :id
 
--- :name get-companies-cif
+-- :name get-companies-data
 -- :command :execute
 -- :result :raw
-select cif from company
+select cif,id from company
+
+-- :name get-company-data
+-- :command :execute
+-- :result :raw
+SELECT company.id, company_automated_proc.desc_aut_status
+FROM company
+INNER JOIN company_automated_proc
+ON company.id = company_automated_proc.company_id
+where company.cif = :cif;
 
 -- :name select-access-token :? :1
 -- :command :execute
