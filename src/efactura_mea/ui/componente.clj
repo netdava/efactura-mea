@@ -146,7 +146,7 @@
     "is-warning"))
 
 (defn row-factura-descarcata-detalii 
-  [_ {:keys [data_creare client id_descarcare id_solicitare tip furnizor valuta total data_scadenta data_emitere serie_numar href cif]}]
+  [{:keys [data_creare client id_descarcare id_solicitare tip furnizor valuta total data_scadenta data_emitere serie_numar href cif]}]
   (let [dc (u/parse-date data_creare)
         parsed_date (str (:data_c dc) "-" (:ora_c dc))
         path (u/build-path data_creare)
@@ -217,9 +217,8 @@
    :headers {"content-type" "text/html"}})
 
 (defn logs-api-calls
-  [req ds]
-  (let [cif (:cif (:path-params req))
-        t (str "Istoric apeluri api Anaf - cif " cif)
+  [cif ds]
+  (let [t (str "Istoric apeluri api Anaf - cif " cif)
         calls (db/fetch-apeluri-anaf-logs ds cif)]
     (h/html
      [:div#main-container.block

@@ -3,9 +3,16 @@
             [java-time :as jt]
             [next.jdbc :as jdbc]))
 
-(defn enable-foreignkey-constraint [db-spec]
+(defn enable-foreignkey-constraint [spec]
   ;; Enable foreign key constraints
-(jdbc/execute! db-spec ["PRAGMA foreign_keys = ON"]))
+(jdbc/execute! spec ["PRAGMA foreign_keys = ON"]))
+
+(defn convert-to-wall-mode [spec]
+  (jdbc/execute! spec ["PRAGMA journal_mode=WAL"]))
+
+(defn db-init-pref [db-spec]
+  (enable-foreignkey-constraint db-spec)
+  (convert-to-wall-mode db-spec))
 
 
 (defn fetch-cif [db id]
@@ -35,7 +42,7 @@
 
 (defn create-sql-tables
   [ds]
-  (enable-foreignkey-constraint ds)
+  (db-init-pref ds)
   (f/create-facturi-anaf-table ds)
   (f/create-detalii-facturi-anaf-table ds)
   (f/create-company-table ds)
