@@ -94,7 +94,7 @@
     [:th "detalii"]
     [:th "id factură"]]))
 
-(defn row-factura-anaf 
+(defn row-factura-anaf
   [data ora tip-factura id_solicitare detalii id]
   (h/html
    [:tr
@@ -145,7 +145,7 @@
     "eroare" "is-danger"
     "is-warning"))
 
-(defn row-factura-descarcata-detalii 
+(defn row-factura-descarcata-detalii
   [{:keys [data_creare client id_descarcare id_solicitare tip furnizor valuta total data_scadenta data_emitere serie_numar href cif]}]
   (let [dc (u/parse-date data_creare)
         parsed_date (str (:data_c dc) "-" (:ora_c dc))
@@ -202,7 +202,7 @@
       r)]))
 
 (defn validation-message [err-days err-cif]
-  (h/html 
+  (h/html
    [:ul.err-msg
     (when err-days [:li err-days])
     (when err-cif [:li err-cif])]))

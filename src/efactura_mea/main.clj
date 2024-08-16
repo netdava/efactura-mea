@@ -43,8 +43,7 @@
                                    (anaf-conf :client-secret)
                                    (anaf-conf :redirect-uri))]
    ["/listare-sau-descarcare" (fn [request]
-                               (api/efactura-action-handler request))]
-   
+                                (api/efactura-action-handler request))]
    ["/facturile-mele/:cif" (fn [request] (api/afisare-facturile-mele request))]
    ["/transformare-xml-pdf" (fn [req] (api/transformare-xml-to-pdf req))]
    ["/logs/:cif" (fn [req] (layout/main-layout (api/log-api-calls req)))]

@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS descarcare_lista_mesaje (
 -- :command :execute
 -- :result :raw
 CREATE TABLE IF NOT EXISTS company_automated_proc (
-    company_id INTEGER,
+    company_id INTEGER PRIMARY KEY,
     desc_aut_status TEXT,
     FOREIGN KEY(company_id) REFERENCES company(id) 
 ) STRICT;
@@ -133,7 +133,7 @@ insert into apeluri_api_anaf (
 insert OR IGNORE into company_automated_proc (
     company_id,
     desc_aut_status
-) values (:company_id, :desc_aut_status)
+) values (:company_id, :desc_aut_status);
 
 -- :name update-automated-download-status
 -- :command :execute
@@ -188,7 +188,7 @@ select cif,id from company
 -- :name get-company-data
 -- :command :execute
 -- :result :raw
-SELECT company.id, company_automated_proc.desc_aut_status
+SELECT company.id, company.cif, company_automated_proc.desc_aut_status
 FROM company
 INNER JOIN company_automated_proc
 ON company.id = company_automated_proc.company_id

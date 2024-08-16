@@ -5,7 +5,7 @@
 
 (defn enable-foreignkey-constraint [spec]
   ;; Enable foreign key constraints
-(jdbc/execute! spec ["PRAGMA foreign_keys = ON"]))
+  (jdbc/execute! spec ["PRAGMA foreign_keys = ON"]))
 
 (defn convert-to-wall-mode [spec]
   (jdbc/execute! spec ["PRAGMA journal_mode=WAL"]))
@@ -31,14 +31,23 @@
       (let [id (:id c)]
         (f/insert-into-company-automated-processes db {:company_id id :desc_aut_status "off"})))))
 
+(defn get-companies-data [ds]
+  (f/get-companies-data ds))
+
 (defn get-company-data [db cif]
   (first (f/get-company-data db {:cif cif})))
 
+(defn companies-with-status [db]
+  (let [companies (get-companies-data db)
+        a (atom nil)]
+    (doseq [c companies]
+      (let [cif (:cif c)
+            d (get-company-data db cif)]
+        (swap! a conj d)))
+    @a))
+
 (defn update-company-desc-aut-status [db id status]
-  (let [_ (println "id before statusssss: " id)
-        _ (println "statusssss: " status)]
-    (f/update-automated-download-status db {:id id :status status}))
-  )
+  (f/update-automated-download-status db {:id id :status status}))
 
 (defn create-sql-tables
   [ds]
@@ -69,7 +78,7 @@
                                       :id_solicitare id_solicitare
                                       :data_creare data_creare
                                       :cif cif
-                                      :tip tip 
+                                      :tip tip
                                       :serie_numar serie_numar
                                       :data_emitere data_emitere
                                       :data_scadenta data_scadenta
