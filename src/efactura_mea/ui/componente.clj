@@ -26,18 +26,34 @@
         [:hr.navbar-divider]
         [:a.navbar-item.is-selected {:href "#"} "Logout"]]]]]]])
 
-(defn sidebar []
+(defn sidebar-company-data [cif]
+  ;; TODO de pus conditia ca meniul sa fie disponibil doar daca compania a fost inregistrata corect cu token si tot ce trebuie
+  (let [link-facturi-descarcate (str "/facturi/" cif)
+        link-facturi-spv (str "/facturi-spv/" cif)
+        link-logs (str "/logs/" cif)
+        link-descarcare-automata (str "/descarcare-automata/" cif)]
+    [:div.p-3
+     [:div.menu-wrapper
+      [:aside.menu
+       [:p.menu-label "Facturi"]
+       [:ul.menu-list
+        [:li [:a {:href link-facturi-descarcate} "Descărcate"]]
+        [:li [:a {:href link-facturi-spv} "Spațiul Public Virtual"]]
+        [:li [:a {:href link-logs} "Jurnal actiuni"]]]
+       [:p.menu-label "Administrare"]
+       [:ul.menu-list
+        [:li [:a {:href link-descarcare-automata} "Descărcare automată facturi"]]]]]]))
+
+(defn sidebar-select-company []
   [:div.p-3
    [:div.menu-wrapper
     [:aside.menu
-     [:p.menu-label "Facturi"]
+     [:p.menu-label "Portofoliu"]
      [:ul.menu-list
-      [:li [:a {:href "/facturi/35586426"} "Descărcate"]]
-      [:li [:a {:href "/facturi-spv/35586426"} "Spațiul Public Virtual"]]
-      [:li [:a {:href "/logs/35586426"} "Jurnal actiuni"]]]
+      [:li [:a {:href "/companii"} "Companii"]]]
      [:p.menu-label "Administrare"]
      [:ul.menu-list
-      [:li [:a {:href "/descarcare-automata/35586426"} "Descărcare automată facturi"]]]]]])
+      [:li [:a {:href "/inregistrare-noua"} "Adaugă companie"]]]]]])
 
 (defn title [title-text & args]
   (h/html
@@ -45,9 +61,23 @@
     [:p.title.is-4 (str title-text (apply str args))]
     [:hr.title-hr]]))
 
-(defn facturi-descarcate [{:keys [path-params]}]
-  (let [cif (:cif path-params)
-        get-url (str "/facturile-mele/" cif)]
+(defn select-a-company [companies]
+  (h/html
+   (for [c companies]
+     (let [{:keys [cif name]} c
+           url (str "/facturi/" cif)]
+       [:div.card
+        [:div.card-content
+         [:p.title name]
+         [:p.subtitle cif]]
+        [:footer.card-footer
+         [:p.card-footer-item
+          [:span
+           "Vizualizează "
+           [:a {:href url} "facturile"]]]]]))))
+
+(defn facturi-descarcate [cif]
+  (let [get-url (str "/facturile-mele/" cif)]
     (h/html
      [:div#main-container.block
       (title "Facturi descărcate local")
@@ -55,9 +85,8 @@
                                 :hx-target "#facturi-descarcate"
                                 :hx-trigger "load"}]])))
 
-(defn facturi-spv [{:keys [path-params]}]
-  (let [cif (:cif path-params)
-        days (range 1 60)
+(defn facturi-spv [cif]
+  (let [days (range 1 60)
         days-select-vals (for [n days]
                            [:option {:value n} n])]
     (h/html
@@ -146,16 +175,12 @@
     "is-warning"))
 
 (defn row-factura-descarcata-detalii
-  [{:keys [data_creare client id_descarcare id_solicitare tip furnizor valuta total data_scadenta data_emitere serie_numar href cif]}]
+  [{:keys [data_creare client id_descarcare tip furnizor valuta total data_scadenta data_emitere serie_numar cif]}]
   (let [dc (u/parse-date data_creare)
         parsed_date (str (:data_c dc) "-" (:ora_c dc))
         path (u/build-path data_creare)
         zip-file-name (str id_descarcare ".zip")
         final-path (str "date/" cif "/" path "/" zip-file-name)
-        app-dir (System/getProperty "user.dir")
-        full-path (str app-dir "/" href)
-        xml-name (str id_solicitare ".xml")
-        #_xml-content #_(u/read-file-from-zip full-path xml-name)
         type (tag-tip-factura tip)
         tag-opts (update {:class "tag is-normal "} :class str type)
         link-opts {:href final-path :target "_blank"}]
@@ -228,5 +253,13 @@
          (row-log-api-call c))]])))
 
 
+^:rct/test
+(comment 
+  (facturi-descarcate {:path-params {:cif "12345678"}})
+  ;; => #object[hiccup.util.RawString 0x70f00958 "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div><div hx-get=\"/facturile-mele/12345678\" hx-target=\"#facturi-descarcate\" hx-trigger=\"load\" id=\"facturi-descarcate\"></div></div>"]
+  (facturi-descarcate {:path-params {:cif nil}})
+  ;; => #object[hiccup.util.RawString 0x1bc042e2 "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div><div hx-get=\"/facturile-mele/\" hx-target=\"#facturi-descarcate\" hx-trigger=\"load\" id=\"facturi-descarcate\"></div></div>"]
 
+
+  0)
 

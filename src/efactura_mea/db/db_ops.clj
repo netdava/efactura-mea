@@ -25,8 +25,7 @@
   (f/select-apeluri-api-anaf db {:cif cif}))
 
 (defn init-automated-download [db]
-  (let [companies (f/get-companies-data db)
-        _ (println "companies by cif:" companies)]
+  (let [companies (f/get-companies-data db)]
     (doseq [c companies]
       (let [id (:id c)]
         (f/insert-into-company-automated-processes db {:company_id id :desc_aut_status "off"})))))
@@ -45,6 +44,12 @@
             d (get-company-data db cif)]
         (swap! a conj d)))
     @a))
+
+(defn detalii-factura-anaf 
+  [db id]
+  (println "iau detalii-factura-anaf pentru " id)
+  (first
+   (f/select-detalii-factura-descarcata db {:id id})))
 
 (defn update-company-desc-aut-status [db id status]
   (f/update-automated-download-status db {:id id :status status}))

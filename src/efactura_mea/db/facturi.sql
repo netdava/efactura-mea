@@ -183,7 +183,7 @@ select cif from company where id = :id
 -- :name get-companies-data
 -- :command :execute
 -- :result :raw
-select cif,id from company
+select cif,id,name from company
 
 -- :name get-company-data
 -- :command :execute
@@ -233,5 +233,5 @@ insert into descarcare_lista_mesaje (
     lista_mesaje)
     values (:data_start_procedura, :lista_mesaje)
 
--- :name delete-row-download-queue
+-- :name clear-download-queue
 DELETE FROM descarcare_lista_mesaje WHERE id = :id

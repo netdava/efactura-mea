@@ -3,32 +3,9 @@
             [hiccup2.core :as h]
             [efactura-mea.ui.componente :as ui]))
 
-(defn sidebar-menu []
-  [:aside.menu.column.is-2.main.hero.is-fullheight
-   [:ul.menu-list
-    [:li [:a {:href "/"} "Facturi"]]
-    [:li [:a {:href "/ca"} "Certificate Authority"]]
-    [:li [:a {:href "/certificates"} "Hosts & Certificates"]]
-    [:li [:a {:href "/network"} "Network"]]]])
-
-(defn header []
-  [:header.header
-   [:div.header-content
-    [:div.user "Adminn"]]])
-
-(defn footer []
-  [:footer.footer
-   [:span "snm by netdava - 2024"]])
-
-(defn main [content]
-  [:main.main
-   [:div.page-content
-    [:div#nebula-cert-main-container.card
-     content]]])
-
 (defn main-layout
   ([content]
-   (main-layout content (ui/sidebar) "User Admin"))
+   (main-layout content (ui/sidebar-company-data) "User Admin"))
   ([content sidebar]
    (main-layout content sidebar "User Admin"))
   ([content sidebar header]
@@ -68,3 +45,4 @@
                            sidebar]
                           [:div.column.main-content
                            content]]]]]))}))
+
