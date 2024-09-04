@@ -54,6 +54,14 @@
 (defn update-company-desc-aut-status [db id status]
   (f/update-automated-download-status db {:id id :status status}))
 
+(defn test-companie-inregistrata
+  [db cif]
+  (let [c (f/test-companie-inregistrata? db {:cif cif})]
+    (-> c
+        first
+        :exists
+        (= 1))))
+
 (defn create-sql-tables
   [ds]
   (db-init-pref ds)
@@ -92,6 +100,10 @@
                                       :total total
                                       :valuta valuta})))
 
+(defn scrie-companie->db
+  [ds cif name]
+  (f/insert-company ds {:cif cif :name name}))
+
 
 (defn log-api-calls [ds cif response tip-apel]
   (let [now (jt/zoned-date-time)
@@ -112,3 +124,4 @@
   (let [now (jt/zoned-date-time)]
     (f/insert-into-descarcare-lista-mesaje ds {:data_start_procedura now
                                                :lista_mesaje lista-mesaje})))
+

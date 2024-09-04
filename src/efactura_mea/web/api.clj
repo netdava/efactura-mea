@@ -35,10 +35,60 @@
      (let [s (:desc_aut_status c)]
        (= "on" s))) companies))
 
-
-
 (defn init-db [ds]
   (db/create-sql-tables ds))
+
+(defn formular-inregistrare-companie
+  []
+  (let [t (str "Înregistrare companie în eFactura")]
+    (h/html
+     [:div#main-container.block
+      (ui-comp/title t)
+      [:form.block {:hx-get "/inregistreaza-companie"
+                    :hx-target "#main-container"
+                    :hx-swap "innerHTML swap:1s"}
+       [:div.field
+        [:label.label "CIF:"]
+        [:input.input {:type "text"
+                       :id "cif"
+                       :name "cif"
+                       :placeholder "cif companie"}]]
+       [:div.field
+        [:label.label "Denumire companie"]
+        [:input.input {:type "text"
+                       :id "name"
+                       :name "name"}]]
+       [:button.button.is-small.is-link {:type "submit"} "Adaugă companie"]]])))
+
+(defn inregistrare-noua-companie
+  [ds params]
+  (try (let [{:keys [cif name]} params
+             inregistrata? (db/test-companie-inregistrata ds cif)
+             _ (if (not inregistrata?)
+                 (facturi/insert-company ds {:cif cif :name name})
+                 (throw (Exception. (str "compania cu cif " cif " figurează ca fiind deja înregistrată."))))
+             m (str "Compania \"" name "\" cu cif \"" cif "\" a fost înregistrată cu succesito.")
+             detailed-msg (str (h/html
+                                [:article.message.is-success
+                                 [:div.message-header
+                                  [:p "Felicitări"]]
+                                 [:div.message-body
+                                  m]]))]
+         {:status 200
+          :body detailed-msg
+          :headers {"content-type" "text/html"}})
+       (catch
+        Exception e 
+         (let [err-msg (.getMessage e)
+               detailed-msg (str (h/html
+                                  [:article.message.is-warning
+                                   [:div.message-header
+                                    [:p "Nu s-a putut inregistra compania:"]]
+                                   [:div.message-body
+                                    err-msg]]))]
+           {:status 200
+            :body detailed-msg
+            :headers {"content-type" "text/html"}}))))
 
 (defn afisare-companii-inregistrate [ds]
   (let [companii (db/get-companies-data ds)]
@@ -170,6 +220,7 @@
       "erori factura" "eroare"
       tip)))
 
+
 (defn opis-facturi-descarcate [facturi ds]
   (for [f facturi]
     (when f (let [{:keys [tip id_descarcare]} f
@@ -178,8 +229,6 @@
                   invoice-details (assoc f :tip tip-factura)
                   _ (when is-downloaded? (db/scrie-detalii-factura-anaf->db invoice-details ds))]
               (ui-comp/row-factura-descarcata-detalii invoice-details)))))
-
-
 
 #_(defn planifica-descarca-mesaje
   [mesaje]

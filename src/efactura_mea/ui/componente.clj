@@ -53,7 +53,7 @@
       [:li [:a {:href "/companii"} "Companii"]]]
      [:p.menu-label "Administrare"]
      [:ul.menu-list
-      [:li [:a {:href "/inregistrare-noua"} "Adaugă companie"]]]]]])
+      [:li [:a {:href "/inregistrare-noua-companie"} "Adaugă companie"]]]]]])
 
 (defn title [title-text & args]
   (h/html

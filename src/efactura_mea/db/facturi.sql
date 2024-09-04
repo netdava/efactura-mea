@@ -207,6 +207,12 @@ SELECT * FROM descarcare_lista_mesaje ORDER BY id DESC LIMIT 1
 -- :name select-lista-mesaje-descarcate
 SELECT * FROM lista_mesaje;
 
+-- :name test-companie-inregistrata? :? :*
+-- :command :execute
+-- :result :raw
+select exists (select 1 from company where cif = :cif) as "exists";
+
+
 -- :name insert-company :insert :*
 -- :command :execute
 -- :result :raw

@@ -72,7 +72,13 @@
                   (let [content (api/afisare-companii-inregistrate ds)
                         sidebar (ui/sidebar-select-company)]
                     (layout/main-layout content sidebar)))]
-   ["/inregistrare-noua" (fn [_] (layout/main-layout "Bine ai venit în e-Factura, User Admin" (ui/sidebar-select-company)))]
+   ["/inregistrare-noua-companie" (fn [_]
+                                    (let [content (api/formular-inregistrare-companie)
+                                          sidebar (ui/sidebar-select-company)]
+                                      (layout/main-layout content sidebar)))]
+   ["/inregistreaza-companie" (fn [req]
+                                (let [{:keys [params]} req]
+                                  (api/inregistrare-noua-companie ds params)))]
    #_["/" (fn [_] (layout/main-layout "Hello, Admin!"))]
    ["/facturi/:cif" (fn [req]
                       (handle-facturi ui/facturi-descarcate req))]
@@ -141,4 +147,6 @@
   (mount/stop)
 
   (f/select-detalii-factura-descarcata ds "3412523350")
+  (db/test-companie-inregistrata ds "35586426")
+  (seq [])
   0)
