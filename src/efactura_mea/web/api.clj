@@ -1,5 +1,6 @@
 (ns efactura-mea.web.api
   (:require [babashka.http-client :as http]
+            [babashka.fs :as fs]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             
@@ -34,6 +35,11 @@
    (fn [c]
      (let [s (:desc_aut_status c)]
        (= "on" s))) companies))
+
+(defn create-dir-structure
+  [conf]
+  (let [dir-name (:data-dir conf)]
+    (fs/create-dirs dir-name)))
 
 (defn init-db [ds]
   (db/create-sql-tables ds))

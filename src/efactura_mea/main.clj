@@ -124,6 +124,7 @@
 
 (defn app
   [conf]
+  (api/create-dir-structure conf)
   (-> (handler conf)
       (wrap-app-config)
       (middleware/wrap-format)
