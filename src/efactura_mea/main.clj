@@ -99,9 +99,13 @@
                                (api/afisare-facturile-mele path-params conf ds)))]
    ["/transformare-xml-pdf" descarca-factura-pdf]
    ["/logs/:cif" (fn [req]
-                   (let [{:keys [path-params ds]} req
+                   (let [{:keys [path-params query-params ds uri]} req
+                         {:strs [page per-page]} query-params
+                         page (or (some-> page Integer/parseInt) 1)
+                         per-page (or (some-> per-page Integer/parseInt) 5)
+                         opts {:page page :per-page per-page :uri uri}
                          cif (:cif path-params)
-                         content (ui/logs-api-calls cif ds)
+                         content (ui/logs-api-calls cif ds opts)
                          sidebar (ui/sidebar-company-data cif)]
                      (layout/main-layout content sidebar)))]
    ["/descarcare-automata/:cif" (fn [req]
@@ -115,8 +119,6 @@
                                      (let [params (:params req)]
                                        (api/descarcare-automata-facturi params ds)))]])
 
-
-
 (defn handler
   [conf]
   (reitit/ring-handler
@@ -129,7 +131,7 @@
       (wrap-app-config)
       (middleware/wrap-format)
       (rmd/wrap-defaults rmd/site-defaults)
-      (wrap-file "data")
+      (wrap-file (:data-dir conf))
       (wrap-file (get-in conf [:server :public-path]))
       (wrap-webjars)))
 
@@ -138,6 +140,7 @@
   :stop (stop-server server))
 
 (defn -main [& args]
+  (println "Starting Application Server")
   (mount/start)
   (api/init-db ds)
   (api/pornire-serviciu-descarcare-automata ds conf))
@@ -149,5 +152,8 @@
 
   (f/select-detalii-factura-descarcata ds "3412523350")
   (db/test-companie-inregistrata ds "35586426")
+  
   (seq [])
+  (let [params {:a "b" :page "5"}]
+    (or (some-> (:page params) Integer/parseInt) 1))
   0)

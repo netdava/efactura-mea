@@ -14,7 +14,7 @@
             [efactura-mea.util :as u]
             [efactura-mea.web.api :as api]
             [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
-            
+            [efactura-mea.ui.pagination :as pag]
             [hiccup2.core :as h]
             [java-time :as jt]
             [efactura-mea.job-scheduler :as scheduler])
@@ -42,6 +42,8 @@
     (fs/create-dirs dir-name)))
 
 (defn init-db [ds]
+  (println "Initialising database")
+  (println "* Creating SQL tables")
   (db/create-sql-tables ds))
 
 (defn formular-inregistrare-companie
@@ -461,16 +463,17 @@
     (submit-download-proc live-companies db conf {:interval-zile 5})))
 
 (defn pornire-serviciu-descarcare-automata [db conf]
-  (let [interval-executare 2
+  (let [interval-executare 30
         initial-delay 0]
+    (println "Initialising automatic download for every company with desc_aut_status \"on\", at every " interval-executare " minutes" )
     (.scheduleAtFixedRate scheduler/sched-pool
                           (fn [] (schedule-descarcare-automata-per-comp db conf))
                           initial-delay
                           interval-executare
                           TimeUnit/MINUTES)))
 
-
 (comment
+  
   #_(pornire-serviciu-descarcare-automata)
   (.shutdown scheduler/sched-pool)
 
@@ -482,4 +485,5 @@
 
 
 
-  0)
+  0
+  )

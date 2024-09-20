@@ -64,14 +64,23 @@
 
 (defn create-sql-tables
   [ds]
+  (println "** Enabling foreign-key constraint, convert to WAL mode")
   (db-init-pref ds)
+  (println "** Creating table lista_mesaje")
   (f/create-facturi-anaf-table ds)
+  (println "** Creating table detalii_facturi_anaf")
   (f/create-detalii-facturi-anaf-table ds)
+  (println "** Creating table company")
   (f/create-company-table ds)
+  (println "** Creating table tokens")
   (f/create-tokens-table ds)
+  (println "** Creating table apeluri_api_anaf")
   (f/create-apeluri-api-anaf ds)
+  (println "** Creating table descarcare_lista_mesaje")
   (f/create-descarcare-lista-mesaje ds)
+  (println "** Creating table company_automated_proc")
   (f/create-automated-processes-table ds)
+  (println "** Set :automated-proc-status to off for companies")
   (init-automated-download ds))
 
 (defn scrie-factura->db [factura ds]

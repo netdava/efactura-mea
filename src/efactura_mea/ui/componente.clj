@@ -2,7 +2,8 @@
   (:require [hiccup2.core :as h]
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.util :as u]
-            [java-time :as jt]))
+            [java-time :as jt]
+            [efactura-mea.ui.pagination :as pag]))
 
 (defn navbar [user-name]
   [:nav.navbar.is-white.top-nav
@@ -63,18 +64,25 @@
 
 (defn select-a-company [companies]
   (h/html
-   (for [c companies]
-     (let [{:keys [cif name]} c
-           url (str "/facturi/" cif)]
-       [:div.card
-        [:div.card-content
-         [:p.title name]
-         [:p.subtitle cif]]
-        [:footer.card-footer
-         [:p.card-footer-item
-          [:span
-           "Vizualizează "
-           [:a {:href url} "facturile"]]]]]))))
+   [:nav.panel.is-primary
+    [:p.panel-heading "Companii înregistrate"]
+    [:div.panel-block
+     [:p.control.has-icons-left
+      [:input.input {:type "text" :placeholder "Search"}]
+      [:span.icon.is-left
+       [:i.fa.fa-search {:aria-hidden "true"}]]]]
+    [:p.panel-tabs
+     [:a.is-active "All"]
+     [:a "Public"]
+     [:a "Private"]]
+    (for [c companies]
+      (let [{:keys [cif name]} c
+            url (str "/facturi/" cif)]
+        [:a.panel-block
+         {:href url}
+         [:span.panel-icon
+          [:i.fa.fa-bar-chart  {:aria-hidden "true"}]]
+         (str name " -- " cif)]))]))
 
 (defn facturi-descarcate [cif]
   (let [get-url (str "/facturile-mele/" cif)]
@@ -242,19 +250,25 @@
    :headers {"content-type" "text/html"}})
 
 (defn logs-api-calls
-  [cif ds]
-  (let [t (str "Istoric apeluri api Anaf - cif " cif)
-        calls (db/fetch-apeluri-anaf-logs ds cif)]
+  [cif ds opts]
+  (let [{:keys [page per-page uri]} opts
+        calls (db/fetch-apeluri-anaf-logs ds cif)
+        total-pages (pag/calculate-pages-number calls per-page)
+        page-results (pag/paginate calls per-page page)
+        logs (for [c page-results]
+               (row-log-api-call c))
+        t (str "Istoric apeluri api Anaf - cif " cif)]
     (h/html
      [:div#main-container.block
       (title t)
-      [:table.table.is-hoverable
-       (for [c calls]
-         (row-log-api-call c))]])))
+      [:div#logs-table
+       [:table.table.is-hoverable
+        logs]
+       (pag/make-pagination total-pages page per-page uri)]])))
 
 
 ^:rct/test
-(comment 
+(comment
   (facturi-descarcate {:path-params {:cif "12345678"}})
   ;; => #object[hiccup.util.RawString 0x70f00958 "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div><div hx-get=\"/facturile-mele/12345678\" hx-target=\"#facturi-descarcate\" hx-trigger=\"load\" id=\"facturi-descarcate\"></div></div>"]
   (facturi-descarcate {:path-params {:cif nil}})
