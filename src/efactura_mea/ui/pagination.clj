@@ -1,6 +1,6 @@
 (ns efactura-mea.ui.pagination)
 
-(defn paginate [data page-size page]
+#_(defn paginate [data page-size page]
   (let [start-index (* page-size (dec page))]
     (take page-size (drop start-index data))))
 
@@ -10,9 +10,8 @@
 (defn lazy-indexed-seq [list-seq-coll]
   (map-indexed attach-index list-seq-coll))
 
-(defn calculate-pages-number [list-coll-seq items-per-page]
-  (let [total-items (count list-coll-seq)
-        pages (quot total-items items-per-page)
+(defn calculate-pages-number [total-items items-per-page]
+  (let [pages (quot total-items items-per-page)
         remaining-items (mod total-items items-per-page)]
     (if (zero? remaining-items)
       pages
@@ -64,24 +63,26 @@
 
 (defn make-pagination [pages page-number per-page uri]
   (let [pagination-scheme (return-pagination-range pages page-number 1)
-        prev-item-opts (let [opts {:href (handle-prev-page uri page-number per-page)}]
+        prev-item-opts (let [opts {:hx-get (handle-prev-page uri page-number per-page)
+                                   :hx-target "#main-container"}]
                          (if (= page-number 1)
                            (assoc opts :disabled true)
                            opts))
-        next-item-opts (let [opts {:href (handle-next-page uri pages page-number per-page)}]
+        next-item-opts (let [opts {:hx-get (handle-next-page uri pages page-number per-page)
+                                   :hx-target "#main-container"}]
                          (if (= page-number (str pages))
                            (assoc opts :disabled true)
                            opts))
-        updated-uri (str uri "?page=" 1)
-        _ (println "updated-uri is " updated-uri)
+        updated-uri (str uri "?page=" page-number)
         page-links (for [p pagination-scheme]
                      (let [link-updated-uri (update-pagination-uri uri pages p per-page)
-                           opts {:href link-updated-uri}
+                           opts {:hx-get link-updated-uri
+                                 :hx-target "#main-container"}
                            link-opts (if (= p page-number)
                                        (assoc opts :class "is-current")
                                        opts)]
                        [:li [:a.pagination-link link-opts p]]))
-        select-items-per-page (let [pool [5 10 20]
+        select-items-per-page (let [pool [10 20 50 100]
                                     opts (for [ammount pool]
                                            (let [opt {:value ammount}
                                                  is-selected? (when (= ammount per-page) true)
@@ -93,10 +94,10 @@
                                  [:select {:name "per-page"
                                            :hx-get updated-uri
                                            :hx-trigger "change"
-                                           :hx-target "body"}
+                                           :hx-target "#main-container"}
                                   opts]])]
     [:div.pagination
-     [:form {:hx-get uri
+     [:form {:hx-get updated-uri
              :hx-push-url "true"}
       [:nav.pagination.is-small.is-left {:role "navigation" :aria-label "pagination"}
        [:a.pagination-previous prev-item-opts "Previous"]

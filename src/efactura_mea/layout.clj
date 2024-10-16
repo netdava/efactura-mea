@@ -43,6 +43,6 @@
                          [:div.columns
                           [:div.column.is-one-fifth
                            sidebar]
-                          [:div.column.main-content
+                          [:div#main-content.column.main-content
                            content]]]]]))}))
 

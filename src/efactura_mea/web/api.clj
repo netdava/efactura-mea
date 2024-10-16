@@ -1,23 +1,20 @@
 (ns efactura-mea.web.api
-  (:require [babashka.http-client :as http]
-            [babashka.fs :as fs]
+  (:require [babashka.fs :as fs]
+            [babashka.http-client :as http]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
-            
             [clojure.string :as s]
-
             [efactura-mea.config :as c]
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.db.facturi :as facturi]
+            [efactura-mea.job-scheduler :as scheduler]
             [efactura-mea.ui.componente :as ui-comp]
             [efactura-mea.ui.input-validation :as v]
+            [efactura-mea.ui.pagination :as pag]
             [efactura-mea.util :as u]
             [efactura-mea.web.api :as api]
             [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
-            [efactura-mea.ui.pagination :as pag]
-            [hiccup2.core :as h]
-            [java-time :as jt]
-            [efactura-mea.job-scheduler :as scheduler])
+            [hiccup2.core :as h])
   (:import (java.util.concurrent TimeUnit)))
 
 (defn company_desc_aut_status [db cif]
@@ -196,27 +193,18 @@
         valid-zile? (first zile)]
     (ui-comp/validation-message valid-zile? valid-cif?)))
 
-(defn listeaza-mesaje
-  [params ds conf]
-  (let [{:keys [cif zile]} params
-        zile (if zile (parse-long zile) nil)
-        validation-result  (v/validate-input-data zile cif)
-        r (if (nil? validation-result)
-            (call-for-lista-facturi zile cif ds conf)
-            (error-message-invalid-result validation-result))]
-    (ui-comp/lista-mesaje r)))
-
-(defn verifica-descarca-facturi [mesaje conf ds cif]
+(defn verifica-descarca-facturi [mesaje conf ds]
   (reduce
    (fn [acc f]
-     (let [id (:id f)
-           ;; TODO de vazut daca cumva cif exista in fiecare mesaj, sa-l extrag si sa nu mai treb sa`l pasez
+     (let [{:keys [id cif]} f
            zip-name (str id ".zip")
            test-file-exist (facturi/test-factura-descarcata? ds {:id id})]
        (if (empty? test-file-exist)
-         (do (download-zip-file f conf ds cif)
-             (db/scrie-factura->db f ds)
-             (conj acc (str "am descarcat mesajul " zip-name)))
+         (do
+           (println "incep sa downloadez")
+           (download-zip-file f conf ds cif)
+           (db/scrie-factura->db f ds)
+           (conj acc (str "am descarcat mesajul " zip-name)))
          (conj acc (str "factura " zip-name " exista salvata local")))))
    [] mesaje))
 
@@ -238,21 +226,6 @@
                   _ (when is-downloaded? (db/scrie-detalii-factura-anaf->db invoice-details ds))]
               (ui-comp/row-factura-descarcata-detalii invoice-details)))))
 
-#_(defn planifica-descarca-mesaje
-  [mesaje]
-  (let [_ (db/track-descarcare-mesaje ds mesaje)
-        queue-lista-mesaje (facturi/select-queue-lista-mesaje ds)
-        {:keys [id lista_mesaje]} queue-lista-mesaje
-        lista-mesaje (edn/read-string lista_mesaje)
-        raport-descarcare-facturi (verifica-descarca-facturi lista-mesaje target )
-        raport-descarcare-facturi->ui (h/html [:article.message.is-info
-                                               [:div.message-body
-                                                [:ul
-                                                 (for [item raport-descarcare-facturi]
-                                                   [:li item])]]])]
-    (facturi/clear-download-queue ds {:id id})
-    (h/html raport-descarcare-facturi->ui)))
-
 (defn fetch-lista-mesaje [zile cif ds conf]
   (try (let [tip-apel "lista-mesaje-descarcare"
              apel-lista-mesaje (obtine-lista-facturi zile cif tip-apel ds conf)
@@ -264,7 +237,7 @@
                    queue-lista-mesaje (facturi/select-queue-lista-mesaje ds)
                    {:keys [id lista_mesaje]} queue-lista-mesaje
                    lista-mesaje (edn/read-string lista_mesaje)
-                   raport-descarcare-facturi (verifica-descarca-facturi lista-mesaje conf ds cif)
+                   raport-descarcare-facturi (verifica-descarca-facturi lista-mesaje conf ds)
                    raport-descarcare-facturi->ui (h/html [:article.message.is-info
                                                           [:div.message-body
                                                            [:ul
@@ -276,65 +249,61 @@
            body))
        (catch Exception _ "OOps, nu am gasit date pt cif " cif)))
 
-(defn combine-invoice-data [invoice-path ds]
-  (let [id-mesaj-anaf (u/path->id-mesaj invoice-path)
-        test-file-exist (facturi/test-factura-descarcata? ds {:id id-mesaj-anaf})
-        ;; aici sa fac verificarea daca id mesaj-anaf exista in tabelul lista-mesaje
-        ]
-    (when (seq test-file-exist)
-      (let [detalii-anaf (first (facturi/select-factura-descarcata ds {:id id-mesaj-anaf}))
-            detalii-xml (u/get-invoice-data invoice-path)
-            detalii-xml (assoc detalii-xml :href invoice-path)]
-        (merge detalii-anaf detalii-xml)))))
+(defn combine-invoice-data [detalii-anaf-pt-o-factura]
+  (let [{:keys [download-path]} detalii-anaf-pt-o-factura
+        detalii-xml (u/get-invoice-data download-path)
+        detalii-xml (assoc detalii-xml :href download-path)]
+    (merge detalii-anaf-pt-o-factura detalii-xml)))
 
-(defn gather-invoices-data [paths-fact-desc-local ds]
+(defn gather-invoices-data [p]
   (reduce (fn [acc invoice-path]
-            (merge acc (combine-invoice-data invoice-path ds)))
+            (merge acc (combine-invoice-data invoice-path)))
           []
-          paths-fact-desc-local))
+          p))
 
 (defn sortare-facturi-data-creare
   [facturi]
   (sort #(compare (:data_creare %1) (:data_creare %2)) facturi))
 
-(defn afisare-facturile-mele [params conf ds]
-  (let [{:keys [cif]} params
-        dd (c/download-dir conf)
-        path-facturi (str dd "/" cif)
-        paths-fact-desc-local (u/list-files-from-dir path-facturi)
-        detalii-combinate-facturi (gather-invoices-data paths-fact-desc-local ds)
-        facturi-sortate (sortare-facturi-data-creare detalii-combinate-facturi)
+(defn afisare-facturile-mele 
+  "Receives messages data, pagination details,
+   return html table with pagination;"
+  [mesaje ds page per-page uri]
+  (let [count-mesaje (db/count-lista-mesaje ds)
+        facturi-sortate (sortare-facturi-data-creare mesaje)
         detalii->table-rows (opis-facturi-descarcate facturi-sortate ds)
-        r (h/html (ui-comp/tabel-facturi-descarcate detalii->table-rows))]
-    {:status 200
-     :body (str r)
-     :headers {"content-type" "text/html"}}))
-
-(defn descarca-mesaje
-  [params ds conf]
-  (let [{:keys [cif zile]} params
-        zile-int (if zile (parse-long zile) nil)
-        validation-result (v/validate-input-data zile-int cif)
-        r (if (nil? validation-result)
-            (fetch-lista-mesaje zile cif ds conf)
-            (error-message-invalid-result validation-result))]
-    (ui-comp/lista-mesaje r)))
+        total-pages (pag/calculate-pages-number count-mesaje per-page)
+        table-with-pagination (h/html
+           (ui-comp/tabel-facturi-descarcate detalii->table-rows)
+           (pag/make-pagination total-pages page per-page uri))]
+    table-with-pagination))
 
 (defn descarca-mesaje-automat
   [zile cif ds conf]
   (let [validation-result (v/validate-input-data zile cif)]
     (if (nil? validation-result)
       (do
-        (println "Pornesc descarcarea automata a facturilor pentru cif: " cif)
+        (println "Pornesc descarcarea automata a facturilor pentru cif: " cif " la " zile " zile")
         (fetch-lista-mesaje zile cif ds conf)
         (println "Am terminat descarcarea automata a facturilor pentru cif: " cif))
       (error-message-invalid-result validation-result))))
 
-(defn efactura-action-handler [params ds conf]
-  (let [a (:action params)]
-    (case a
-      "listare" (listeaza-mesaje params ds conf)
-      "descarcare" (descarca-mesaje params ds conf))))
+(defn handle-mesaje
+  [opts ds conf fetch-fn]
+  (let [{:keys [cif zile validation-result]} opts
+        r (if (nil? validation-result)
+            (fetch-fn zile cif ds conf)
+            (error-message-invalid-result validation-result))]
+    (ui-comp/lista-mesaje r)))
+
+(defn handle-list-or-download [params ds conf]
+  (let [{:keys [action cif zile]} params
+        zile (or (some-> zile Integer/parseInt) nil)
+        vr (v/validate-input-data zile cif)
+        opts {:cif cif :zile zile :validation-result vr}]
+    (case action
+      "listare" (handle-mesaje opts ds conf call-for-lista-facturi)
+      "descarcare" (handle-mesaje opts ds conf fetch-lista-mesaje))))
 
 (defn save-pdf [path pdf-name pdf-content]
   (let [save-to (str path "/" pdf-name)]
@@ -407,26 +376,6 @@
         [:label {:for "descarcare-automata"} "Activează descarcarea automată"]]
        [:button.button.is-small.is-link {:type "submit"} "Setează"]]])))
 
-#_(defn pornire-descarcare-automata [req]
-    (let [now (java.time.LocalDateTime/now)
-          formatter (jt/formatter "H:mm - MMMM dd, yyyy")
-          f-date (jt/format formatter now)
-          timer (Timer. true)
-          timer-task (proxy [TimerTask] []
-                       (run []
-                         (try
-                           (println (str "Task ||< descarcare-automata-facturi >|| started at: " (Date.)))
-                           (descarca-mesaje req)
-                           (println (str "Task finished at: " (Date.)))
-                           (catch Exception e
-                             (println (str "Task failed: " (.getMessage e)))
-                             (.cancel timer))))) ;; Use the local timer to cancel the task if it fails
-          interval-24h (* 24 60 60 1000)]
-      (reset! timer-atom {:started f-date :status timer})
-      (.scheduleAtFixedRate timer timer-task 0 interval-24h)))
-
-
-
 (defn descarcare-automata-facturi [params ds]
   (let [{:keys [cif descarcare-automata]} params
         company-data (db/get-company-data ds cif)
@@ -460,10 +409,10 @@
 (defn schedule-descarcare-automata-per-comp [db conf]
   (let [c (db/companies-with-status db)
         live-companies (filter-companies-status-on c)]
-    (submit-download-proc live-companies db conf {:interval-zile 5})))
+    (submit-download-proc live-companies db conf {:interval-zile 10})))
 
 (defn pornire-serviciu-descarcare-automata [db conf]
-  (let [interval-executare 30
+  (let [interval-executare 1
         initial-delay 0]
     (println "Initialising automatic download for every company with desc_aut_status \"on\", at every " interval-executare " minutes" )
     (.scheduleAtFixedRate scheduler/sched-pool

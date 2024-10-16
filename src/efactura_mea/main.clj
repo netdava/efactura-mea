@@ -1,5 +1,12 @@
 (ns efactura-mea.main
   (:require [clj-commons.byte-streams :as bs]
+            [cprop.core :refer [load-config]]
+            [efactura-mea.db.db-ops :as db]
+            [efactura-mea.db.facturi :as f]
+            [efactura-mea.db.next-jdbc-adapter :as adapter]
+            [efactura-mea.layout :as layout]
+            [efactura-mea.ui.componente :as ui]
+            [efactura-mea.util :as u]
             [efactura-mea.web.api :as api]
             [efactura-mea.web.json :as wj]
             [efactura-mea.web.oauth2-anaf :as o2a]
@@ -7,18 +14,12 @@
             [mount.core :as mount :refer [defstate]]
             [muuntaja.core :as m]
             [muuntaja.middleware :as middleware]
-            [cprop.core :refer [load-config]]
+            [next.jdbc :as jdbc]
             [reitit.ring :as reitit]
             [ring.adapter.jetty9 :refer [run-jetty stop-server]]
             [ring.middleware.defaults :as rmd]
             [ring.middleware.file :refer [wrap-file]]
-            [ring.middleware.webjars :refer [wrap-webjars]]
-            [efactura-mea.layout :as layout]
-            [efactura-mea.ui.componente :as ui]
-            [efactura-mea.db.facturi :as f]
-            [efactura-mea.db.db-ops :as db]
-            [efactura-mea.db.next-jdbc-adapter :as adapter]
-            [next.jdbc :as jdbc])
+            [ring.middleware.webjars :refer [wrap-webjars]])
   (:gen-class))
 
 (mu/on-upndown :info mu/log :before)
@@ -31,7 +32,7 @@
     (adapter/set-next-jdbc-adapter)
     (jdbc/get-datasource db-spec)))
 
-(defn descarca-factura-pdf 
+(defn descarca-factura-pdf
   [req]
   (let [{:keys [params ds config]} req
         {:keys [id_descarcare]} params
@@ -43,11 +44,16 @@
 
 (defn handle-facturi
   [content-fn req]
-  (let [{:keys [path-params]} req
+  (let [{:keys [path-params query-params ds uri headers]} req
+        {:strs [page per-page]} query-params
+        {:strs [hx-request]} headers
         cif (:cif path-params)
-        content (content-fn cif)
-        sidebar (ui/sidebar-company-data cif)]
-    (layout/main-layout content sidebar)))
+        opts {:cif cif :page page :per-page per-page :uri uri}
+        content (content-fn opts ds)
+        sidebar (ui/sidebar-company-data opts)]
+    (if (= hx-request "true")
+      content
+      (layout/main-layout (:body content) sidebar))))
 
 (defn req->str
   [req]
@@ -61,13 +67,41 @@
     (bs/to-string bis)))
 
 (defn wrap-app-config [handler]
-    (fn [request]
-      (let [updated-request (assoc request :config conf :ds ds)]
-        (handler updated-request))))
+  (fn [request]
+    (let [updated-request (assoc request :config conf :ds ds)]
+      (handler updated-request))))
+
+(defn add-pagination-params-middleware [handler]
+  (fn [request]
+    (let [{:keys [query-params]} request
+          {:strs [page per-page]} query-params
+          page (or (some-> page Integer/parseInt) 1)
+          per-page (or (some-> per-page Integer/parseInt) 10)
+          new-params (merge query-params {"page" page "per-page" per-page})]
+      ;; Apelăm handler-ul cu request-ul modificat
+      (handler (assoc request :query-params new-params)))))
+
+(defn add-path-for-download
+  "Primeste lista de mesaje descarcate pentru afisare in UI
+   Genereaza pentru fiecare mesaj calea unde a fost descarcat,
+   pentru identificare si extragere meta-date."
+  [mesaje-cerute]
+  (reduce (fn [acc mesaj]
+            (let [{:keys [data_creare cif id_descarcare]} mesaj
+                  p (str "data/date/" cif "/")
+                  date-path (u/build-path data_creare)
+                  download-to (str p date-path "/" id_descarcare ".zip")
+                  updated-path (merge mesaj {:download-path download-to})]
+              (conj acc updated-path)))
+          []
+          mesaje-cerute))
 
 (defn routes
   [anaf-conf]
-  [["/" (fn [_] (layout/main-layout "Bine ai venit în e-Factura, User Admin" (ui/sidebar-select-company)))]
+  [["/" (fn [_]
+          (layout/main-layout
+           "Bine ai venit în e-Factura, User Admin"
+           (ui/sidebar-select-company)))]
    ["/companii" (fn [_]
                   (let [content (api/afisare-companii-inregistrate ds)
                         sidebar (ui/sidebar-select-company)]
@@ -79,9 +113,38 @@
    ["/inregistreaza-companie" (fn [req]
                                 (let [{:keys [params]} req]
                                   (api/inregistrare-noua-companie ds params)))]
-   #_["/" (fn [_] (layout/main-layout "Hello, Admin!"))]
-   ["/facturi/:cif" (fn [req]
-                      (handle-facturi ui/facturi-descarcate req))]
+   ["/facturi/:cif"
+    ["" {:get
+         {:handler (fn [req]
+                     (let [{:keys [path-params query-params ds uri headers]} req
+                           {:strs [page per-page]} query-params
+                           {:strs [hx-request]} headers
+                           cif (:cif path-params)
+                           opts {:cif cif :page page :per-page per-page}
+                           mesaje-cerute (db/fetch-mesaje ds cif page per-page)
+                           mesaje (api/gather-invoices-data (add-path-for-download mesaje-cerute))
+                           table-with-pagination (api/afisare-facturile-mele mesaje ds page per-page uri)
+                           content (ui/facturi-descarcate table-with-pagination)
+                           sidebar (ui/sidebar-company-data opts)]
+                       (if (= hx-request "true")
+                         content
+                         (layout/main-layout (:body content) sidebar))))
+          :middleware [add-pagination-params-middleware]}}]
+    ["/facturile-mele" {:get
+                        {:handler (fn [req]
+                                    (let [{:keys [path-params query-params headers uri ds]} req
+                                          {:keys [cif]} path-params
+                                          {:strs [page per-page]} query-params
+                                          {:strs [hx-request]} headers
+                                          opts {:cif cif :page page :per-page per-page}
+                                          mesaje-cerute (db/fetch-mesaje ds cif page per-page)
+                                          mesaje (api/gather-invoices-data (add-path-for-download mesaje-cerute))
+                                          content (api/afisare-facturile-mele mesaje ds page per-page uri)
+                                          sidebar (ui/sidebar-company-data opts)]
+                                      (if (= hx-request "true")
+                                        content
+                                        (layout/main-layout (:body content) sidebar))))
+                         :middleware [add-pagination-params-middleware]}}]]
    ["/facturi-spv/:cif" (fn [req]
                           (handle-facturi ui/facturi-spv req))]
    ["/login-anaf" (o2a/make-anaf-login-handler
@@ -92,32 +155,53 @@
                                    (anaf-conf :client-secret)
                                    (anaf-conf :redirect-uri))]
    ["/listare-sau-descarcare" (fn [req]
-                                (let [{:keys [params]} req]
-                                  (api/efactura-action-handler params ds conf)))]
-   ["/facturile-mele/:cif" (fn [req]
-                             (let [{:keys [path-params]} req]
-                               (api/afisare-facturile-mele path-params conf ds)))]
+                                (let [{:keys [params ds config]} req]
+                                  (api/handle-list-or-download params ds config)))]
    ["/transformare-xml-pdf" descarca-factura-pdf]
-   ["/logs/:cif" (fn [req]
-                   (let [{:keys [path-params query-params ds uri]} req
-                         {:strs [page per-page]} query-params
-                         page (or (some-> page Integer/parseInt) 1)
-                         per-page (or (some-> per-page Integer/parseInt) 5)
-                         opts {:page page :per-page per-page :uri uri}
-                         cif (:cif path-params)
-                         content (ui/logs-api-calls cif ds opts)
-                         sidebar (ui/sidebar-company-data cif)]
-                     (layout/main-layout content sidebar)))]
+   ["/logs/:cif"
+    ["" {:get
+         {:handler (fn [req]
+                     (let [{:keys [path-params query-params ds uri headers]} req
+                           {:strs [page per-page]} query-params
+                           {:strs [hx-request]} headers
+                           ;; current-url (get headers "hx-current-url")
+                           ;; current-query-params (u/extract-query-params current-url)
+                           ;; page (or (:page current-query-params) page)
+                           ;; per-page (or (:per-page current-query-params) per-page)
+                           cif (:cif path-params)
+                           opts {:page page :per-page per-page :uri uri :cif cif}
+                           content (ui/logs-api-calls ds opts)
+                           sidebar (ui/sidebar-company-data opts)]
+                       (if (= hx-request "true")
+                         content
+                         (layout/main-layout (:body content) sidebar))))
+          :middleware [add-pagination-params-middleware]}}]
+    #_["/list-logs" (fn [req]
+                      (let [_ (println "reqqq de la /list-logs" req)
+                            {:keys [headers path-params query-params ds]} req
+                            {:strs [page per-page]} query-params
+                            {:strs [hx-request]} headers
+                            {:keys [cif]} path-params
+                            page (or (some-> page Integer/parseInt) 1)
+                            per-page (or (some-> per-page Integer/parseInt) 10)
+                            opts {:page page :per-page per-page :cif cif}
+                            content (ui/logs-api-calls ds opts)
+                            sidebar (ui/sidebar-company-data cif)]
+                        (if (= hx-request "true")
+                          content
+                          (layout/main-layout (:body content) sidebar))))]]
    ["/descarcare-automata/:cif" (fn [req]
                                   (let [{:keys [path-params]} req
                                         cif (:cif path-params)
-                                        sidebar (ui/sidebar-company-data cif)
+                                        opts {:cif cif}
+                                        sidebar (ui/sidebar-company-data opts)
                                         c-data (db/get-company-data ds cif)
                                         content (api/set-descarcare-automata c-data cif)]
                                     (layout/main-layout content sidebar)))]
    ["/pornire-descarcare-automata" (fn [req]
                                      (let [params (:params req)]
                                        (api/descarcare-automata-facturi params ds)))]])
+
 
 (defn handler
   [conf]
@@ -149,11 +233,4 @@
   (-main)
   (mount/start)
   (mount/stop)
-
-  (f/select-detalii-factura-descarcata ds "3412523350")
-  (db/test-companie-inregistrata ds "35586426")
-  
-  (seq [])
-  (let [params {:a "b" :page "5"}]
-    (or (some-> (:page params) Integer/parseInt) 1))
   0)

@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS lista_mesaje (
 -- :result :raw
 CREATE TABLE IF NOT EXISTS detalii_facturi_anaf (
     id INTEGER PRIMARY KEY,
-    id_descarcare text,
+    id_descarcare text UNIQUE,
     id_solicitare text,
     data_creare TEXT,
     cif TEXT,
@@ -99,7 +99,7 @@ insert into lista_mesaje (
 -- :name insert-row-detalii-factura :insert :*
 -- :command :execute
 -- :result :raw
-insert into detalii_facturi_anaf (
+insert OR IGNORE into detalii_facturi_anaf (
     id_descarcare,
     id_solicitare,
     data_creare,
@@ -173,7 +173,17 @@ select * from detalii_facturi_anaf where id_descarcare = :id
 -- :name select-apeluri-api-anaf
 -- :command :execute
 -- :result :raw
-select * from apeluri_api_anaf where cif = :cif
+select * from apeluri_api_anaf where cif = :cif LIMIT :limit OFFSET :offset
+
+-- :name select-facturi-descarcate
+-- :command :execute
+-- :result :raw
+select * from lista_mesaje where cif = :cif LIMIT :limit OFFSET :offset
+
+-- :name count-logs
+-- :command :execute
+-- :result :raw
+select count(*) as total from apeluri_api_anaf where cif = :cif
 
 -- :name select-company-cif :? :1
 -- :command :execute
@@ -204,8 +214,8 @@ select access_token from tokens where cif = :cif
 -- :result :raw
 SELECT * FROM descarcare_lista_mesaje ORDER BY id DESC LIMIT 1
 
--- :name select-lista-mesaje-descarcate
-SELECT * FROM lista_mesaje;
+-- :name count-lista-mesaje-descarcate
+SELECT count(*) as total FROM lista_mesaje;
 
 -- :name test-companie-inregistrata? :? :*
 -- :command :execute

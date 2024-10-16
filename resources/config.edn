@@ -2,7 +2,7 @@
 ;; Are used as defaults
 ;; Override them via file, env, system properties
 {:data-dir "data"
- :target {:endpoint :test}
+ :target {:endpoint :prod}
  :db-spec {:dbtype "sqlite"
            :dbname "data/facturi-anaf.db"}
  :anaf {:client-id "replace-me"

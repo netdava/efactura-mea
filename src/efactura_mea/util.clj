@@ -116,10 +116,11 @@
      :valuta valuta}))
 
 (defn get-invoice-data [path]
-  (let [xml-data-from-zip (zip-file->xml-to-bytearray path)
-        inv-byte-arr (:contents (first xml-data-from-zip))
-        edn-inv-content (parse-xml-byte-array inv-byte-arr)]
-    (parse-invoice-data edn-inv-content)))
+  (try (let [xml-data-from-zip (zip-file->xml-to-bytearray path)
+             inv-byte-arr (:contents (first xml-data-from-zip))
+             edn-inv-content (parse-xml-byte-array inv-byte-arr)]
+         (parse-invoice-data edn-inv-content))
+       (catch Exception _ {:error (str "lipseste fisierul: " path)})))
 
 (defn path->id-mesaj [invoice-local-path]
   (let [zip-file-name (last (s/split invoice-local-path #"/"))
@@ -143,9 +144,24 @@
           (slurp (io/reader stream)))
         (throw (Exception. (str "File " file-name-inside-zip " not found in " zip-file-path)))))))
 
+(defn extract-query-params [url]
+  (try (let [uri (java.net.URI. url)
+             query (.getQuery uri)
+             params (when query
+                      (->> (s/split query #"&")
+                           (map #(s/split % #"="))
+                           (map (fn [[k v]] [(keyword k) (Integer/parseInt v)]))
+                           (into {})))]
+         params)
+       (catch Exception _ {:page nil :per-page nil})))
+
+(extract-query-params "/logs/35586426?page=4&per-page=10")
+
 (comment
   (read-file-from-zip "/data/date/2024/04/3336772688.zip" "4220052896.xml")
-  (list-files-from-dir  "data/date/")
+  (list-files-from-dir  "data/date/35586426")
+
+  (type (get-invoice-data "data/date/35586426/2024/10/3804637865.zip"))
 
   (get-invoice-data "/home/nas/proiecte/efactura-mea/data/date/35586426/2024/06/3558875589.zip")
   0)

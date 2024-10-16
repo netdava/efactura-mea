@@ -21,8 +21,22 @@
 (defn fetch-access-token [db cif]
   (:access_token (f/select-access-token db {:cif cif})))
 
-(defn fetch-apeluri-anaf-logs [db cif]
-  (f/select-apeluri-api-anaf db {:cif cif}))
+(defn fetch-apeluri-anaf-logs [db cif page per-page]
+  (let [offset-num (* (dec page) per-page)]
+    (f/select-apeluri-api-anaf db {:cif cif :limit per-page :offset offset-num})))
+
+(defn fetch-mesaje [db cif page per-page]
+  (let [offset-num (* (dec page) per-page)]
+    (f/select-facturi-descarcate db {:cif cif :limit per-page :offset offset-num})))
+
+(defn count-lista-mesaje
+  [db]
+  (let [qr (first (f/count-lista-mesaje-descarcate db))]
+    (:total qr)))
+
+(defn count-apeluri-anaf-logs [db cif]
+  (let [total-logs (:total (first (f/count-logs db {:cif cif})))]
+    total-logs))
 
 (defn init-automated-download [db]
   (let [companies (f/get-companies-data db)]
@@ -45,7 +59,7 @@
         (swap! a conj d)))
     @a))
 
-(defn detalii-factura-anaf 
+(defn detalii-factura-anaf
   [db id]
   (println "iau detalii-factura-anaf pentru " id)
   (first

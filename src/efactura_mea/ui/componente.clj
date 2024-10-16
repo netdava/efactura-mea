@@ -27,11 +27,16 @@
         [:hr.navbar-divider]
         [:a.navbar-item.is-selected {:href "#"} "Logout"]]]]]]])
 
-(defn sidebar-company-data [cif]
+(or "a" "b")
+
+(defn sidebar-company-data [opts]
   ;; TODO de pus conditia ca meniul sa fie disponibil doar daca compania a fost inregistrata corect cu token si tot ce trebuie
-  (let [link-facturi-descarcate (str "/facturi/" cif)
+  (let [{:keys [cif page per-page]} opts
+        qp (when (and page per-page)
+             (str "?page=" page "&per-page=" per-page))
+        link-facturi-descarcate (str "/facturi/" cif)
         link-facturi-spv (str "/facturi-spv/" cif)
-        link-logs (str "/logs/" cif)
+        link-logs (str "/logs/" cif qp)
         link-descarcare-automata (str "/descarcare-automata/" cif)]
     [:div.p-3
      [:div.menu-wrapper
@@ -40,7 +45,8 @@
        [:ul.menu-list
         [:li [:a {:href link-facturi-descarcate} "Descărcate"]]
         [:li [:a {:href link-facturi-spv} "Spațiul Public Virtual"]]
-        [:li [:a {:href link-logs} "Jurnal actiuni"]]]
+        [:li [:a {:hx-get link-logs
+                  :hx-target "#main-content"} "Jurnal actiuni"]]]
        [:p.menu-label "Administrare"]
        [:ul.menu-list
         [:li [:a {:href link-descarcare-automata} "Descărcare automată facturi"]]]]]]))
@@ -84,43 +90,45 @@
           [:i.fa.fa-bar-chart  {:aria-hidden "true"}]]
          (str name " -- " cif)]))]))
 
-(defn facturi-descarcate [cif]
-  (let [get-url (str "/facturile-mele/" cif)]
-    (h/html
-     [:div#main-container.block
-      (title "Facturi descărcate local")
-      [:div#facturi-descarcate {:hx-get get-url
-                                :hx-target "#facturi-descarcate"
-                                :hx-trigger "load"}]])))
+(defn facturi-descarcate [table-with-pagination]
+  {:status 200
+   :headers {"content-type" "text/html"}
+   :body (str (h/html
+               [:div#main-container.block
+                (title "Facturi descărcate local")
+                table-with-pagination]))})
 
-(defn facturi-spv [cif]
-  (let [days (range 1 60)
+(defn facturi-spv [opts _]
+  (let [{:keys [cif]} opts
+        days (range 1 60)
         days-select-vals (for [n days]
                            [:option {:value n} n])]
-    (h/html
-     [:div#main-container.block
-      (title "Aici poți vizualiza și descărca facturile din SPV:")
-      [:form.block {:hx-get "/listare-sau-descarcare"
-                    :hx-target "#facturi-anaf"}
-       [:div.field
-        [:label.label "CIF:"]
-        [:input.input {:readonly "readonly"
-                       :type "text"
-                       :id "cif-number"
-                       :list "cif"
-                       :name "cif"
-                       :value cif
-                       :placeholder cif}]]
-       [:div.field
-        [:label.label "Număr de zile pentru vizualizare/descărcare facturi anaf:"]
-        [:div.select [:select {:id "zile" :name "zile"}
-                      days-select-vals]]]
-       [:div.buttons
-        [:button.button.is-small.is-link {:type "submit"
-                                          :name "action"
-                                          :value "listare"} "vezi facturi"]
-        [:button.button.is-small.is-link {:type "submit" :name "action" :value "descarcare"} "descarca facturi"]]]
-      [:div#facturi-anaf]])))
+    {:status 200
+     :headers {"content-type" "text/html"}
+     :body (str (h/html
+                 [:div#main-container.block
+                  (title "Aici poți vizualiza și descărca facturile din SPV:")
+                  [:form.block {:hx-get "/listare-sau-descarcare"
+                                :hx-target "#facturi-anaf"}
+                   [:div.field
+                    [:label.label "CIF:"]
+                    [:input.input {:readonly "readonly"
+                                   :type "text"
+                                   :id "cif-number"
+                                   :list "cif"
+                                   :name "cif"
+                                   :value cif
+                                   :placeholder cif}]]
+                   [:div.field
+                    [:label.label "Număr de zile pentru vizualizare/descărcare facturi anaf:"]
+                    [:div.select [:select {:id "zile" :name "zile"}
+                                  days-select-vals]]]
+                   [:div.buttons
+                    [:button.button.is-small.is-link {:type "submit"
+                                                      :name "action"
+                                                      :value "listare"} "vezi facturi"]
+                    [:button.button.is-small.is-link {:type "submit" :name "action" :value "descarcare"} "descarca facturi"]]]
+                  [:div#facturi-anaf]]))}))
 
 (defn table-header-facturi-anaf []
   (h/html
@@ -144,6 +152,7 @@
 (defn table-header-facturi-descarcate []
   (h/html
    [:tr
+    [:th "id descărcare"]
     [:th "serie/număr"]
     [:th "data urcare SPV"]
     [:th "data emiterii"]
@@ -188,12 +197,13 @@
         parsed_date (str (:data_c dc) "-" (:ora_c dc))
         path (u/build-path data_creare)
         zip-file-name (str id_descarcare ".zip")
-        final-path (str "date/" cif "/" path "/" zip-file-name)
+        final-path (str "/date/" cif "/" path "/" zip-file-name)
         type (tag-tip-factura tip)
         tag-opts (update {:class "tag is-normal "} :class str type)
         link-opts {:href final-path :target "_blank"}]
     (h/html
      [:tr
+      [:td.is-size-7 id_descarcare]
       [:td.is-size-7 serie_numar]
       [:td.is-size-7 parsed_date]
       [:td.is-size-7 data_emitere]
@@ -249,22 +259,30 @@
                  r]]))
    :headers {"content-type" "text/html"}})
 
-(defn logs-api-calls
-  [cif ds opts]
-  (let [{:keys [page per-page uri]} opts
-        calls (db/fetch-apeluri-anaf-logs ds cif)
-        total-pages (pag/calculate-pages-number calls per-page)
-        page-results (pag/paginate calls per-page page)
-        logs (for [c page-results]
-               (row-log-api-call c))
-        t (str "Istoric apeluri api Anaf - cif " cif)]
+(defn logs-list
+  [ds cif page per-page]
+  (let [uri (str "/logs/" cif)
+        count-logs (db/count-apeluri-anaf-logs ds cif)
+        api-call-logs (db/fetch-apeluri-anaf-logs ds cif page per-page)
+        total-pages (pag/calculate-pages-number count-logs per-page)
+        logs (for [c api-call-logs]
+               (row-log-api-call c))]
     (h/html
-     [:div#main-container.block
-      (title t)
-      [:div#logs-table
-       [:table.table.is-hoverable
-        logs]
-       (pag/make-pagination total-pages page per-page uri)]])))
+     [:table.table.is-hoverable
+      logs]
+     (pag/make-pagination total-pages page per-page uri))))
+
+(defn logs-api-calls
+  [ds opts]
+  (let [{:keys [page per-page cif]} opts
+        t (str "Istoric apeluri api Anaf - cif " cif)]
+    {:status 200
+     :headers {"content-type" "text/html"}
+     :body (str (h/html
+                 [:div#main-container.block
+                  (title t)
+                  [:div#logs-table
+                   (logs-list ds cif page per-page)]]))}))
 
 
 ^:rct/test
