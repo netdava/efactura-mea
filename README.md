@@ -8,6 +8,7 @@ Aplicația folosește limbajul Clojure și salvează datele intr-o bază de date
 Are nevoie de:
 - Java 21+ (OpenJDK)
 - Clojure 1.11 +
+- qemu-system, binfmt-support pentru imagini multi platformă https://docs.docker.com/build/building/multi-platform/#qemu 
 
 ## Comenzi utile
 
@@ -40,6 +41,11 @@ clj -M:outdated
 
 # Construim imaginea docker
 docker build -t efactura-mea . --load
+
+# Avem nevoie de software pentru 
+apt install binfmt-support qemu-system qemu-system qemu-system-arm qemu-system-x86
+# Construim imaginea folosind bake - imagini multi platforma
+docker buildx bake --push --progress plain 
 
 # Pornim aplicația
 docker run --rm \

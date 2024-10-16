@@ -1,6 +1,10 @@
-FROM docker.io/clojure:temurin-21-tools-deps-jammy as build-clojure
+FROM docker.io/clojure:temurin-21-tools-deps-jammy AS build-clojure
 
 WORKDIR /build
+
+COPY deps.edn /build/
+RUN clj -Stree && clj -X:deps prep
+
 COPY . /build
 
 RUN clj -T:build uber
