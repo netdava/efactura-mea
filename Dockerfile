@@ -3,7 +3,7 @@ FROM docker.io/clojure:temurin-21-tools-deps-jammy AS build-clojure
 WORKDIR /build
 
 COPY deps.edn /build/
-RUN clj -Stree && clj -X:deps prep
+RUN clj -Stree && clj -Stree -A:build && clj -X:deps prep
 
 COPY . /build
 
