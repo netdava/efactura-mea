@@ -42,7 +42,7 @@ clj -M:outdated
 # Construim imaginea docker
 docker build -t efactura-mea . --load
 
-# Avem nevoie de software pentru 
+# Avem nevoie de software pentru multi-platformă https://docs.docker.com/build/building/multi-platform/
 apt install binfmt-support qemu-system qemu-system qemu-system-arm qemu-system-x86
 # Construim imaginea folosind bake - imagini multi platforma
 docker buildx bake --push --progress plain 
