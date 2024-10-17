@@ -14,6 +14,11 @@ FROM docker.io/eclipse-temurin:21
 
 WORKDIR /app
 
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y sqlite3 && \
+    apt-get clean
+
 #TODO: @ieugen: implement build distribution
 COPY --from=build-clojure /build/target/efactura-mea*.jar /app/efactura-mea.jar
 COPY --from=build-clojure /build/public /app/public
