@@ -2,7 +2,6 @@
   (:require [clj-commons.byte-streams :as bs]
             [cprop.core :refer [load-config]]
             [efactura-mea.db.db-ops :as db]
-            [efactura-mea.db.facturi :as f]
             [efactura-mea.db.next-jdbc-adapter :as adapter]
             [efactura-mea.layout :as layout]
             [efactura-mea.ui.componente :as ui]
@@ -164,10 +163,6 @@
                      (let [{:keys [path-params query-params ds uri headers]} req
                            {:strs [page per-page]} query-params
                            {:strs [hx-request]} headers
-                           ;; current-url (get headers "hx-current-url")
-                           ;; current-query-params (u/extract-query-params current-url)
-                           ;; page (or (:page current-query-params) page)
-                           ;; per-page (or (:per-page current-query-params) per-page)
                            cif (:cif path-params)
                            opts {:page page :per-page per-page :uri uri :cif cif}
                            content (ui/logs-api-calls ds opts)
@@ -175,21 +170,7 @@
                        (if (= hx-request "true")
                          content
                          (layout/main-layout (:body content) sidebar))))
-          :middleware [add-pagination-params-middleware]}}]
-    #_["/list-logs" (fn [req]
-                      (let [_ (println "reqqq de la /list-logs" req)
-                            {:keys [headers path-params query-params ds]} req
-                            {:strs [page per-page]} query-params
-                            {:strs [hx-request]} headers
-                            {:keys [cif]} path-params
-                            page (or (some-> page Integer/parseInt) 1)
-                            per-page (or (some-> per-page Integer/parseInt) 10)
-                            opts {:page page :per-page per-page :cif cif}
-                            content (ui/logs-api-calls ds opts)
-                            sidebar (ui/sidebar-company-data cif)]
-                        (if (= hx-request "true")
-                          content
-                          (layout/main-layout (:body content) sidebar))))]]
+          :middleware [add-pagination-params-middleware]}}]]
    ["/descarcare-automata/:cif" (fn [req]
                                   (let [{:keys [path-params]} req
                                         cif (:cif path-params)

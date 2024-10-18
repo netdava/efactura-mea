@@ -70,9 +70,11 @@
   (try (let [{:keys [cif name]} params
              inregistrata? (db/test-companie-inregistrata ds cif)
              _ (if (not inregistrata?)
-                 (facturi/insert-company ds {:cif cif :name name})
+                 (do 
+                   (facturi/insert-company ds {:cif cif :name name})
+                   (db/init-automated-download ds))
                  (throw (Exception. (str "compania cu cif " cif " figurează ca fiind deja înregistrată."))))
-             m (str "Compania \"" name "\" cu cif \"" cif "\" a fost înregistrată cu succesito.")
+             m (str "Compania \"" name "\" cu cif \"" cif "\" a fost înregistrată cu succes.")
              detailed-msg (str (h/html
                                 [:article.message.is-success
                                  [:div.message-header

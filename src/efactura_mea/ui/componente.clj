@@ -16,8 +16,7 @@
       [:span]
       [:span]]]
     [:div.navbar-menu
-     [:div.navbar-start
-      #_[:a.navbar-item {:href "/"} "Home"]]
+     [:div.navbar-start]
      [:div.navbar-end
       [:div.navbar-item.has-dropdown.is-hoverable
        [:a.navbar-link {:href "#"} user-name]
@@ -41,6 +40,8 @@
     [:div.p-3
      [:div.menu-wrapper
       [:aside.menu
+       [:ul.menu-list
+        [:li [:a {:href "/"} "Acasă"]]]
        [:p.menu-label "Facturi"]
        [:ul.menu-list
         [:li [:a {:href link-facturi-descarcate} "Descărcate"]]
@@ -55,6 +56,8 @@
   [:div.p-3
    [:div.menu-wrapper
     [:aside.menu
+     [:ul.menu-list
+      [:li [:a {:href "/"} "Acasă"]]]
      [:p.menu-label "Portofoliu"]
      [:ul.menu-list
       [:li [:a {:href "/companii"} "Companii"]]]
@@ -164,14 +167,6 @@
     [:th "tip"]
     [:th "download"]]))
 
-(defn table-header-api-calls []
-  [:tr
-   [:th]
-   [:th "data"]
-   [:th "url"]
-   [:th "tip"]
-   [:th "status"]])
-
 (defn row-log-api-call
   [{:keys [id data_apelare url tip status_code]}]
   (let [zoned-time (jt/zoned-date-time data_apelare)
@@ -237,13 +232,6 @@
     (for [r rows]
       r)]))
 
-(defn tabel-logs-api-calls [rows]
-  (h/html
-   [:table.table.is-hoverable
-    (table-header-api-calls)
-    (for [r rows]
-      r)]))
-
 (defn validation-message [err-days err-cif]
   (h/html
    [:ul.err-msg
@@ -285,12 +273,15 @@
                    (logs-list ds cif page per-page)]]))}))
 
 
+
+
 ^:rct/test
 (comment
   (facturi-descarcate {:path-params {:cif "12345678"}})
   ;; => #object[hiccup.util.RawString 0x70f00958 "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div><div hx-get=\"/facturile-mele/12345678\" hx-target=\"#facturi-descarcate\" hx-trigger=\"load\" id=\"facturi-descarcate\"></div></div>"]
   (facturi-descarcate {:path-params {:cif nil}})
   ;; => #object[hiccup.util.RawString 0x1bc042e2 "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div><div hx-get=\"/facturile-mele/\" hx-target=\"#facturi-descarcate\" hx-trigger=\"load\" id=\"facturi-descarcate\"></div></div>"]
+  (facturi-descarcate {:path-params {:cif nil}})
 
 
   0)

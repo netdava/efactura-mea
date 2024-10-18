@@ -123,11 +123,6 @@
                                       :total total
                                       :valuta valuta})))
 
-(defn scrie-companie->db
-  [ds cif name]
-  (f/insert-company ds {:cif cif :name name}))
-
-
 (defn log-api-calls [ds cif response tip-apel]
   (let [now (jt/zoned-date-time)
         uri (:uri (:request response))
