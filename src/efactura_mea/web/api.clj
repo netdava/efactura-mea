@@ -132,7 +132,7 @@
         [:a {:href website} website]]]]
      [:div.columns
       [:div.column
-       (ui-comp/details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Token expiration date: " "7776000"})]]
+       (ui-comp/details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Token expiration date: " token-expiration-date})]]
      )))
 
 (defn save-zip-file [data file-path]
@@ -448,14 +448,14 @@
     (submit-download-proc live-companies db conf {:interval-zile 10})))
 
 (defn pornire-serviciu-descarcare-automata [db conf]
-  (let [interval-executare 1
+  (let [interval-executare 24
         initial-delay 0]
     (println "Initialising automatic download for every company with desc_aut_status \"on\", at every " interval-executare " minutes" )
     (.scheduleAtFixedRate scheduler/sched-pool
                           (fn [] (schedule-descarcare-automata-per-comp db conf))
                           initial-delay
                           interval-executare
-                          TimeUnit/MINUTES)))
+                          TimeUnit/HOURS)))
 
 (comment
   
