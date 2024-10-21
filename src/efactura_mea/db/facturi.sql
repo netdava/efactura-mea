@@ -37,7 +37,10 @@ CREATE TABLE IF NOT EXISTS detalii_facturi_anaf (
 CREATE TABLE IF NOT EXISTS company (
     id INTEGER PRIMARY KEY,
     cif TEXT,
-    name TEXT
+    name TEXT,
+    website TEXT,
+    address TEXT
+
 ) STRICT;
 
 -- :name create-tokens-table
@@ -193,12 +196,12 @@ select cif from company where id = :id
 -- :name get-companies-data
 -- :command :execute
 -- :result :raw
-select cif,id,name from company
+select cif,id,name,website,address from company
 
 -- :name get-company-data
 -- :command :execute
 -- :result :raw
-SELECT company.id, company.cif, company_automated_proc.desc_aut_status
+SELECT company.id, company.name, company.cif, company_automated_proc.desc_aut_status, company.website, company.address
 FROM company
 INNER JOIN company_automated_proc
 ON company.id = company_automated_proc.company_id
@@ -208,6 +211,11 @@ where company.cif = :cif;
 -- :command :execute
 -- :result :raw
 select access_token from tokens where cif = :cif
+
+-- :name select-acc-token-exp-date :? :1
+-- :command :execute
+-- :result :raw
+select expiration_date from tokens where cif = :cif
 
 -- :name select-queue-lista-mesaje :? :1
 -- :command :execute
@@ -228,8 +236,10 @@ select exists (select 1 from company where cif = :cif) as "exists";
 -- :result :raw
 insert into company (
     cif,
-    name)
-    values (:cif, :name)
+    name,
+    website,
+    address)
+    values (:cif, :name, :website, :address)
 
 -- :name insert-company-tokens :insert :*
 -- :command :execute

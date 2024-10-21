@@ -21,6 +21,9 @@
 (defn fetch-access-token [db cif]
   (:access_token (f/select-access-token db {:cif cif})))
 
+(defn fetch-acc-token-exp-date [db cif]
+  (f/select-acc-token-exp-date db {:cif cif}))
+
 (defn fetch-apeluri-anaf-logs [db cif page per-page]
   (let [offset-num (* (dec page) per-page)]
     (f/select-apeluri-api-anaf db {:cif cif :limit per-page :offset offset-num})))

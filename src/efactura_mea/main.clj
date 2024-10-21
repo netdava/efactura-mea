@@ -9,6 +9,8 @@
             [efactura-mea.web.api :as api]
             [efactura-mea.web.json :as wj]
             [efactura-mea.web.oauth2-anaf :as o2a]
+            [efactura-mea.db.facturi :as f]
+            [hiccup2.core :as h]
             [mount-up.core :as mu]
             [mount.core :as mount :refer [defstate]]
             [muuntaja.core :as m]
@@ -110,8 +112,14 @@
                                           sidebar (ui/sidebar-select-company)]
                                       (layout/main-layout content sidebar)))]
    ["/inregistreaza-companie" (fn [req]
-                                (let [{:keys [params]} req]
+                                (let [{:keys [params ds]} req]
                                   (api/inregistrare-noua-companie ds params)))]
+   ["/profil/:cif" (fn [req]
+                     (let [{:keys [path-params]} req
+                           {:keys [cif]} path-params
+                           content (api/afisare-profil-companie req)
+                           sidebar (ui/sidebar-company-data {:cif cif})]
+                       (layout/main-layout content sidebar)))]
    ["/facturi/:cif"
     ["" {:get
          {:handler (fn [req]
@@ -209,6 +217,9 @@
   (mount/start)
   (api/init-db ds)
   (api/pornire-serviciu-descarcare-automata ds conf))
+
+
+
 
 (comment
   (-main)

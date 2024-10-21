@@ -80,13 +80,17 @@
       [:input.input {:type "text" :placeholder "Search"}]
       [:span.icon.is-left
        [:i.fa.fa-search {:aria-hidden "true"}]]]]
-    [:p.panel-tabs
+    #_[:p.panel-tabs
      [:a.is-active "All"]
      [:a "Public"]
      [:a "Private"]]
+    [:div.panel-block
+     [:a {:href "/inregistrare-noua-companie"}
+      [:p.control
+       [:button.button.is-link.is-small "Înregistrează companie"]]]]
     (for [c companies]
       (let [{:keys [cif name]} c
-            url (str "/facturi/" cif)]
+            url (str "/profil/" cif)]
         [:a.panel-block
          {:href url}
          [:span.panel-icon
@@ -237,6 +241,20 @@
    [:ul.err-msg
     (when err-days [:li err-days])
     (when err-cif [:li err-cif])]))
+
+(defn details-table
+  "Primeste un map
+   Genereaza un tabel pe baza tuturor perechilor k-v"
+  [details-map]
+  (h/html
+   [:div.column
+    [:table.table
+     [:tbody
+      (for [[k v] details-map]
+        [:tr
+         [:th k]
+         [:td.has-text-right v]])]]]))
+
 
 (defn lista-mesaje [r]
   {:status 200

@@ -63,15 +63,27 @@
         [:input.input {:type "text"
                        :id "name"
                        :name "name"}]]
+       [:div.field
+        [:label.label "Website"]
+        [:input.input {:type "text"
+                       :id "website"
+                       :name "website"}]]
+       [:div.field
+        [:label.label "Physical Address"]
+        [:input.input {:type "text"
+                       :id "address"
+                       :name "address"}]]
        [:button.button.is-small.is-link {:type "submit"} "Adaugă companie"]]])))
 
 (defn inregistrare-noua-companie
   [ds params]
-  (try (let [{:keys [cif name]} params
+  (try (let [{:keys [cif name website address]} params
+             website (or website nil)
+             address (or address nil)
              inregistrata? (db/test-companie-inregistrata ds cif)
              _ (if (not inregistrata?)
-                 (do 
-                   (facturi/insert-company ds {:cif cif :name name})
+                 (do
+                   (facturi/insert-company ds {:cif cif :name name :website website :address address})
                    (db/init-automated-download ds))
                  (throw (Exception. (str "compania cu cif " cif " figurează ca fiind deja înregistrată."))))
              m (str "Compania \"" name "\" cu cif \"" cif "\" a fost înregistrată cu succes.")
@@ -100,6 +112,28 @@
 (defn afisare-companii-inregistrate [ds]
   (let [companii (db/get-companies-data ds)]
     (ui-comp/select-a-company companii)))
+
+(defn afisare-profil-companie
+  [req]
+  (let [{:keys [path-params ds]} req
+        {:keys [cif]} path-params
+        company (db/get-company-data ds cif)
+        token-expiration-date (facturi/select-acc-token-exp-date ds {:cif cif})
+        {:keys [name website address]} company]
+    (h/html
+     (ui-comp/title "Pagina de profil a companiei")
+     [:div.columns.is-vcentered
+      [:div.column.is-2.has-text-centered
+       [:figure.image.is-128x128.is-inline-block
+        [:img.is-rounded {:src "/android-chrome-192x192.png" :alt "Netdava logo"}]]]
+      [:div.column
+       [:div.content
+        [:h1.title.is-4 name]
+        [:a {:href website} website]]]]
+     [:div.columns
+      [:div.column
+       (ui-comp/details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Token expiration date: " "7776000"})]]
+     )))
 
 (defn save-zip-file [data file-path]
   (let [f (io/file file-path)
