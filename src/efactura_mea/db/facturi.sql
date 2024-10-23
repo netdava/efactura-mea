@@ -223,7 +223,7 @@ select expiration_date from tokens where cif = :cif
 SELECT * FROM descarcare_lista_mesaje ORDER BY id DESC LIMIT 1
 
 -- :name count-lista-mesaje-descarcate
-SELECT count(*) as total FROM lista_mesaje;
+SELECT count(*) as total FROM lista_mesaje where cif = :cif;
 
 -- :name test-companie-inregistrata? :? :*
 -- :command :execute

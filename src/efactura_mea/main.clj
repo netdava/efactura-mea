@@ -77,7 +77,7 @@
     (let [{:keys [query-params]} request
           {:strs [page per-page]} query-params
           page (or (some-> page Integer/parseInt) 1)
-          per-page (or (some-> per-page Integer/parseInt) 10)
+          per-page (or (some-> per-page Integer/parseInt) 20)
           new-params (merge query-params {"page" page "per-page" per-page})]
       ;; Apelăm handler-ul cu request-ul modificat
       (handler (assoc request :query-params new-params)))))
@@ -127,10 +127,10 @@
                            {:strs [page per-page]} query-params
                            {:strs [hx-request]} headers
                            cif (:cif path-params)
-                           opts {:cif cif :page page :per-page per-page}
+                           opts {:cif cif :page page :per-page per-page :uri uri}
                            mesaje-cerute (db/fetch-mesaje ds cif page per-page)
                            mesaje (api/gather-invoices-data (add-path-for-download mesaje-cerute))
-                           table-with-pagination (api/afisare-facturile-mele mesaje ds page per-page uri)
+                           table-with-pagination (api/afisare-facturile-mele mesaje ds opts)
                            content (ui/facturi-descarcate table-with-pagination)
                            sidebar (ui/sidebar-company-data opts)]
                        (if (= hx-request "true")
@@ -154,6 +154,8 @@
                          :middleware [add-pagination-params-middleware]}}]]
    ["/facturi-spv/:cif" (fn [req]
                           (handle-facturi ui/facturi-spv req))]
+   ["/login" (fn [req]
+               (layout/login req))]
    ["/login-anaf" (o2a/make-anaf-login-handler
                    (anaf-conf :client-id)
                    (anaf-conf :redirect-uri))]

@@ -299,13 +299,14 @@
 
 (defn sortare-facturi-data-creare
   [facturi]
-  (sort #(compare (:data_creare %1) (:data_creare %2)) facturi))
+  (sort #(compare (:data_emitere %2) (:data_emitere %1)) facturi))
 
 (defn afisare-facturile-mele 
   "Receives messages data, pagination details,
    return html table with pagination;"
-  [mesaje ds page per-page uri]
-  (let [count-mesaje (db/count-lista-mesaje ds)
+  [mesaje ds opts]
+  (let [{:keys [page per-page uri cif]} opts
+        count-mesaje (db/count-lista-mesaje ds cif)
         facturi-sortate (sortare-facturi-data-creare mesaje)
         detalii->table-rows (opis-facturi-descarcate facturi-sortate ds)
         total-pages (pag/calculate-pages-number count-mesaje per-page)

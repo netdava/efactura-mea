@@ -33,8 +33,8 @@
     (f/select-facturi-descarcate db {:cif cif :limit per-page :offset offset-num})))
 
 (defn count-lista-mesaje
-  [db]
-  (let [qr (first (f/count-lista-mesaje-descarcate db))]
+  [db cif]
+  (let [qr (first (f/count-lista-mesaje-descarcate db {:cif cif}))]
     (:total qr)))
 
 (defn count-apeluri-anaf-logs [db cif]

@@ -61,8 +61,8 @@
      [:p.menu-label "Portofoliu"]
      [:ul.menu-list
       [:li [:a {:href "/companii"} "Companii"]]]
-     [:p.menu-label "Administrare"]
-     [:ul.menu-list
+     #_[:p.menu-label "Administrare"]
+     #_[:ul.menu-list
       [:li [:a {:href "/inregistrare-noua-companie"} "Adaugă companie"]]]]]])
 
 (defn title [title-text & args]
