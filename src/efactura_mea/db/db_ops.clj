@@ -42,10 +42,12 @@
     total-logs))
 
 (defn init-automated-download [db]
-  (let [companies (f/get-companies-data db)]
+  (let [companies (f/get-companies-data db)
+        inst-now (jt/zoned-date-time)
+        now (jt/format "H:mm - MMMM dd, yyyy" inst-now)]
     (doseq [c companies]
       (let [id (:id c)]
-        (f/insert-into-company-automated-processes db {:company_id id :desc_aut_status "off"})))))
+        (f/insert-into-company-automated-processes db {:company_id id :desc_aut_status "off" :date_modified now})))))
 
 (defn get-companies-data [ds]
   (f/get-companies-data ds))

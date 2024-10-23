@@ -146,7 +146,7 @@
                                           opts {:cif cif :page page :per-page per-page}
                                           mesaje-cerute (db/fetch-mesaje ds cif page per-page)
                                           mesaje (api/gather-invoices-data (add-path-for-download mesaje-cerute))
-                                          content (api/afisare-facturile-mele mesaje ds page per-page uri)
+                                          content (api/afisare-facturile-mele mesaje ds opts)
                                           sidebar (ui/sidebar-company-data opts)]
                                       (if (= hx-request "true")
                                         content

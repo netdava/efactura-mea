@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS descarcare_lista_mesaje (
 CREATE TABLE IF NOT EXISTS company_automated_proc (
     company_id INTEGER PRIMARY KEY,
     desc_aut_status TEXT,
+    date_modified TEXT,
     FOREIGN KEY(company_id) REFERENCES company(id) 
 ) STRICT;
 
@@ -135,8 +136,9 @@ insert into apeluri_api_anaf (
 -- :result :raw
 insert OR IGNORE into company_automated_proc (
     company_id,
-    desc_aut_status
-) values (:company_id, :desc_aut_status);
+    desc_aut_status,
+    date_modified
+) values (:company_id, :desc_aut_status, :date_modified);
 
 -- :name update-automated-download-status
 -- :command :execute
