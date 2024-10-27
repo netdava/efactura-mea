@@ -2,7 +2,8 @@
   (:require [clojure.string :as s]
             [clojure.data.xml :as xml]
             [clojure.java.io :as io]
-            [jsonista.core :as j])
+            [jsonista.core :as j]
+            [java-time :as jt])
   (:import (java.util.zip ZipFile)))
 
 (defn list-files-from-dir [dir]
@@ -27,6 +28,12 @@
   (with-open [z (ZipFile. fileName)]
     (doseq [e (entries z)]
       (println (.getName e)))))
+
+(defn formatted-date-now 
+  []
+  (let [inst-now (jt/zoned-date-time)
+        now (jt/format "H:mm - MMMM dd, yyyy" inst-now)]
+    now))
 
 (defn build-url
   "Build a url from a base and a target {:endpoint <type>}

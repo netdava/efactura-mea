@@ -119,7 +119,7 @@
         {:keys [cif]} path-params
         company (db/get-company-data ds cif)
         token-expiration-date (facturi/select-acc-token-exp-date ds {:cif cif})
-        {:keys [name website address]} company]
+        {:keys [name website address desc_aut_status]} company]
     (h/html
      (ui-comp/title "Pagina de profil a companiei")
      [:div.columns.is-vcentered
@@ -132,7 +132,7 @@
         [:a {:href website} website]]]]
      [:div.columns
       [:div.column
-       (ui-comp/details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Token expiration date: " token-expiration-date})]]
+       (ui-comp/details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Dată expirare access_token: " token-expiration-date "Descărcare automată:" desc_aut_status})]]
      )))
 
 (defn save-zip-file [data file-path]
@@ -374,65 +374,108 @@
      :body "ok"
      :headers {"content-type" "text/html"}}))
 
-(defn set-descarcare-automata
+(defn modal [modal-content]
+  (str (h/html [:div#mmm.modal.is-active
+                [:div.modal-background]
+                [:div.modal-content
+                 [:div.card
+                  [:div.card-content
+                   [:div.content (or modal-content "no-content for modal")]]
+                  [:footer.card-footer [:a.card-footer-item {:hx-get "/close-modal"
+                                                             :hx-target "#modal-wrapper"
+                                                             :hx-swap "innerHTML"} "OK"]]]]
+                [:button.modal-close.is-large {:aria-label "close"}]])))
+
+(defn close-modal []
+  {:status 200
+   :body ""
+   :headers {"content-type" "text/html"}})
+
+(defn sda-form
   [c-data cif]
-  (let [t (str "Activare descărcare automată facturi")
-        days (range 1 60)
+  (let [days (range 1 60)
         days-select-vals (for [n days]
                            [:option {:value n} n])
-        c-status (:desc_aut_status c-data)
-        s (desc_aut_status_on? c-status)]
+        {:keys [desc_aut_status date_modified]} c-data
+        s (desc_aut_status_on? desc_aut_status)
+        status-msg (if s
+                     (str date_modified "- Serviciul descărcare automată pornit")
+                     (str date_modified "- Serviciul descărcare automată oprit"))]
+   {:status 200
+    :body (str
+           (h/html
+            [:form.block {:hx-get "/pornire-descarcare-automata"
+                          :hx-target "#modal-wrapper"
+                          :hx-swap "innerHTML"}
+             [:div.field
+              [:label.label "CIF:"]
+              [:input.input {:readonly "readonly"
+                             :type "text"
+                             :id "cif-number"
+                             :list "cif"
+                             :name "cif"
+                             :value cif
+                             :placeholder cif}]]
+             [:div.field
+              [:label.label "Număr de zile pentru descărcare automată facturi anaf:"]
+              [:div.select [:select {:id "zile" :name "zile"}
+                            days-select-vals]]]
+             [:div.field
+              [:input {:id "descarcare-automata"
+                       :type "checkbox"
+                       :name "descarcare-automata"
+                       :class "switch is-rounded is-info"}]
+              [:label {:for "descarcare-automata"} "Activează descarcarea automată"]]
+             [:div#status.field.content.is-small
+              [:span.icon-text
+               [:span.icon.has-text-info
+                [:i.fa.fa-info-circle]]
+               [:p status-msg]]]
+             [:button.button.is-small.is-link {:type "submit"} "Setează"]]))
+           :headers {"content-type" "text/html"}}))
+
+(defn set-descarcare-automata
+  [cif]
+  (let [t (str "Activare descărcare automată facturi")
+        url (str "/get-sda-form/" cif)]
     (h/html
      [:div#main-container.block
       (ui-comp/title t)
-      [:article.message
-       [:div#status.message-body (if s
-                                   (str " - descărcarea automată a facturilor a fost pornită")
-                                   "to be continued")]]
-      [:form.block {:hx-get "/pornire-descarcare-automata"
-                    :hx-target "#status"
-                    :hx-swap "innerHTML swap:1s"}
-       [:div.field
-        [:label.label "CIF:"]
-        [:input.input {:readonly "readonly"
-                       :type "text"
-                       :id "cif-number"
-                       :list "cif"
-                       :name "cif"
-                       :value cif
-                       :placeholder cif}]]
-       [:div.field
-        [:label.label "Număr de zile pentru descărcare automată facturi anaf:"]
-        [:div.select [:select {:id "zile" :name "zile"}
-                      days-select-vals]]]
-       [:div {:class "field"}
-        [:input {:id "descarcare-automata"
-                 :type "checkbox"
-                 :name "descarcare-automata"
-                 :class "switch is-rounded is-info"}]
-        [:label {:for "descarcare-automata"} "Activează descarcarea automată"]]
-       [:button.button.is-small.is-link {:type "submit"} "Setează"]]])))
+      [:div#sda-form
+       {:hx-get url
+        :hx-trigger "load"}]
+      [:div#modal-wrapper]])))
 
 (defn descarcare-automata-facturi [params ds]
   (let [{:keys [cif descarcare-automata]} params
+        _ (println "params in momentul SETEAZA " params)
         company-data (db/get-company-data ds cif)
-        id (:id company-data)]
+        {:keys [id]} company-data
+        now (u/formatted-date-now)
+        opts {:id id :date_modified now :status "on"}]
     (if descarcare-automata
       (try
-        (db/update-company-desc-aut-status ds id "on")
+        (db/update-company-desc-aut-status ds opts)
         (println "updated for company-id: " id " status ON")
-        #_(pornire-descarcare-automata req)
         {:status 200
-         :body "Ai activat cu succes serviciul de descărcare automată"
+         :body (modal "Serviciul de descărcare automată: ACTIV")
          :headers {"content-type" "text/html"}}
         (catch Exception e
-          (println (str "Task failed to start: " (.getMessage e)))))
-      (do #_(oprire-descarcare-automata)
-       (db/update-company-desc-aut-status ds id "off")
+          (let [msg (.getMessage e)]
+            [:div.notification.is-danger
+             msg])))
+      (try
+        (let [opts {:id id :date_modified now :status "off"}]
+          #_(oprire-descarcare-automata)
+          (db/update-company-desc-aut-status ds opts)
           (println "canceling timer, set for comp-id " id " status OFF")
           {:status 200
-           :body "Ai dezactivat serviciul de descărcare automată"
-           :headers {"content-type" "text/html"}}))))
+           :body (modal "Serviciul de descărcare automată: INACTIV")
+           :headers {"content-type" "text/html"}})
+        (catch Exception e
+          (let [msg (.getMessage e)]
+            [:div.notification.is-danger
+             msg]))))))
 
 (defn submit-download-proc
   [live-companies ds conf & {:keys [interval-zile]

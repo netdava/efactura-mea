@@ -1,5 +1,6 @@
 (ns efactura-mea.db.db-ops
   (:require [efactura-mea.db.facturi :as f]
+            [efactura-mea.util :as u]
             [java-time :as jt]
             [next.jdbc :as jdbc]))
 
@@ -43,8 +44,7 @@
 
 (defn init-automated-download [db]
   (let [companies (f/get-companies-data db)
-        inst-now (jt/zoned-date-time)
-        now (jt/format "H:mm - MMMM dd, yyyy" inst-now)]
+        now (u/formatted-date-now)]
     (doseq [c companies]
       (let [id (:id c)]
         (f/insert-into-company-automated-processes db {:company_id id :desc_aut_status "off" :date_modified now})))))
@@ -70,8 +70,9 @@
   (first
    (f/select-detalii-factura-descarcata db {:id id})))
 
-(defn update-company-desc-aut-status [db id status]
-  (f/update-automated-download-status db {:id id :status status}))
+(defn update-company-desc-aut-status [db opts]
+  (let [{:keys [id status date_modified]} opts]
+    (f/update-automated-download-status db {:id id :status status :date_modified date_modified})))
 
 (defn test-companie-inregistrata
   [db cif]

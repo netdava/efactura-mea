@@ -36,12 +36,14 @@
         link-facturi-descarcate (str "/facturi/" cif)
         link-facturi-spv (str "/facturi-spv/" cif)
         link-logs (str "/logs/" cif qp)
-        link-descarcare-automata (str "/descarcare-automata/" cif)]
+        link-descarcare-automata (str "/descarcare-automata/" cif)
+        link-profil (str "/profil/" cif)]
     [:div.p-3
      [:div.menu-wrapper
       [:aside.menu
        [:ul.menu-list
-        [:li [:a {:href "/"} "Acasă"]]]
+        [:li [:a {:href "/"} "Acasă"]]
+        [:li [:a {:href link-profil} "Profil"]]]
        [:p.menu-label "Facturi"]
        [:ul.menu-list
         [:li [:a {:href link-facturi-descarcate} "Descărcate"]]

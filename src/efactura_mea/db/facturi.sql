@@ -144,7 +144,8 @@ insert OR IGNORE into company_automated_proc (
 -- :command :execute
 -- :result :raw
 update company_automated_proc
-set desc_aut_status = :status
+set desc_aut_status = :status,
+    date_modified = :date_modified
 where company_id = :id;
 
 -- :name insert-row-apel-api-lista-mesaje :insert :*
@@ -203,7 +204,7 @@ select cif,id,name,website,address from company
 -- :name get-company-data
 -- :command :execute
 -- :result :raw
-SELECT company.id, company.name, company.cif, company_automated_proc.desc_aut_status, company.website, company.address
+SELECT company.id, company.name, company.cif, company_automated_proc.desc_aut_status, company_automated_proc.date_modified, company.website, company.address
 FROM company
 INNER JOIN company_automated_proc
 ON company.id = company_automated_proc.company_id

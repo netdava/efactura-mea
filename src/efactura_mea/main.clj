@@ -182,16 +182,28 @@
                          (layout/main-layout (:body content) sidebar))))
           :middleware [add-pagination-params-middleware]}}]]
    ["/descarcare-automata/:cif" (fn [req]
-                                  (let [{:keys [path-params]} req
+                                  (let [{:keys [path-params headers]} req
+                                        {:strs [hx-request]} headers
                                         cif (:cif path-params)
                                         opts {:cif cif}
                                         sidebar (ui/sidebar-company-data opts)
-                                        c-data (db/get-company-data ds cif)
-                                        content (api/set-descarcare-automata c-data cif)]
+                                        
+                                        content (api/set-descarcare-automata cif)]
+                                    #_(if (= hx-request "true")
+                                      content
+                                      (layout/main-layout content sidebar))
                                     (layout/main-layout content sidebar)))]
    ["/pornire-descarcare-automata" (fn [req]
-                                     (let [params (:params req)]
-                                       (api/descarcare-automata-facturi params ds)))]])
+                                     (let [{:keys [params ds]} req]
+                                       (api/descarcare-automata-facturi params ds)))]
+   ["/close-modal" (fn [req]
+                     (api/close-modal))]
+   ["/get-sda-form/:cif" (fn [req]
+                      (let [{:keys [path-params ds]} req
+                            {:keys [cif]} path-params
+                            c-data (db/get-company-data ds cif)
+                            _ (println "company dataaaa " c-data)]
+                       (api/sda-form c-data cif)))]])
 
 
 (defn handler
@@ -227,4 +239,5 @@
   (-main)
   (mount/start)
   (mount/stop)
+  (db/get-company-data ds "35586426")
   0)
