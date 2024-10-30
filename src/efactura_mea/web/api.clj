@@ -490,14 +490,14 @@
 
 (defn pornire-serviciu-descarcare-automata [db conf]
   (println "la pornire AUTOMATA la setare conf este: " conf " in rest este " conf)
-  (let [interval-executare 1
+  (let [interval-executare 12
         initial-delay 0]
     (println "Initialising automatic download for every company with desc_aut_status \"on\", at every " interval-executare " hours" )
     (.scheduleAtFixedRate scheduler/sched-pool
                           (fn [] (schedule-descarcare-automata-per-comp db conf))
                           initial-delay
                           interval-executare
-                          TimeUnit/MINUTES)))
+                          TimeUnit/HOURS)))
 
 (defn descarcare-automata-facturi [params ds conf]
   (let [{:keys [cif descarcare-automata]} params
