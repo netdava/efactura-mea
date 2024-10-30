@@ -167,7 +167,6 @@
                         "cif" cif}
                  endpoint (str base-url "?" (make-query-string q-str))
                  r (http/get endpoint headers)
-                 _ (println "RRRRRRRRRRRRR este " (:body r))
                  {:keys [body status]} r
                  _ (db/log-api-calls ds cif r tip-apel)
                  response (u/encode-body-json->edn body)]
@@ -204,7 +203,9 @@
 
 (defn parse-message [m]
   (let [{:keys [data_creare tip id_solicitare detalii id descarcata]} m
-        downloaded?-mark (when descarcata [:i.fa.fa-check-square-o])
+        downloaded?-mark (when descarcata [:div.icon-text
+                                           [:span.icon.has-text-success
+                                            [:i.fa.fa-check-square-o]]])
         data-creare-mesaj (u/parse-date data_creare)
         d (:data_c data-creare-mesaj)
         h (:ora_c data-creare-mesaj)
@@ -238,8 +239,7 @@
         ids-mesaje-disponibile (mapv :id mesaje)
         mesaje-disponibile-descarcate (db/fetch-ids-mesaje-descarcate ds ids-mesaje-disponibile)
         ids-map->set (set (map :id_descarcare mesaje-disponibile-descarcate))
-        mesaje-marcate (add-status-downloaded? ids-map->set mesaje)
-        _ (println "mesaje-marcateeeeee " mesaje-marcate)]
+        mesaje-marcate (add-status-downloaded? ids-map->set mesaje)]
     (if
      (= 200 status)
       (afisare-lista-mesaje mesaje-marcate eroare)
