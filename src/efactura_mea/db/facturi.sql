@@ -264,3 +264,8 @@ insert into descarcare_lista_mesaje (
 
 -- :name clear-download-queue
 DELETE FROM descarcare_lista_mesaje WHERE id = :id
+
+-- :name get-facturi-descarcate-by-id
+SELECT id_descarcare 
+FROM lista_mesaje 
+WHERE id_descarcare IN (:v*:ids);

@@ -35,12 +35,12 @@
 
 (defn descarca-factura-pdf
   [req]
-  (let [{:keys [params ds config]} req
+  (let [{:keys [params ds conf]} req
         {:keys [id_descarcare]} params
         detalii-fact (db/detalii-factura-anaf ds id_descarcare)
         {:keys [cif]} detalii-fact
         a-token (db/fetch-access-token ds cif)
-        xml-data (api/zip-file->xml-data config detalii-fact)]
+        xml-data (api/zip-file->xml-data conf detalii-fact)]
     (api/transformare-xml-to-pdf a-token xml-data id_descarcare)))
 
 (defn handle-facturi
@@ -69,7 +69,7 @@
 
 (defn wrap-app-config [handler]
   (fn [request]
-    (let [updated-request (assoc request :config conf :ds ds)]
+    (let [updated-request (assoc request :conf conf :ds ds)]
       (handler updated-request))))
 
 (defn add-pagination-params-middleware [handler]
@@ -164,8 +164,8 @@
                                    (anaf-conf :client-secret)
                                    (anaf-conf :redirect-uri))]
    ["/listare-sau-descarcare" (fn [req]
-                                (let [{:keys [params ds config]} req]
-                                  (api/handle-list-or-download params ds config)))]
+                                (let [{:keys [params ds conf]} req]
+                                  (api/handle-list-or-download params ds conf)))]
    ["/transformare-xml-pdf" descarca-factura-pdf]
    ["/logs/:cif"
     ["" {:get
@@ -194,15 +194,14 @@
                                       (layout/main-layout content sidebar))
                                     (layout/main-layout content sidebar)))]
    ["/pornire-descarcare-automata" (fn [req]
-                                     (let [{:keys [params ds]} req]
-                                       (api/descarcare-automata-facturi params ds)))]
+                                     (let [{:keys [params ds conf]} req]
+                                       (api/descarcare-automata-facturi params ds conf)))]
    ["/close-modal" (fn [req]
                      (api/close-modal))]
    ["/get-sda-form/:cif" (fn [req]
                       (let [{:keys [path-params ds]} req
                             {:keys [cif]} path-params
-                            c-data (db/get-company-data ds cif)
-                            _ (println "company dataaaa " c-data)]
+                            c-data (db/get-company-data ds cif)]
                        (api/sda-form c-data cif)))]])
 
 
@@ -240,4 +239,24 @@
   (mount/start)
   (mount/stop)
   (db/get-company-data ds "35586426")
+  (f/update-automated-download-status ds {:id 1 :status "ala" :date_modified "8:05 - October 29, 2024"})
+  
+  (let [sett (set (map :id_descarcare (f/get-facturi-descarcate-by-id ds {:ids ["3849262015" "3816947294" "3817982574"]})))
+        item {:data_creare "202410251240"
+         :cif "11307583"
+         :id_solicitare "4495733877"
+         :detalii "Factura cu id_incarcare=4495733877 emisa de cif_emitent=5837607 pentru cif_beneficiar=11307583"
+         :tip "FACTURA PRIMITA"
+         :id "3849262015"} ]
+    (sett (:id item)))
+
+  
+(jdbc/execute!
+ ds
+ ["SELECT id_descarcare from lista_mesaje where id_descarcare in ('3804637371', '3758747030')"])
+
+  (jdbc/execute! 
+   ds
+   ["SELECT DISTINCT id_descarcare FROM lista_mesaje LIMIT 10;"])
+  
   0)

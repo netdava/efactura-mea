@@ -142,6 +142,7 @@
 (defn table-header-facturi-anaf []
   (h/html
    [:tr
+    [:th]
     [:th "dată răspuns"]
     [:th "tip factură"]
     [:th "id solicitare"]
@@ -149,9 +150,10 @@
     [:th "id factură"]]))
 
 (defn row-factura-anaf
-  [data ora tip-factura id_solicitare detalii id]
+  [data ora tip-factura id_solicitare detalii id downloaded?-mark]
   (h/html
    [:tr
+    [:td downloaded?-mark]
     [:td.is-size-7 data [:br] ora]
     [:td.is-size-7 tip-factura]
     [:td.is-size-7 id_solicitare]
@@ -263,7 +265,7 @@
    :body (str (h/html
                [:div.content.block
                 [:h2 "Facturi disponibile pentru descărcat:"]
-                [:table
+                [:table.table
                  r]]))
    :headers {"content-type" "text/html"}})
 

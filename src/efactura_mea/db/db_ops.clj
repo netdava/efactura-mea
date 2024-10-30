@@ -149,3 +149,6 @@
     (f/insert-into-descarcare-lista-mesaje ds {:data_start_procedura now
                                                :lista_mesaje lista-mesaje})))
 
+(defn fetch-ids-mesaje-descarcate [ds ids-mesaje-disponibile]
+  (f/get-facturi-descarcate-by-id ds {:ids ids-mesaje-disponibile}))
+
