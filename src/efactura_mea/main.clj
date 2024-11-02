@@ -187,22 +187,21 @@
                                         cif (:cif path-params)
                                         opts {:cif cif}
                                         sidebar (ui/sidebar-company-data opts)
-                                        
+
                                         content (api/set-descarcare-automata cif)]
                                     #_(if (= hx-request "true")
-                                      content
-                                      (layout/main-layout content sidebar))
+                                        content
+                                        (layout/main-layout content sidebar))
                                     (layout/main-layout content sidebar)))]
    ["/pornire-descarcare-automata" (fn [req]
                                      (let [{:keys [params ds conf]} req]
                                        (api/descarcare-automata-facturi params ds conf)))]
-   ["/close-modal" (fn [req]
-                     (api/close-modal))]
+   
    ["/get-sda-form/:cif" (fn [req]
-                      (let [{:keys [path-params ds]} req
-                            {:keys [cif]} path-params
-                            c-data (db/get-company-data ds cif)]
-                       (api/sda-form c-data cif)))]])
+                           (let [{:keys [path-params ds]} req
+                                 {:keys [cif]} path-params
+                                 c-data (db/get-company-data ds cif)]
+                             (api/sda-form c-data cif)))]])
 
 
 (defn handler
@@ -231,9 +230,6 @@
   (api/init-db ds)
   (api/pornire-serviciu-descarcare-automata ds conf))
 
-
-
-
 (comment
   (-main)
   (mount/start)
@@ -247,7 +243,7 @@
          :id_solicitare "4495733877"
          :detalii "Factura cu id_incarcare=4495733877 emisa de cif_emitent=5837607 pentru cif_beneficiar=11307583"
          :tip "FACTURA PRIMITA"
-         :id "3849262015"} ]
+         :id "3849262015"}]
     (sett (:id item)))
 
   

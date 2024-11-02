@@ -97,7 +97,7 @@
           :body detailed-msg
           :headers {"content-type" "text/html"}})
        (catch
-        Exception e 
+        Exception e
          (let [err-msg (.getMessage e)
                detailed-msg (str (h/html
                                   [:article.message.is-warning
@@ -135,8 +135,7 @@
         [:a {:href website} website]]]]
      [:div.columns
       [:div.column
-       (ui-comp/details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Dată expirare access_token: " token-expiration-date "Descărcare automată:" [:div#das descarcare-automata-link descarcare-automata-status]})]]
-     )))
+       (ui-comp/details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Dată expirare access_token: " token-expiration-date "Descărcare automată:" [:div#das descarcare-automata-link descarcare-automata-status]})]])))
 
 (defn save-zip-file [data file-path]
   (let [f (io/file file-path)
@@ -172,7 +171,7 @@
                  response (u/encode-body-json->edn body)]
              {:status status
               :body response})))
-       (catch Exception e (println (.getMessage e ) " !!!! ceva s-a intamplat la obtine-lista-facturi"))))
+       (catch Exception e (println (.getMessage e) " !!!! ceva s-a intamplat la obtine-lista-facturi"))))
 
 (defn descarca-factura
   "Descarcă factura în format zip pe baza id-ului.
@@ -323,7 +322,7 @@
   [facturi]
   (sort #(compare (:data_emitere %2) (:data_emitere %1)) facturi))
 
-(defn afisare-facturile-mele 
+(defn afisare-facturile-mele
   "Receives messages data, pagination details,
    return html table with pagination;"
   [mesaje ds opts]
@@ -333,8 +332,8 @@
         detalii->table-rows (opis-facturi-descarcate facturi-sortate ds)
         total-pages (pag/calculate-pages-number count-mesaje per-page)
         table-with-pagination (h/html
-           (ui-comp/tabel-facturi-descarcate detalii->table-rows)
-           (pag/make-pagination total-pages page per-page uri))]
+                               (ui-comp/tabel-facturi-descarcate detalii->table-rows)
+                               (pag/make-pagination total-pages page per-page uri))]
     table-with-pagination))
 
 (defn descarca-mesaje-automat
@@ -344,7 +343,7 @@
     (if (nil? validation-result)
       (do
         (println "Pornesc descarcarea automata a facturilor pentru cif: " cif " la " zile " zile")
-        (println "o sa apelez (fetch-lista-mesaje) cu " )
+        (println "o sa apelez (fetch-lista-mesaje) cu ")
         (fetch-lista-mesaje zile cif ds conf)
         (println "Am terminat descarcarea automata a facturilor pentru cif: " cif))
       (error-message-invalid-result validation-result))))
@@ -398,67 +397,49 @@
      :body "ok"
      :headers {"content-type" "text/html"}}))
 
-(defn modal [modal-content]
-  (str (h/html [:div#mmm.modal.is-active
-                [:div.modal-background]
-                [:div.modal-content
-                 [:div.card
-                  [:div.card-content
-                   [:div.content (or modal-content "no-content for modal")]]
-                  [:footer.card-footer [:a.card-footer-item {:hx-get "/close-modal"
-                                                             :hx-target "#modal-wrapper"
-                                                             :hx-swap "innerHTML"} "OK"]]]]
-                [:button.modal-close.is-large {:aria-label "close"}]])))
-
-(defn close-modal []
-  {:status 200
-   :body ""
-   :headers {"content-type" "text/html"
-             "HX-Refresh" "true"}})
-
 (defn sda-form
   [c-data cif]
   (let [days (range 1 60)
         days-select-vals (for [n days]
                            [:option {:value n} n])
-        {:keys [desc_aut_status date_modified]} c-data
+        {:keys [desc_aut_status]} c-data
         status (desc_aut_status_on? desc_aut_status)
         status-msg (if status
-                     (str date_modified "- Serviciul descărcare automată pornit")
-                     (str date_modified "- Serviciul descărcare automată oprit"))]
-   {:status 200
-    :body (str
-           (h/html
-            [:form.block {:hx-get "/pornire-descarcare-automata"
-                          :hx-target "#modal-wrapper"
-                          :hx-swap "innerHTML"}
-             [:div.field
-              [:label.label "CIF:"]
-              [:input.input {:readonly "readonly"
-                             :type "text"
-                             :id "cif-number"
-                             :list "cif"
-                             :name "cif"
-                             :value cif
-                             :placeholder cif}]]
-             [:div.field
-              [:label.label "Număr de zile pentru descărcare automată facturi anaf:"]
-              [:div.select [:select {:id "zile" :name "zile"}
-                            days-select-vals]]]
-             [:div.field
-              [:input {:id "descarcare-automata"
-                       :type "checkbox"
-                       :checked status
-                       :name "descarcare-automata"
-                       :class "switch is-rounded is-info"}]
-              [:label {:for "descarcare-automata"} "Activează descarcarea automată"]]
-             [:div#status.field.content.is-small
-              [:span.icon-text
-               [:span.icon.has-text-info
-                [:i.fa.fa-info-circle]]
-               [:p status-msg]]]
-             [:button.button.is-small.is-link {:type "submit"} "Setează"]]))
-           :headers {"content-type" "text/html"}}))
+                     "Serviciul descărcare automată pornit"
+                     "Serviciul descărcare automată oprit")]
+    {:status 200
+     :body (str
+            (h/html
+             [:form.block {:hx-get "/pornire-descarcare-automata"
+                           :hx-target "#status"
+                           :hx-swap "innerHTML"}
+              [:div.field
+               [:label.label "CIF:"]
+               [:input.input {:readonly "readonly"
+                              :type "text"
+                              :id "cif-number"
+                              :list "cif"
+                              :name "cif"
+                              :value cif
+                              :placeholder cif}]]
+              [:div.field
+               [:label.label "Număr de zile pentru descărcare automată facturi anaf:"]
+               [:div.select [:select {:id "zile" :name "zile"}
+                             days-select-vals]]]
+              [:div.field
+               [:input {:id "descarcare-automata"
+                        :type "checkbox"
+                        :checked status
+                        :name "descarcare-automata"
+                        :class "switch is-rounded is-info"}]
+               [:label {:for "descarcare-automata"} "Activează descarcarea automată"]]
+              [:div.field.content.is-small
+               [:span.icon-text
+                [:span.icon.has-text-info
+                 [:i.fa.fa-info-circle]]
+                [:p#status status-msg]]]
+              [:button.button.is-small.is-link {:type "submit"} "Setează"]]))
+     :headers {"content-type" "text/html"}}))
 
 (defn set-descarcare-automata
   [cif]
@@ -476,7 +457,7 @@
 
 (defn submit-download-proc
   [live-companies ds conf & {:keys [interval-zile]
-                     :or {interval-zile 5}}]
+                             :or {interval-zile 5}}]
   (doseq [c live-companies]
     (let [cif (:cif c)]
       (println "Submitting download for cif : " cif)
@@ -492,7 +473,7 @@
   (println "la pornire AUTOMATA la setare conf este: " conf " in rest este " conf)
   (let [interval-executare 12
         initial-delay 0]
-    (println "Initialising automatic download for every company with desc_aut_status \"on\", at every " interval-executare " hours" )
+    (println "Initialising automatic download for every company with desc_aut_status \"on\", at every " interval-executare " hours")
     (.scheduleAtFixedRate scheduler/sched-pool
                           (fn [] (schedule-descarcare-automata-per-comp db conf))
                           initial-delay
@@ -502,6 +483,7 @@
 (defn descarcare-automata-facturi [params ds conf]
   (let [{:keys [cif descarcare-automata]} params
         company-data (db/get-company-data ds cif)
+        _ (println "ceva ceva " company-data)
         {:keys [id]} company-data
         now (u/formatted-date-now)
         opts {:id id :date_modified now :status "on"}]
@@ -512,7 +494,7 @@
           (pornire-serviciu-descarcare-automata ds conf)
           (println "updated for company-id: " id " status ON")
           {:status 200
-           :body (modal "Serviciul de descărcare automată: ACTIV")
+           :body "Serviciul descărcare automată pornit"
            :headers {"content-type" "text/html"}})
         (catch Exception e
           (let [msg (.getMessage e)]
@@ -524,7 +506,7 @@
           (db/update-company-desc-aut-status ds opts)
           (println "canceling timer, set for comp-id " id " status OFF")
           {:status 200
-           :body (modal "Serviciul de descărcare automată: INACTIV")
+           :body "Serviciul descărcare automată oprit"
            :headers {"content-type" "text/html"}})
         (catch Exception e
           (let [msg (.getMessage e)]
@@ -532,7 +514,7 @@
              msg]))))))
 
 (comment
-  
+
   #_(pornire-serviciu-descarcare-automata)
   (.shutdown scheduler/sched-pool)
 
@@ -544,5 +526,4 @@
 
 
 
-  0
-  )
+  0)
