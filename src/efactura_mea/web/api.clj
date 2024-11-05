@@ -397,11 +397,16 @@
      :body "ok"
      :headers {"content-type" "text/html"}}))
 
+
+
 (defn sda-form
   [c-data cif]
-  (let [days (range 1 60)
+  (let [my-selected-val (fn [n]
+                          (let [opts {:value n}]
+                            (when (= n 5) (assoc opts :selected true))))
+        days (range 1 60)
         days-select-vals (for [n days]
-                           [:option {:value n} n])
+                           [:option (my-selected-val n) n])
         {:keys [desc_aut_status]} c-data
         status (desc_aut_status_on? desc_aut_status)
         status-msg (if status
@@ -483,7 +488,6 @@
 (defn descarcare-automata-facturi [params ds conf]
   (let [{:keys [cif descarcare-automata]} params
         company-data (db/get-company-data ds cif)
-        _ (println "ceva ceva " company-data)
         {:keys [id]} company-data
         now (u/formatted-date-now)
         opts {:id id :date_modified now :status "on"}]

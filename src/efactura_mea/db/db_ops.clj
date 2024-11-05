@@ -72,7 +72,7 @@
 
 (defn update-company-desc-aut-status [db opts]
   (let [{:keys [id status date_modified]} opts]
-    (f/update-automated-download-status db {:id id :status status :date_modified date_modified})))
+    (f/update-automated-download-status db {:id id :status status})))
 
 (defn test-companie-inregistrata
   [db cif]

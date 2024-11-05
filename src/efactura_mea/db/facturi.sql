@@ -138,14 +138,14 @@ insert OR IGNORE into company_automated_proc (
     company_id,
     desc_aut_status,
     date_modified
-) values (:company_id, :desc_aut_status, :date_modified);
+) values (:company_id, :desc_aut_status, CURRENT_TIMESTAMP);
 
 -- :name update-automated-download-status
 -- :command :execute
 -- :result :raw
 update company_automated_proc
 set desc_aut_status = :status,
-    date_modified = :date_modified
+    date_modified = CURRENT_TIMESTAMP
 where company_id = :id;
 
 -- :name insert-row-apel-api-lista-mesaje :insert :*

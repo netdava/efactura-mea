@@ -235,7 +235,7 @@
   (mount/start)
   (mount/stop)
   (db/get-company-data ds "35586426")
-  (f/update-automated-download-status ds {:id 1 :status "ala" :date_modified "8:05 - October 29, 2024"})
+  (f/update-automated-download-status ds {:id 1 :status ""})
   
   (let [sett (set (map :id_descarcare (f/get-facturi-descarcate-by-id ds {:ids ["3849262015" "3816947294" "3817982574"]})))
         item {:data_creare "202410251240"
