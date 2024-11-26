@@ -18,10 +18,10 @@
                                :content "width=device-width"
                                :initial-scale "1"}]
                        #_[:link {:rel "manifest"
-                               :href "manifest.json"}]
+                                 :href "manifest.json"}]
                        #_[:link {:rel "icon"
-                               :type "image/x-icon"
-                               :href "/images/favicon-32x32.png"}]
+                                 :type "image/x-icon"
+                                 :href "/images/favicon-32x32.png"}]
                        [:title "eFacturaMea"]
                        [:link {:rel "stylesheet"
                                :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"}]
@@ -31,10 +31,16 @@
                                :href "/css/style.css"}]
                        [:link {:rel "stylesheet"
                                :href "/css/bulma-switch.min.css"}]
+                       [:link {:rel "stylesheet"
+                               :href "/assets/vanillajs-datepicker/dist/css/datepicker-bulma.min.css"}]
                        [:script {:type "text/javascript"
                                  :src "/assets/htmx.org/dist/htmx.min.js"}]
-                       #_[:script {:type "text/javascript"
-                                 :src "/js/dropdown.js"}]
+                       [:script {:type "text/javascript"
+                                 :src "/assets/hyperscript.org/dist/_hyperscript.min.js"}]
+                       [:script {:type "module"
+                                 :src "/assets/vanillajs-datepicker/js/Datepicker.js"}]
+                       [:script {:type "module"
+                                 :src "/js/vanillajs-datepicker-constructor.js"}]
 
 
                        [:body

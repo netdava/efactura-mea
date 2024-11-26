@@ -129,7 +129,7 @@ insert into apeluri_api_anaf (
     status_code,
     response
     )
-    values (:cif, :data_apelare, :url, :tip, :status_code, :response)
+    values (:cif, CURRENT_TIMESTAMP, :url, :tip, :status_code, :response)
 
 -- :name insert-into-company-automated-processes
 -- :command :execute
@@ -269,3 +269,18 @@ DELETE FROM descarcare_lista_mesaje WHERE id = :id
 SELECT id_descarcare 
 FROM lista_mesaje 
 WHERE id_descarcare IN (:v*:ids);
+
+
+-- :name get-facturi-in-date-range
+-- :command :execute
+-- :result :raw
+SELECT id_descarcare, data_creare
+FROM detalii_facturi_anaf
+WHERE cif = :cif AND data_creare >= :start-date AND data_creare <= :end-date || '2359';
+
+-- :name count-facturi-in-date-range
+-- :command :execute
+-- :result :raw
+SELECT count(*) as total
+FROM detalii_facturi_anaf
+WHERE cif = :cif AND data_creare >= :start-date AND data_creare <= :end-date || '2359';

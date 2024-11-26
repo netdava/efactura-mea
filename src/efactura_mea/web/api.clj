@@ -12,10 +12,12 @@
             [efactura-mea.ui.input-validation :as v]
             [efactura-mea.ui.pagination :as pag]
             [efactura-mea.util :as u]
-            [efactura-mea.web.api :as api]
             [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
-            [hiccup2.core :as h])
-  (:import (java.util.concurrent TimeUnit)))
+            [hiccup2.core :as h]
+            [java-time.api :as jt])
+  (:import (java.util.concurrent TimeUnit)
+           (java.time LocalDate)
+           (java.time.format DateTimeFormatter)))
 
 (defn company_desc_aut_status [db cif]
   (let [c (db/get-company-data db cif)]
@@ -111,7 +113,9 @@
 
 (defn afisare-companii-inregistrate [ds]
   (let [companii (db/get-companies-data ds)]
-    (ui-comp/select-a-company companii)))
+    {:status 200
+     :body (ui-comp/select-a-company companii)
+     :headers {"content-type" "text/html"}}))
 
 (defn afisare-profil-companie
   [req]
@@ -137,6 +141,51 @@
       [:div.column
        (ui-comp/details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Dată expirare access_token: " token-expiration-date "Descărcare automată:" [:div#das descarcare-automata-link descarcare-automata-status]})]])))
 
+(defn afisare-integrare-efactura
+  [req]
+  (let [{:keys [path-params]} req
+        {:keys [cif]} path-params
+        url-autorizare (str "/autorizeaza-acces-fara-certificat/" cif)]
+    (h/html
+     (ui-comp/title "Integrare E-factura")
+     [:div.content
+      [:p "Activează integrarea automata cu E-factura "]
+      [:div.columns
+       [:div.column
+        [:div.notification
+         [:p.is-size-7 "Dacă " [:span.has-text-weight-bold "ai permisiunea "] "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
+         [:button.button.is-small.is-link {:hx-get "/autorizeaza-acces-cu-certificat"}
+          (str "Autorizează accesul pentru CUI:" cif)]]]
+       [:div.column
+        [:div.notification
+         [:p.is-size-7 [:span.has-text-weight-bold "Fără permisiunea "] "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
+         [:button.button.is-small.is-link {:hx-get url-autorizare
+                                           :hx-target "#modal-wrapper"
+                                           :hx-swap "innerHTML"}
+          (str "Autorizează accesul pentru CUI:" cif)]]]]
+      [:div#modal-wrapper]])))
+
+(defn modala-link-autorizare
+  [cif]
+  (let []
+    (str (h/html [:div.modal.is-active
+                  {:_ "on closeModal remove .is-active then remove me"}
+                  [:div.modal-background]
+                  [:div.modal-content
+                   [:div.box [:div
+                              [:p.title.is-5 "Obține accesul prin delegat (persoană cu acces în S.P.V.)"]
+                              [:hr.title-hr]
+                              [:p "Copiază și trimite link-ul de mai jos pentru autorizarea accesului eFacturaMea în e-Factura contabilului tău, respectiv persoanei care poate accesa S.P.V. ANAF cu certificat digital pentru firma ta."]
+                              [:div.block
+                               [:textarea.textarea "ceva text in textarea"]]
+                              [:div.buttons
+                               [:button.button.is-small "Copiază"]
+                               [:button.button.is-small "Trimite pe mail"]]]]]
+                  [:button.modal-close.is-large {:aria-label "close"
+                                                 :_ "on click trigger closeModal"}]]))))
+
+
+
 (defn save-zip-file [data file-path]
   (let [f (io/file file-path)
         _ (doto (-> (.getParentFile f)
@@ -154,24 +203,24 @@
    - apeleaza mediul de :test din oficiu;
    - primeste app-state si {:endpoint <type>}, <type> poate fi :prod sau :test ."
   [zile cif tip-apel ds conf]
-  (try (println "o sa obtin lista facturi")
-       (let [target (:target conf)
-             a-token (db/fetch-access-token ds cif)]
-         (if (nil? a-token)
-           (no-token-found-err-msg cif)
-           (let [headers {:headers {"Authorization" (str "Bearer " a-token)}}
-                 format-url "https://api.anaf.ro/%s/FCTEL/rest/listaMesajeFactura"
-                 base-url (u/build-url format-url target)
-                 q-str {"zile" zile
-                        "cif" cif}
-                 endpoint (str base-url "?" (make-query-string q-str))
-                 r (http/get endpoint headers)
-                 {:keys [body status]} r
-                 _ (db/log-api-calls ds cif r tip-apel)
-                 response (u/encode-body-json->edn body)]
-             {:status status
-              :body response})))
-       (catch Exception e (println (.getMessage e) " !!!! ceva s-a intamplat la obtine-lista-facturi"))))
+  (try
+    (let [target (:target conf)
+          a-token (db/fetch-access-token ds cif)]
+      (if (nil? a-token)
+        (no-token-found-err-msg cif)
+        (let [headers {:headers {"Authorization" (str "Bearer " a-token)}}
+              format-url "https://api.anaf.ro/%s/FCTEL/rest/listaMesajeFactura"
+              base-url (u/build-url format-url target)
+              q-str {"zile" zile
+                     "cif" cif}
+              endpoint (str base-url "?" (make-query-string q-str))
+              r (http/get endpoint headers)
+              {:keys [body status]} r
+              _ (db/log-api-calls ds cif r tip-apel)
+              response (u/encode-body-json->edn body)]
+          {:status status
+           :body response})))
+    (catch Exception e (println (.getMessage e)))))
 
 (defn descarca-factura
   "Descarcă factura în format zip pe baza id-ului.
@@ -383,19 +432,27 @@
         xml-data (u/read-file-from-zip zip-path xml-name)]
     xml-data))
 
-(defn transformare-xml-to-pdf [a-token xml-content id_descarcare]
-  (let [;; TODO de vazut daca pot lua id_descarcare din detalii-fact sa nu mai pasez din main 
+(defn transformare-xml-to-pdf [a-token xml-content detalii-fact conf]
+  (let [{:keys [cif data_creare id_descarcare]} detalii-fact
+        download-dir (c/download-dir conf)
         app-dir (System/getProperty "user.dir")
+        date->path (u/build-path data_creare)
+        save-to-path (str app-dir "/" download-dir "/" cif "/" date->path)
+        pdf-location (str cif "/" date->path)
+        pdf-name (str id_descarcare ".pdf")
+        location (str pdf-location "/" pdf-name)
         url "https://api.anaf.ro/prod/FCTEL/rest/transformare/FACT1"
         r (http/post url {:headers {"Authorization" (str "Bearer " a-token)
                                     "Content-Type" "text/plain"}
                           :body xml-content
                           :as :stream})
-        body (:body r)
-        _ (save-pdf app-dir (str id_descarcare ".pdf")  body)]
-    {:status 200
-     :body "ok"
-     :headers {"content-type" "text/html"}}))
+        pdf-content (:body r)
+        _ (save-pdf save-to-path (str id_descarcare ".pdf")  pdf-content)
+        content-disposition (str "attachement;filename=" pdf-name)]
+    {:status 302
+     :headers {"Content-Type" "application/pdf"
+               "Content-Disposition" content-disposition
+               "Location" location}}))
 
 
 
@@ -516,6 +573,80 @@
           (let [msg (.getMessage e)]
             [:div.notification.is-danger
              msg]))))))
+
+
+^:rct/test
+(comment
+  (defn get-day-of-week [date-str]
+    (let [formatter (DateTimeFormatter/ofPattern "dd/MM/yyyy")
+          date (LocalDate/parse date-str formatter)]
+      (.getDayOfWeek date)))
+
+  (try
+    (jt/local-date "yyyy-MM-dd" "2024-13-10")
+    (catch Exception e
+      (ex-message e)))
+  ;;=> "Conversion failed"
+  
+  )
+
+
+(defn afisare-descarcare-exportare
+  [cif]
+  (let [t (str "Descarcă lista mesaje ANAF pentru cif:" cif)
+        now (u/simple-date-now)
+        r (str (h/html
+                [:div#main-container.block
+                 (ui-comp/title t)
+                 [:div.columns
+                  [:div.column
+                   [:form {:action "/descarca-arhiva"
+                           :method "get"}
+                    [:div.field
+                     [:label.label
+                      {:for "perioada"}
+                      "Listă mesaje pentru: "]
+                     [:div.select.is-fullwidth
+                      [:select {:hx-get "/sumar-descarcare-arhiva"
+                                :hx-include "[name='cif'], [name='date_first']"
+                                :hx-trigger "change"
+                                :hx-target "#status"
+                                :name "perioada"}
+                       [:option {:value "luna"} "lună"]
+                       [:option {:value "saptamana"} "săptamână"]]]]
+                    [:div.field
+                     [:label.label {:for "date_first"} "Alege perioada:"]
+                     [:input.input {:hx-get "/sumar-descarcare-arhiva"
+                                    :hx-include "[name='cif'], [name='perioada']"
+                                    :hx-trigger "changeDate"
+                                    :hx-target "#status"
+                                    :type "text"
+                                    :value now
+                                    :name "date_first"
+                                    :id "date_first"}]]
+                    [:input {:name "cif"
+                             :value cif
+                             :type "hidden"}]
+
+                    [:div#status.field.content.is-small]
+
+                    #_[:div.field
+                       [:label.label "Alege perioada:"]
+                       [:div#date-range-picker
+                        [:input {:type "text"
+                                 :name "date_start"
+                                 :id "date_start"}]
+                        [:input {:type "text"
+                                 :name "date_end"
+                                 :id "date_end"}]]]
+                    [:button.button.is-small.is-link {:type "submit"} "Descarcă arhiva"]
+                    [:div#validation-err-container]]]
+                  [:div.column]]]))]
+    {:status 200
+     :body r
+     :headers {"content-type" "text/html"}}))
+
+
 
 (comment
 

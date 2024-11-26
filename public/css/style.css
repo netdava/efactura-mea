@@ -1,3 +1,4 @@
 .top-nav {
   border-top: 5px solid #3498DB;
 }
+a:target {background-color: red;}

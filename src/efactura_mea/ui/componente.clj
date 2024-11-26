@@ -2,7 +2,7 @@
   (:require [hiccup2.core :as h]
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.util :as u]
-            [java-time :as jt]
+            [java-time.api :as jt]
             [efactura-mea.ui.pagination :as pag]))
 
 (defn navbar [user-name]
@@ -37,7 +37,9 @@
         link-facturi-spv (str "/facturi-spv/" cif)
         link-logs (str "/logs/" cif qp)
         link-descarcare-automata (str "/descarcare-automata/" cif)
-        link-profil (str "/profil/" cif)]
+        link-profil (str "/profil/" cif)
+        link-integrare (str "/integrare/" cif)
+        link-descarcare-exportare (str "/descarcare-exportare/" cif)]
     [:div.p-3
      [:div.menu-wrapper
       [:aside.menu
@@ -52,20 +54,31 @@
                   :hx-target "#main-content"} "Jurnal actiuni"]]]
        [:p.menu-label "Administrare"]
        [:ul.menu-list
-        [:li [:a {:href link-descarcare-automata} "Descărcare automată facturi"]]]]]]))
+        [:li [:a {:href link-descarcare-automata} "Descărcare automată facturi"]]
+        [:li [:a {:href link-integrare} "Integrare automată"]]
+        [:li [:a {:hx-get link-descarcare-exportare
+                  :hx-target "#main-content"
+                  :hx-push-url "true"} "Descarcă/Exportă"]]]]]]))
 
 (defn sidebar-select-company []
   [:div.p-3
-   [:div.menu-wrapper
-    [:aside.menu
-     [:ul.menu-list
-      [:li [:a {:href "/"} "Acasă"]]]
+   [:div#menu-wrapper.menu-wrapper
+    [:aside.menu {:_ "on click take .is-active from .menu-item for the event's target"}
+     [:ul.menu-list 
+      [:li [:a.menu-item
+            {:hx-get "/"
+             :hx-target "#main-content"
+             :hx-change "innerHTML"
+             :hx-push-url "true"}
+            "Acasă"]]]
      [:p.menu-label "Portofoliu"]
      [:ul.menu-list
-      [:li [:a {:href "/companii"} "Companii"]]]
-     #_[:p.menu-label "Administrare"]
-     #_[:ul.menu-list
-      [:li [:a {:href "/inregistrare-noua-companie"} "Adaugă companie"]]]]]])
+      [:li [:a.menu-item
+            {:hx-get "/companii"
+             :hx-target "#main-content"
+             :hx-change "innerHTML"
+             :hx-push-url "true"}
+            "Companii"]]]]]])
 
 (defn title [title-text & args]
   (h/html
@@ -74,30 +87,30 @@
     [:hr.title-hr]]))
 
 (defn select-a-company [companies]
-  (h/html
-   [:nav.panel.is-primary
-    [:p.panel-heading "Companii înregistrate"]
-    [:div.panel-block
-     [:p.control.has-icons-left
-      [:input.input {:type "text" :placeholder "Search"}]
-      [:span.icon.is-left
-       [:i.fa.fa-search {:aria-hidden "true"}]]]]
-    #_[:p.panel-tabs
-     [:a.is-active "All"]
-     [:a "Public"]
-     [:a "Private"]]
-    [:div.panel-block
-     [:a {:href "/inregistrare-noua-companie"}
-      [:p.control
-       [:button.button.is-link.is-small "Înregistrează companie"]]]]
-    (for [c companies]
-      (let [{:keys [cif name]} c
-            url (str "/profil/" cif)]
-        [:a.panel-block
-         {:href url}
-         [:span.panel-icon
-          [:i.fa.fa-bar-chart  {:aria-hidden "true"}]]
-         (str name " -- " cif)]))]))
+  (str (h/html
+        [:nav.panel.is-primary
+         [:p.panel-heading "Companii înregistrate"]
+         [:div.panel-block
+          [:p.control.has-icons-left
+           [:input.input {:type "text" :placeholder "Search"}]
+           [:span.icon.is-left
+            [:i.fa.fa-search {:aria-hidden "true"}]]]]
+         #_[:p.panel-tabs
+            [:a.is-active "All"]
+            [:a "Public"]
+            [:a "Private"]]
+         [:div.panel-block
+          [:a {:href "/inregistrare-noua-companie"}
+           [:p.control
+            [:button.button.is-link.is-small "Înregistrează companie"]]]]
+         (for [c companies]
+           (let [{:keys [cif name]} c
+                 url (str "/profil/" cif)]
+             [:a.panel-block
+              {:href url}
+              [:span.panel-icon
+               [:i.fa.fa-bar-chart  {:aria-hidden "true"}]]
+              (str name " -- " cif)]))])))
 
 (defn facturi-descarcate [table-with-pagination]
   {:status 200
@@ -177,15 +190,13 @@
 
 (defn row-log-api-call
   [{:keys [id data_apelare url tip status_code]}]
-  (let [zoned-time (jt/zoned-date-time data_apelare)
-        f-time (jt/format "H:mm - MMMM dd, yyyy" zoned-time)]
-    (h/html
-     [:tr
-      [:td.is-size-7 id]
-      [:td.is-size-7 f-time]
-      [:td.is-size-7 url]
-      [:td.is-size-7 tip]
-      [:td.is-size-7 status_code]])))
+  (h/html
+   [:tr
+    [:td.is-size-7 id]
+    [:td.is-size-7 data_apelare]
+    [:td.is-size-7 url]
+    [:td.is-size-7 tip]
+    [:td.is-size-7 status_code]]))
 
 (defn tag-tip-factura [tip]
   (case tip
@@ -200,10 +211,13 @@
         parsed_date (str (:data_c dc) "-" (:ora_c dc))
         path (u/build-path data_creare)
         zip-file-name (str id_descarcare ".zip")
-        final-path (str "/date/" cif "/" path "/" zip-file-name)
+        final-path (str "/" cif "/" path "/" zip-file-name)
+        pdf-file-name (str id_descarcare ".pdf")
         type (tag-tip-factura tip)
         tag-opts (update {:class "tag is-normal "} :class str type)
-        link-opts {:href final-path :target "_blank"}]
+        link-opts {:href final-path :target "_blank"}
+        pdf-download-query-params (str "?id_descarcare=" id_descarcare)
+        pdf-download-url (str "/transformare-xml-pdf" pdf-download-query-params)]
     (h/html
      [:tr
       [:td.is-size-7 id_descarcare]
@@ -226,10 +240,8 @@
          [:div.dropdown-content
           [:a.dropdown-item link-opts zip-file-name]
           [:a.dropdown-item
-           [:form {:hx-get "/transformare-xml-pdf"
-                   :hx-swap "none"}
-            [:input {:type "hidden" :name "id_descarcare" :value id_descarcare}]
-            [:button.button.is-ghost {:type "submit"} "pdf"]]]]]]]])))
+           {:href pdf-download-url
+            :target "_blank"} pdf-file-name]]]]]])))
 
 
 
@@ -300,10 +312,22 @@
 ^:rct/test
 (comment
   (facturi-descarcate {:path-params {:cif "12345678"}})
-  ;; => #object[hiccup.util.RawString 0x70f00958 "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div><div hx-get=\"/facturile-mele/12345678\" hx-target=\"#facturi-descarcate\" hx-trigger=\"load\" id=\"facturi-descarcate\"></div></div>"]
+  ;;=> {:status 200,
+  ;;    :headers {"content-type" "text/html"},
+  ;;    :body
+  ;;    "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div>{:path-params {:cif &quot;12345678&quot;}}</div>"}
+  
   (facturi-descarcate {:path-params {:cif nil}})
-  ;; => #object[hiccup.util.RawString 0x1bc042e2 "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div><div hx-get=\"/facturile-mele/\" hx-target=\"#facturi-descarcate\" hx-trigger=\"load\" id=\"facturi-descarcate\"></div></div>"]
+  ;;=> {:status 200,
+  ;;    :headers {"content-type" "text/html"},
+  ;;    :body
+  ;;    "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div>{:path-params {:cif nil}}</div>"}
+  
   (facturi-descarcate {:path-params {:cif nil}})
+  ;;=> {:status 200,
+  ;;    :headers {"content-type" "text/html"},
+  ;;    :body
+  ;;    "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div>{:path-params {:cif nil}}</div>"}
 
 
   0)

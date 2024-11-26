@@ -3,8 +3,10 @@
             [clojure.data.xml :as xml]
             [clojure.java.io :as io]
             [jsonista.core :as j]
-            [java-time :as jt])
-  (:import (java.util.zip ZipFile)))
+            [java-time.api :as jt])
+  (:import (java.time LocalDate)
+           (java.util.zip ZipFile)
+           (java.time.format DateTimeFormatter)))
 
 (defn list-files-from-dir [dir]
   (let [directory (io/file dir)
@@ -13,6 +15,10 @@
          (filter (comp not dir?)
                  (tree-seq dir? #(.listFiles %) directory)))))
 
+(defn back-to-string-formatter
+  [date]
+  (let [formatter (DateTimeFormatter/ofPattern "yyyyMMdd")]
+    (.format date formatter)))
 
 (defn is-file-in-dir? [file dir]
   (let [files (list-files-from-dir dir)]
@@ -29,10 +35,16 @@
     (doseq [e (entries z)]
       (println (.getName e)))))
 
-(defn formatted-date-now 
+(defn formatted-date-now
   []
   (let [inst-now (jt/zoned-date-time)
         now (jt/format "H:mm - MMMM dd, yyyy" inst-now)]
+    now))
+
+(defn simple-date-now
+  []
+  (let [inst-now (jt/zoned-date-time)
+        now (jt/format "yyyy-MM-dd" inst-now)]
     now))
 
 (defn build-url

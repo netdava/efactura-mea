@@ -1,7 +1,7 @@
 (ns efactura-mea.db.db-ops
   (:require [efactura-mea.db.facturi :as f]
             [efactura-mea.util :as u]
-            [java-time :as jt]
+            [java-time.api :as jt]
             [next.jdbc :as jdbc]))
 
 (defn enable-foreignkey-constraint [spec]
@@ -130,7 +130,7 @@
                                       :valuta valuta})))
 
 (defn log-api-calls [ds cif response tip-apel]
-  (let [now (jt/zoned-date-time)
+  (let [#_now #_(jt/zoned-date-time)
         uri (:uri (:request response))
         url (.toString uri)
         status (:status response)
@@ -138,7 +138,6 @@
                    "descarcare" (:headers response)
                    (:body response))]
     (f/insert-row-apel-api ds {:cif cif
-                               :data_apelare now
                                :url url
                                :tip tip-apel
                                :status_code status
@@ -151,4 +150,25 @@
 
 (defn fetch-ids-mesaje-descarcate [ds ids-mesaje-disponibile]
   (f/get-facturi-descarcate-by-id ds {:ids ids-mesaje-disponibile}))
+
+(defn fetch-facturi-in-date-range
+  [ds filter-params]
+  (let [{:keys [start-date end-date cif]} filter-params
+        start-date (u/back-to-string-formatter start-date)
+        end-date (u/back-to-string-formatter end-date)
+        facturi-in-range-ids (f/get-facturi-in-date-range ds {:cif cif
+                                                              :start-date start-date
+                                                              :end-date end-date})]
+    facturi-in-range-ids))
+
+(defn count-facturi-in-date-range
+  [ds filter-params]
+  (let [{:keys [start-date end-date cif]} filter-params
+        start-date (u/back-to-string-formatter start-date)
+        end-date (u/back-to-string-formatter end-date)
+        select-total (first (f/count-facturi-in-date-range ds {:cif cif
+                                                               :start-date start-date
+                                                               :end-date end-date}))
+        total-facturi-in-date-range (:total select-total)]
+    total-facturi-in-date-range))
 

@@ -12,4 +12,6 @@ conf/efactura.dev.edn
 
 target/
 
+data/
+dev/
 facturi-anaf.db

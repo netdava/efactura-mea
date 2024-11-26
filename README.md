@@ -27,7 +27,10 @@ clojure -Sdeps '{:deps {nrepl/nrepl {:mvn/version,"1.0.0"},cider/cider-nrepl {:m
 clj -M:test
 
 # Rulează testele pentru fiecare modificările
+./bin/test.sh --watch
+
 clj -M:test --watch
+
 
 # Vezi actualizări pentru bibliotecile de funcții
 clj -M:outdated
@@ -43,6 +46,7 @@ clj -M:outdated
 docker build -t efactura-mea . --load
 
 # Avem nevoie de software pentru multi-platformă https://docs.docker.com/build/building/multi-platform/
+# https://cloudolife.com/2022/03/05/Infrastructure-as-Code-IaC/Container/Docker/Docker-buildx-support-multiple-architectures-images/
 apt install binfmt-support qemu-system qemu-system qemu-system-arm qemu-system-x86
 # Construim imaginea folosind bake - imagini multi platforma
 docker buildx bake --push --progress plain 
