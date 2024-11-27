@@ -6,6 +6,7 @@
 // });
 
 import Datepicker from "../../assets/vanillajs-datepicker/js/Datepicker.js";
+document.addEventListener("htmx:afterSwap", (event) => {
 // import DateRangePicker from "../../assets/vanillajs-datepicker/js/DateRangePicker.js";
 const elem = document.getElementById('date_first');
 const datepicker = new Datepicker(elem, {
@@ -15,4 +16,4 @@ const datepicker = new Datepicker(elem, {
     "todayButton":true,
     "minDate": new Date(2024,0,1),
     "format":"yyyy-mm-dd"
-});
+})});
