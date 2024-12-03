@@ -274,13 +274,13 @@ WHERE id_descarcare IN (:v*:ids);
 -- :name get-facturi-in-date-range
 -- :command :execute
 -- :result :raw
-SELECT id_descarcare, data_creare
+SELECT id_descarcare, data_creare, data_emitere, id_solicitare
 FROM detalii_facturi_anaf
-WHERE cif = :cif AND data_creare >= :start-date AND data_creare <= :end-date || '2359';
+WHERE cif = :cif AND data_emitere >= :start-date AND data_emitere <= :end-date || '2359';
 
 -- :name count-facturi-in-date-range
 -- :command :execute
 -- :result :raw
 SELECT count(*) as total
 FROM detalii_facturi_anaf
-WHERE cif = :cif AND data_creare >= :start-date AND data_creare <= :end-date || '2359';
+WHERE cif = :cif AND data_emitere >= :start-date AND data_emitere <= :end-date || '2359';

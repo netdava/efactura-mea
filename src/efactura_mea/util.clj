@@ -17,7 +17,7 @@
 
 (defn back-to-string-formatter
   [date]
-  (let [formatter (DateTimeFormatter/ofPattern "yyyyMMdd")]
+  (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format date formatter)))
 
 (defn is-file-in-dir? [file dir]
@@ -183,4 +183,10 @@
   (type (get-invoice-data "data/date/35586426/2024/10/3804637865.zip"))
 
   (get-invoice-data "/home/nas/proiecte/efactura-mea/data/date/35586426/2024/06/3558875589.zip")
+
+  (let [t (file-in-dir? "data/date/35586426/2024/11/" "3877860431.pdf")]
+    (if t
+      "adevarat"
+      "fals"))
+  (file-in-dir? "data/date/35586426/2024/11/" "3877860431.pdf")
   0)

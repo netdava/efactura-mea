@@ -624,11 +624,20 @@
                                     :value now
                                     :name "date_first"
                                     :id "date_first"}]]
+                    [:div#status.field.content.is-small]
                     [:input {:name "cif"
                              :value cif
                              :type "hidden"}]
+                    [:label.label {:for "file_type"} "Tipul fișierului:"]
+                    [:div.checkboxes
+                     [:label.checkbox [:input {:type "checkbox"
+                                               :name "file_type_zip"} "ZIP"]]
+                     [:label.checkbox [:input {:type "checkbox"
+                                               :name "file_type_pdf"} "PDF"]]]
 
-                    [:div#status.field.content.is-small]
+                    [:div#validation-err-container {:style "display:none;"}
+                     [:article.message.is-warning
+                      [:div.message-body "Trebuie să selectezi cel puțin un tip de fișier"]]]
 
                     #_[:div.field
                        [:label.label "Alege perioada:"]

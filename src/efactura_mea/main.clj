@@ -238,17 +238,22 @@
                                        (layout/main-layout (:body content) sidebar))))]
    ["/descarca-arhiva" (fn [req]
                          (let [{:keys [query-params ds]} req
+                               {:strs [file_type_pdf file_type_zip]} query-params
                                content (de/descarca-lista-mesaje ds conf query-params)
                                {:keys [archive-content archive-name]} content
                                content-disposition (str "attachment; filename=" archive-name)]
-                           (if (nil? archive-content)
+                           (if (and (not file_type_pdf) (not file_type_zip))
                              {:status 200
-                              :body "În perioada selectata, nu au fost identificate facturi pentru descarcare"
+                              :body "Trebuie sa selectezi cel puțin un fip de fișier"
                               :headers {"Content-Type" "text/html"}}
-                             {:status 200
-                              :body archive-content
-                              :headers {"Content-Type" "application/zip, application/octet-stream"
-                                        "Content-Disposition" content-disposition}})))]
+                             (if (nil? archive-content)
+                               {:status 200
+                                :body "În perioada selectata, nu au fost identificate facturi pentru descarcare"
+                                :headers {"Content-Type" "text/html"}}
+                               {:status 200
+                                :body archive-content
+                                :headers {"Content-Type" "application/zip, application/octet-stream"
+                                          "Content-Disposition" content-disposition}}))))]
    ["/sumar-descarcare-arhiva" (fn [req]
                                  (let [{:keys [query-params ds conf]} req
                                        locale "ro-RO"]
