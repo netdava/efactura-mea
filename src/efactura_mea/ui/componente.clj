@@ -26,8 +26,6 @@
         [:hr.navbar-divider]
         [:a.navbar-item.is-selected {:href "#"} "Logout"]]]]]]])
 
-(or "a" "b")
-
 (defn sidebar-company-data [opts]
   ;; TODO de pus conditia ca meniul sa fie disponibil doar daca compania a fost inregistrata corect cu token si tot ce trebuie
   (let [{:keys [cif page per-page]} opts

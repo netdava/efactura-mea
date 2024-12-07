@@ -104,20 +104,11 @@
 
 (defn routes
   [anaf-conf]
-  [#_["/" (fn [req]
-          (let [{:keys [headers]} req
-                {:strs [hx-request]} headers
-                content {:status 200 :body "Bine ai venit pe eFacturaMea" :headers {"content-type" "text/html"}}
-                sidebar (ui/sidebar-select-company)]
-            (if hx-request
-              content
-              (layout/main-layout (:body content) sidebar))))]
-   ["/" home/handle-homepage]
-   ["/companii" companii/handle-companies-list]
-   ["/inregistrare-noua-companie" (fn [_]
-                                    (let [content (api/formular-inregistrare-companie)
-                                          sidebar (ui/sidebar-select-company)]
-                                      (layout/main-layout content sidebar)))]
+  [["/" home/handle-homepage]
+   ["/companii"
+    ["" companii/handle-companies-list]
+    ["/inregistrare-noua-companie" companii/handle-register-company]]
+   
    ["/inregistreaza-companie" (fn [req]
                                 (let [{:keys [params ds]} req]
                                   (api/inregistrare-noua-companie ds params)))]
