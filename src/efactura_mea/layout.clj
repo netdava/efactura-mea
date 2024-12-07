@@ -52,6 +52,26 @@
                           [:div#main-content.column.main-content
                            content]]]]]))}))
 
+(defn sidebar-select-company []
+  [:div.p-3
+   [:div#menu-wrapper.menu-wrapper
+    [:aside.menu {:_ "on click take .is-active from .menu-item for the event's target"}
+     [:ul.menu-list
+      [:li [:a.menu-item
+            {:hx-get "/"
+             :hx-target "#main-content"
+             :hx-change "innerHTML"
+             :hx-push-url "true"}
+            "Acasă"]]]
+     [:p.menu-label "Portofoliu"]
+     [:ul.menu-list
+      [:li [:a.menu-item
+            {:hx-get "/companii"
+             :hx-target "#main-content"
+             :hx-change "innerHTML"
+             :hx-push-url "true"}
+            "Companii"]]]]]])
+
 (defn login [req]
   {:status 200
    :headers {"content-type" "text/html"}

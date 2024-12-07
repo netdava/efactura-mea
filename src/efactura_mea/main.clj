@@ -1,6 +1,7 @@
 (ns efactura-mea.main
   (:require [clj-commons.byte-streams :as bs]
             [cprop.core :refer [load-config]]
+            [efactura-mea.web.companii :as companii]
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.db.next-jdbc-adapter :as adapter]
             [efactura-mea.layout :as layout]
@@ -110,7 +111,7 @@
             (if hx-request
               content
               (layout/main-layout (:body content) sidebar))))]
-   ["/companii" (fn [req]
+   #_["/companii" (fn [req]
                   (let [{:keys [headers ds]} req
                         {:strs [hx-request]} headers
                         content (api/afisare-companii-inregistrate ds)
@@ -118,6 +119,7 @@
                     (if hx-request
                       content
                       (layout/main-layout (:body content) sidebar))))]
+   ["/companii" companii/handle-companies-list]
    ["/inregistrare-noua-companie" (fn [_]
                                     (let [content (api/formular-inregistrare-companie)
                                           sidebar (ui/sidebar-select-company)]
