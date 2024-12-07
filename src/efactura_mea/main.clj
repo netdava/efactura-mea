@@ -2,6 +2,7 @@
   (:require [clj-commons.byte-streams :as bs]
             [cprop.core :refer [load-config]]
             [efactura-mea.web.companii :as companii]
+            [efactura-mea.web.home :as home]
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.db.next-jdbc-adapter :as adapter]
             [efactura-mea.layout :as layout]
@@ -103,7 +104,7 @@
 
 (defn routes
   [anaf-conf]
-  [["/" (fn [req]
+  [#_["/" (fn [req]
           (let [{:keys [headers]} req
                 {:strs [hx-request]} headers
                 content {:status 200 :body "Bine ai venit pe eFacturaMea" :headers {"content-type" "text/html"}}
@@ -111,14 +112,7 @@
             (if hx-request
               content
               (layout/main-layout (:body content) sidebar))))]
-   #_["/companii" (fn [req]
-                  (let [{:keys [headers ds]} req
-                        {:strs [hx-request]} headers
-                        content (api/afisare-companii-inregistrate ds)
-                        sidebar (ui/sidebar-select-company)]
-                    (if hx-request
-                      content
-                      (layout/main-layout (:body content) sidebar))))]
+   ["/" home/handle-homepage]
    ["/companii" companii/handle-companies-list]
    ["/inregistrare-noua-companie" (fn [_]
                                     (let [content (api/formular-inregistrare-companie)
