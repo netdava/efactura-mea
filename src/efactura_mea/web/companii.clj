@@ -126,7 +126,7 @@
   (let [{:keys [params ds]} req]
     (inregistrare-noua-companie ds params)))
 
-(defn handle-profil-companie
+(defn handle-company-profile
   [req]
   (let [{:keys [path-params]} req
         {:keys [cif]} path-params

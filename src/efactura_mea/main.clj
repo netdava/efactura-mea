@@ -3,6 +3,7 @@
             [cprop.core :refer [load-config]]
             [efactura-mea.web.companii :as companii]
             [efactura-mea.web.home :as home]
+            [efactura-mea.web.facturi :as facturi]
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.db.next-jdbc-adapter :as adapter]
             [efactura-mea.layout :as layout]
@@ -109,16 +110,8 @@
     ["" companii/handle-companies-list]
     ["/inregistrare-noua-companie" companii/handle-register-new-company]
     ["/inregistreaza-companie" companii/register-company]
-    ["/profil/:cif" companii/handle-profil-companie]]
-
-   #_["/profil/:cif" (fn [req]
-                     (let [{:keys [path-params]} req
-                           {:keys [cif]} path-params
-                           content (api/afisare-profil-companie req)
-                           sidebar (ui/sidebar-company-data {:cif cif})]
-                       (layout/main-layout content sidebar)))]
-   
-   ["/facturi/:cif"
+    ["/profil/:cif" companii/handle-company-profile]]
+   #_["/facturi/:cif"
     ["" {:get
          {:handler (fn [req]
                      (let [{:keys [path-params query-params ds conf uri headers]} req
@@ -134,6 +127,25 @@
                        (if (= hx-request "true")
                          content
                          (layout/main-layout (:body content) sidebar))))
+          :middleware [add-pagination-params-middleware]}}]
+    ["/facturile-mele" {:get
+                        {:handler (fn [req]
+                                    (let [{:keys [path-params query-params headers uri ds]} req
+                                          {:keys [cif]} path-params
+                                          {:strs [page per-page]} query-params
+                                          {:strs [hx-request]} headers
+                                          opts {:cif cif :page page :per-page per-page}
+                                          mesaje-cerute (db/fetch-mesaje ds cif page per-page)
+                                          mesaje (api/gather-invoices-data (add-path-for-download conf mesaje-cerute))
+                                          content (api/afisare-facturile-mele mesaje ds opts)
+                                          sidebar (ui/sidebar-company-data opts)]
+                                      (if (= hx-request "true")
+                                        content
+                                        (layout/main-layout (:body content) sidebar))))
+                         :middleware [add-pagination-params-middleware]}}]]
+   ["/facturi/:cif"
+    ["" {:get
+         {:handler facturi/handler-afisare-facturi-descarcate
           :middleware [add-pagination-params-middleware]}}]
     ["/facturile-mele" {:get
                         {:handler (fn [req]
