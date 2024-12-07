@@ -3,6 +3,8 @@
    [efactura-mea.layout :as layout]
    [efactura-mea.ui.componente :as ui]
    [efactura-mea.db.db-ops :as db]
+   [efactura-mea.db.facturi :as facturi]
+   [efactura-mea.web.profil-companie :as profil]
    [hiccup2.core :as h]))
 
 (defn select-a-company [companies]
@@ -24,7 +26,7 @@
             [:button.button.is-link.is-small "Înregistrează companie"]]]]
          (for [c companies]
            (let [{:keys [cif name]} c
-                 url (str "/profil/" cif)]
+                 url (str "/companii/profil/" cif)]
              [:a.panel-block
               {:href url}
               [:span.panel-icon
@@ -37,7 +39,7 @@
     (h/html
      [:div#main-container.block
       (ui/title t)
-      [:form.block {:hx-get "/inregistreaza-companie"
+      [:form.block {:hx-get "/companii/inregistreaza-companie"
                     :hx-target "#main-container"
                     :hx-swap "innerHTML swap:1s"}
        [:div.field
@@ -63,6 +65,40 @@
                        :name "address"}]]
        [:button.button.is-small.is-link {:type "submit"} "Adaugă companie"]]])))
 
+(defn inregistrare-noua-companie
+  [ds params]
+  (try (let [{:keys [cif name website address]} params
+             website (or website nil)
+             address (or address nil)
+             inregistrata? (db/test-companie-inregistrata ds cif)
+             _ (if (not inregistrata?)
+                 (do
+                   (facturi/insert-company ds {:cif cif :name name :website website :address address})
+                   (db/init-automated-download ds))
+                 (throw (Exception. (str "compania cu cif " cif " figurează ca fiind deja înregistrată."))))
+             m (str "Compania \"" name "\" cu cif \"" cif "\" a fost înregistrată cu succes.")
+             detailed-msg (str (h/html
+                                [:article.message.is-success
+                                 [:div.message-header
+                                  [:p "Felicitări"]]
+                                 [:div.message-body
+                                  m]]))]
+         {:status 200
+          :body detailed-msg
+          :headers {"content-type" "text/html"}})
+       (catch
+        Exception e
+         (let [err-msg (.getMessage e)
+               detailed-msg (str (h/html
+                                  [:article.message.is-warning
+                                   [:div.message-header
+                                    [:p "Nu s-a putut inregistra compania:"]]
+                                   [:div.message-body
+                                    err-msg]]))]
+           {:status 200
+            :body detailed-msg
+            :headers {"content-type" "text/html"}}))))
+
 (defn afisare-companii-inregistrate [ds]
   (let [companii (db/get-companies-data ds)]
     {:status 200
@@ -79,8 +115,21 @@
       content
       (layout/main-layout (:body content) sidebar))))
 
-(defn handle-register-company
+(defn handle-register-new-company
   [_]
   (let [content (formular-inregistrare-companie)
         sidebar (ui/sidebar-select-company)]
+    (layout/main-layout content sidebar)))
+
+(defn register-company
+  [req]
+  (let [{:keys [params ds]} req]
+    (inregistrare-noua-companie ds params)))
+
+(defn handle-profil-companie
+  [req]
+  (let [{:keys [path-params]} req
+        {:keys [cif]} path-params
+        content (profil/afisare-profil-companie req)
+        sidebar (layout/sidebar-company-data {:cif cif})]
     (layout/main-layout content sidebar)))

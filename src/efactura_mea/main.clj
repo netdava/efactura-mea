@@ -107,17 +107,17 @@
   [["/" home/handle-homepage]
    ["/companii"
     ["" companii/handle-companies-list]
-    ["/inregistrare-noua-companie" companii/handle-register-company]]
-   
-   ["/inregistreaza-companie" (fn [req]
-                                (let [{:keys [params ds]} req]
-                                  (api/inregistrare-noua-companie ds params)))]
-   ["/profil/:cif" (fn [req]
+    ["/inregistrare-noua-companie" companii/handle-register-new-company]
+    ["/inregistreaza-companie" companii/register-company]
+    ["/profil/:cif" companii/handle-profil-companie]]
+
+   #_["/profil/:cif" (fn [req]
                      (let [{:keys [path-params]} req
                            {:keys [cif]} path-params
                            content (api/afisare-profil-companie req)
                            sidebar (ui/sidebar-company-data {:cif cif})]
                        (layout/main-layout content sidebar)))]
+   
    ["/facturi/:cif"
     ["" {:get
          {:handler (fn [req]

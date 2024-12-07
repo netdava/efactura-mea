@@ -72,6 +72,38 @@
              :hx-push-url "true"}
             "Companii"]]]]]])
 
+(defn sidebar-company-data [opts]
+  ;; TODO de pus conditia ca meniul sa fie disponibil doar daca compania a fost inregistrata corect cu token si tot ce trebuie
+  (let [{:keys [cif page per-page]} opts
+        qp (when (and page per-page)
+             (str "?page=" page "&per-page=" per-page))
+        link-facturi-descarcate (str "/facturi/" cif)
+        link-facturi-spv (str "/facturi-spv/" cif)
+        link-logs (str "/logs/" cif qp)
+        link-descarcare-automata (str "/descarcare-automata/" cif)
+        link-profil (str "/companii/profil/" cif)
+        link-integrare (str "/integrare/" cif)
+        link-descarcare-exportare (str "/descarcare-exportare/" cif)]
+    [:div.p-3
+     [:div.menu-wrapper
+      [:aside.menu
+       [:ul.menu-list
+        [:li [:a {:href "/"} "Acasă"]]
+        [:li [:a {:href link-profil} "Profil"]]]
+       [:p.menu-label "Facturi"]
+       [:ul.menu-list
+        [:li [:a {:href link-facturi-descarcate} "Descărcate"]]
+        [:li [:a {:href link-facturi-spv} "Spațiul Public Virtual"]]
+        [:li [:a {:hx-get link-logs
+                  :hx-target "#main-content"} "Jurnal actiuni"]]]
+       [:p.menu-label "Administrare"]
+       [:ul.menu-list
+        [:li [:a {:href link-descarcare-automata} "Descărcare automată facturi"]]
+        [:li [:a {:href link-integrare} "Integrare automată"]]
+        [:li [:a {:hx-get link-descarcare-exportare
+                  :hx-target "#main-content"
+                  :hx-push-url "true"} "Descarcă/Exportă"]]]]]]))
+
 (defn login [req]
   {:status 200
    :headers {"content-type" "text/html"}
