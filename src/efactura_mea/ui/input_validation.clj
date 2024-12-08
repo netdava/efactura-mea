@@ -11,7 +11,6 @@
           :optional false}
     [:string {:min 1 :max 9}]]])
 
-
 (defn validate-input-data [zile cif-str]
   (-> listare-mesaje-spec
       (m/explain

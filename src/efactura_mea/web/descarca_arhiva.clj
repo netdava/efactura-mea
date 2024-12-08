@@ -1,21 +1,17 @@
 (ns efactura-mea.web.descarca-arhiva
-  (:require 
+  (:require
    [clojure.string :as str]
-   [hiccup2.core :as h]
-   [efactura-mea.db.db-ops :as db]
-   [efactura-mea.web.descarca-exporta :as de]
-   [efactura-mea.ui.componente :as ui]
    [efactura-mea.config :as config]
-   [efactura-mea.util :as u])
-  (:import (java.time DayOfWeek LocalDate)
-           (java.time.format DateTimeFormatter)
-           (java.time.temporal TemporalAdjusters)
-           (java.util Locale)))
-
-(defn validate-date-after-spv-start
-  [parsed-date]
-  (let [anaf-start-date (LocalDate/parse "2024-01-01")]
-    (not (.isBefore parsed-date anaf-start-date))))
+   [efactura-mea.db.db-ops :as db]
+   [efactura-mea.ui.componente :as ui]
+   [efactura-mea.util :as u]
+   [efactura-mea.web.descarca-exporta :as de]
+   [hiccup2.core :as h])
+  (:import
+   (java.time DayOfWeek LocalDate)
+   (java.time.format DateTimeFormatter)
+   (java.time.temporal TemporalAdjusters)
+   (java.util Locale)))
 
 (defn get-week-range
   [date]
@@ -42,7 +38,7 @@
     (catch Exception e
       (throw (ex-info (str "Invalid date format: " (ex-message e)) {:date date})))))
 
-(defn handler-descarca-arhiva 
+(defn handler-descarca-arhiva
   [req]
   (let [{:keys [query-params ds conf]} req
         {:strs [file_type_pdf file_type_zip]} query-params
@@ -62,7 +58,6 @@
          :headers {"Content-Type" "application/zip, application/octet-stream"
                    "Content-Disposition" content-disposition}}))))
 
-
 (defn month-name-formatter [date locale]
   (let [[language country] (str/split locale #"-")
         month-locale-format (DateTimeFormatter/ofPattern "MMMM" (Locale. language country))]
@@ -77,7 +72,7 @@
         month-name (ui/hiccup-bold-span month-name)
         download-dir (config/download-dir conf)
         path-facturi-disk (str download-dir "/" cif "/" year-value)
-        date-after-spv-start? (validate-date-after-spv-start parsed-date)
+        date-after-spv-start? (de/validate-date-after-spv-start parsed-date)
         filter-opts (if date-after-spv-start?
                       (case perioada
                         "saptamana" (get-week-range parsed-date)
@@ -119,7 +114,7 @@
      :body info-message
      :headers {"content-type" "text/html"}}))
 
-(defn handler-sumar-descarcare-arhiva 
+(defn handler-sumar-descarcare-arhiva
   [req]
   (let [{:keys [query-params ds conf]} req
         locale "ro-RO"]

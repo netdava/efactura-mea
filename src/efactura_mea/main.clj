@@ -6,10 +6,7 @@
             [efactura-mea.web.facturi :as facturi]
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.db.next-jdbc-adapter :as adapter]
-            [efactura-mea.layout :as layout]
             [efactura-mea.web.logs :as logs]
-            [efactura-mea.ui.componente :as ui]
-            [efactura-mea.util :as u]
             [efactura-mea.web.api :as api]
             [efactura-mea.web.json :as wj]
             [efactura-mea.web.oauth2-anaf :as o2a]
@@ -40,21 +37,6 @@
     (adapter/set-next-jdbc-adapter)
     (jdbc/get-datasource db-spec)))
 
-
-
-(defn handle-facturi
-  [content-fn req]
-  (let [{:keys [path-params query-params ds uri headers]} req
-        {:strs [page per-page]} query-params
-        {:strs [hx-request]} headers
-        cif (:cif path-params)
-        opts {:cif cif :page page :per-page per-page :uri uri}
-        content (content-fn opts ds)
-        sidebar (ui/sidebar-company-data opts)]
-    (if (= hx-request "true")
-      content
-      (layout/main-layout (:body content) sidebar))))
-
 (defn req->str
   [req]
   (let [body (:body req)
@@ -80,22 +62,6 @@
           new-params (merge query-params {"page" page "per-page" per-page})]
       ;; Apelăm handler-ul cu request-ul modificat
       (handler (assoc request :query-params new-params)))))
-
-(defn add-path-for-download
-  "Primeste lista de mesaje descarcate pentru afisare in UI
-   Genereaza pentru fiecare mesaj calea unde a fost descarcat,
-   pentru identificare si extragere meta-date."
-  [conf mesaje-cerute]
-  (reduce (fn [acc mesaj]
-            (let [download-dir (config/download-dir conf)
-                  {:keys [data_creare cif id_descarcare]} mesaj
-                  p (str download-dir "/" cif "/")
-                  date-path (u/build-path data_creare)
-                  download-to (str p date-path "/" id_descarcare ".zip")
-                  updated-path (merge mesaj {:download-path download-to})]
-              (conj acc updated-path)))
-          []
-          mesaje-cerute))
 
 (defn routes
   [anaf-conf]
@@ -135,7 +101,6 @@
    ["/descarcare-exportare/:cif" de/handler-descarca-exporta]
    ["/descarca-arhiva" da/handler-descarca-arhiva]
    ["/sumar-descarcare-arhiva" da/handler-sumar-descarcare-arhiva]])
-
 
 (defn handler
   [conf]

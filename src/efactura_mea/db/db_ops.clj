@@ -15,15 +15,8 @@
   (enable-foreignkey-constraint db-spec)
   (convert-to-wall-mode db-spec))
 
-
-(defn fetch-cif [db id]
-  (:cif (f/select-company-cif db {:id id})))
-
 (defn fetch-access-token [db cif]
   (:access_token (f/select-access-token db {:cif cif})))
-
-(defn fetch-acc-token-exp-date [db cif]
-  (f/select-acc-token-exp-date db {:cif cif}))
 
 (defn fetch-apeluri-anaf-logs [db cif page per-page]
   (let [offset-num (* (dec page) per-page)]
@@ -130,8 +123,7 @@
                                       :valuta valuta})))
 
 (defn log-api-calls [ds cif response tip-apel]
-  (let [#_now #_(jt/zoned-date-time)
-        uri (:uri (:request response))
+  (let [uri (:uri (:request response))
         url (.toString uri)
         status (:status response)
         response (case tip-apel

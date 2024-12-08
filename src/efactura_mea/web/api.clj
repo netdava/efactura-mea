@@ -1,25 +1,26 @@
 (ns efactura-mea.web.api
-  (:require [babashka.fs :as fs]
-            [babashka.http-client :as http]
-            [clojure.edn :as edn]
-            [clojure.java.io :as io]
-            [clojure.string :as s]
-            [efactura-mea.config :as c]
-            [efactura-mea.layout :as layout]
-            [efactura-mea.db.db-ops :as db]
-            [efactura-mea.db.facturi :as facturi]
-            [efactura-mea.job-scheduler :as scheduler]
-            [efactura-mea.ui.componente :as ui]
-            [efactura-mea.ui.input-validation :as v]
-            [efactura-mea.ui.pagination :as pag]
-            [efactura-mea.util :as u]
-            [efactura-mea.web.login :as login]
-            [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
-            [hiccup2.core :as h]
-            [java-time.api :as jt])
-  (:import (java.util.concurrent TimeUnit)
-           (java.time LocalDate)
-           (java.time.format DateTimeFormatter)))
+  (:require
+   [babashka.fs :as fs]
+   [babashka.http-client :as http]
+   [clojure.edn :as edn]
+   [clojure.java.io :as io]
+   [clojure.string :as s]
+   [efactura-mea.config :as c]
+   [efactura-mea.db.db-ops :as db]
+   [efactura-mea.db.facturi :as facturi]
+   [efactura-mea.job-scheduler :as scheduler]
+   [efactura-mea.layout :as layout]
+   [efactura-mea.ui.componente :as ui]
+   [efactura-mea.ui.input-validation :as v]
+   [efactura-mea.util :as u]
+   [efactura-mea.web.login :as login]
+   [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
+   [hiccup2.core :as h]
+   [java-time.api :as jt])
+  (:import
+   (java.time LocalDate)
+   (java.time.format DateTimeFormatter)
+   (java.util.concurrent TimeUnit)))
 
 (defn company_desc_aut_status [db cif]
   (let [c (db/get-company-data db cif)]
@@ -47,102 +48,6 @@
   (println "* Creating SQL tables")
   (db/create-sql-tables ds))
 
-(defn formular-inregistrare-companie
-  []
-  (let [t (str "Înregistrare companie în eFactura")]
-    (h/html
-     [:div#main-container.block
-      (ui/title t)
-      [:form.block {:hx-get "/inregistreaza-companie"
-                    :hx-target "#main-container"
-                    :hx-swap "innerHTML swap:1s"}
-       [:div.field
-        [:label.label "CIF:"]
-        [:input.input {:type "text"
-                       :id "cif"
-                       :name "cif"
-                       :placeholder "cif companie"}]]
-       [:div.field
-        [:label.label "Denumire companie"]
-        [:input.input {:type "text"
-                       :id "name"
-                       :name "name"}]]
-       [:div.field
-        [:label.label "Website"]
-        [:input.input {:type "text"
-                       :id "website"
-                       :name "website"}]]
-       [:div.field
-        [:label.label "Physical Address"]
-        [:input.input {:type "text"
-                       :id "address"
-                       :name "address"}]]
-       [:button.button.is-small.is-link {:type "submit"} "Adaugă companie"]]])))
-
-(defn inregistrare-noua-companie
-  [ds params]
-  (try (let [{:keys [cif name website address]} params
-             website (or website nil)
-             address (or address nil)
-             inregistrata? (db/test-companie-inregistrata ds cif)
-             _ (if (not inregistrata?)
-                 (do
-                   (facturi/insert-company ds {:cif cif :name name :website website :address address})
-                   (db/init-automated-download ds))
-                 (throw (Exception. (str "compania cu cif " cif " figurează ca fiind deja înregistrată."))))
-             m (str "Compania \"" name "\" cu cif \"" cif "\" a fost înregistrată cu succes.")
-             detailed-msg (str (h/html
-                                [:article.message.is-success
-                                 [:div.message-header
-                                  [:p "Felicitări"]]
-                                 [:div.message-body
-                                  m]]))]
-         {:status 200
-          :body detailed-msg
-          :headers {"content-type" "text/html"}})
-       (catch
-        Exception e
-         (let [err-msg (.getMessage e)
-               detailed-msg (str (h/html
-                                  [:article.message.is-warning
-                                   [:div.message-header
-                                    [:p "Nu s-a putut inregistra compania:"]]
-                                   [:div.message-body
-                                    err-msg]]))]
-           {:status 200
-            :body detailed-msg
-            :headers {"content-type" "text/html"}}))))
-
-(defn afisare-companii-inregistrate [ds]
-  (let [companii (db/get-companies-data ds)]
-    {:status 200
-     :body (ui/select-a-company companii)
-     :headers {"content-type" "text/html"}}))
-
-(defn afisare-profil-companie
-  [req]
-  (let [{:keys [path-params ds]} req
-        {:keys [cif]} path-params
-        company (db/get-company-data ds cif)
-        token-expiration-date (facturi/select-acc-token-exp-date ds {:cif cif})
-        {:keys [name website address desc_aut_status date_modified]} company
-        descarcare-automata-status  (h/html [:span.has-text-weight-bold.is-uppercase desc_aut_status] " - " [:span.is-size-6 date_modified])
-        descarcare-automata-url (str "/descarcare-automata/" cif)
-        descarcare-automata-link [:a {:href descarcare-automata-url} [:span.icon [:i.fa.fa-pencil-square]]]]
-    (h/html
-     (ui/title "Pagina de profil a companiei")
-     [:div.columns.is-vcentered
-      [:div.column.is-2.has-text-centered
-       [:figure.image.is-128x128.is-inline-block
-        [:img.is-rounded {:src "/android-chrome-192x192.png" :alt "Netdava logo"}]]]
-      [:div.column
-       [:div.content
-        [:h1.title.is-4 name]
-        [:a {:href website} website]]]]
-     [:div.columns
-      [:div.column
-       (ui/details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Dată expirare access_token: " token-expiration-date "Descărcare automată:" [:div#das descarcare-automata-link descarcare-automata-status]})]])))
-
 (defn afisare-integrare-efactura
   [req]
   (let [{:keys [path-params]} req
@@ -168,25 +73,22 @@
       [:div#modal-wrapper]])))
 
 (defn modala-link-autorizare
-  [cif]
-  (let []
-    (str (h/html [:div.modal.is-active
-                  {:_ "on closeModal remove .is-active then remove me"}
-                  [:div.modal-background]
-                  [:div.modal-content
-                   [:div.box [:div
-                              [:p.title.is-5 "Obține accesul prin delegat (persoană cu acces în S.P.V.)"]
-                              [:hr.title-hr]
-                              [:p "Copiază și trimite link-ul de mai jos pentru autorizarea accesului eFacturaMea în e-Factura contabilului tău, respectiv persoanei care poate accesa S.P.V. ANAF cu certificat digital pentru firma ta."]
-                              [:div.block
-                               [:textarea.textarea "ceva text in textarea"]]
-                              [:div.buttons
-                               [:button.button.is-small "Copiază"]
-                               [:button.button.is-small "Trimite pe mail"]]]]]
-                  [:button.modal-close.is-large {:aria-label "close"
-                                                 :_ "on click trigger closeModal"}]]))))
-
-
+  [_]
+  (str (h/html [:div.modal.is-active
+                {:_ "on closeModal remove .is-active then remove me"}
+                [:div.modal-background]
+                [:div.modal-content
+                 [:div.box [:div
+                            [:p.title.is-5 "Obține accesul prin delegat (persoană cu acces în S.P.V.)"]
+                            [:hr.title-hr]
+                            [:p "Copiază și trimite link-ul de mai jos pentru autorizarea accesului eFacturaMea în e-Factura contabilului tău, respectiv persoanei care poate accesa S.P.V. ANAF cu certificat digital pentru firma ta."]
+                            [:div.block
+                             [:textarea.textarea "ceva text in textarea"]]
+                            [:div.buttons
+                             [:button.button.is-small "Copiază"]
+                             [:button.button.is-small "Trimite pe mail"]]]]]
+                [:button.modal-close.is-large {:aria-label "close"
+                                               :_ "on click trigger closeModal"}]])))
 
 (defn save-zip-file [data file-path]
   (let [f (io/file file-path)
@@ -316,24 +218,6 @@
          (conj acc (str "factura " zip-name " exista salvata local")))))
    [] mesaje))
 
-(defn parse-tip-factura [tip-factura]
-  (let [tip (s/lower-case tip-factura)]
-    (case tip
-      "factura primita" "primita"
-      "factura trimisa" "trimisa"
-      "erori factura" "eroare"
-      tip)))
-
-
-(defn opis-facturi-descarcate [facturi ds]
-  (for [f facturi]
-    (when f (let [{:keys [tip id_descarcare]} f
-                  is-downloaded? (> (count (facturi/test-factura-descarcata? ds {:id id_descarcare})) 0)
-                  tip-factura (parse-tip-factura tip)
-                  invoice-details (assoc f :tip tip-factura)
-                  _ (when is-downloaded? (db/scrie-detalii-factura-anaf->db invoice-details ds))]
-              (ui/row-factura-descarcata-detalii invoice-details)))))
-
 (defn fetch-lista-mesaje [zile cif ds conf]
   (println "Entering fetch-lista-mesaje with zile:" zile ", cif:" cif "si conf " conf)
   (let [tip-apel "lista-mesaje-descarcare"
@@ -356,36 +240,6 @@
           (h/html raport-descarcare-facturi->ui))
         eroare)
       body)))
-
-(defn combine-invoice-data [detalii-anaf-pt-o-factura]
-  (let [{:keys [download-path]} detalii-anaf-pt-o-factura
-        detalii-xml (u/get-invoice-data download-path)
-        detalii-xml (assoc detalii-xml :href download-path)]
-    (merge detalii-anaf-pt-o-factura detalii-xml)))
-
-(defn gather-invoices-data [p]
-  (reduce (fn [acc invoice-path]
-            (merge acc (combine-invoice-data invoice-path)))
-          []
-          p))
-
-(defn sortare-facturi-data-creare
-  [facturi]
-  (sort #(compare (:data_emitere %2) (:data_emitere %1)) facturi))
-
-(defn afisare-facturile-mele
-  "Receives messages data, pagination details,
-   return html table with pagination;"
-  [mesaje ds opts]
-  (let [{:keys [page per-page uri cif]} opts
-        count-mesaje (db/count-lista-mesaje ds cif)
-        facturi-sortate (sortare-facturi-data-creare mesaje)
-        detalii->table-rows (opis-facturi-descarcate facturi-sortate ds)
-        total-pages (pag/calculate-pages-number count-mesaje per-page)
-        table-with-pagination (h/html
-                               (ui/tabel-facturi-descarcate detalii->table-rows)
-                               (pag/make-pagination total-pages page per-page uri))]
-    table-with-pagination))
 
 (defn handler-login
   [_]
@@ -610,7 +464,6 @@
             [:div.notification.is-danger
              msg]))))))
 
-
 ^:rct/test
 (comment
   (defn get-day-of-week [date-str]
@@ -623,9 +476,7 @@
     (catch Exception e
       (ex-message e)))
   ;;=> "Conversion failed"
-  
   )
-
 
 (defn afisare-descarcare-exportare
   [cif]
@@ -691,7 +542,7 @@
      :body r
      :headers {"content-type" "text/html"}}))
 
-(defn handler-autorizare-fara-certificat 
+(defn handler-autorizare-fara-certificat
   [req]
   (let [{:keys [path-params]} req
         {:keys [cif]} path-params
@@ -699,8 +550,6 @@
     {:status 200
      :body content
      :headers {"content-type" "text/html"}}))
-
-
 
 (comment
 
@@ -712,7 +561,5 @@
 
   (company_desc_aut_status ds "35586426")
   (desc_aut_status_on? "on")
-
-
 
   0)

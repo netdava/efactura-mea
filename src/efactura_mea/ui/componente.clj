@@ -1,9 +1,6 @@
 (ns efactura-mea.ui.componente
   (:require [hiccup2.core :as h]
-            [efactura-mea.db.db-ops :as db]
-            [efactura-mea.util :as u]
-            [java-time.api :as jt]
-            [efactura-mea.ui.pagination :as pag]))
+            [efactura-mea.util :as u]))
 
 (defn hiccup-bold-span
   [text]
@@ -66,7 +63,7 @@
   [:div.p-3
    [:div#menu-wrapper.menu-wrapper
     [:aside.menu {:_ "on click take .is-active from .menu-item for the event's target"}
-     [:ul.menu-list 
+     [:ul.menu-list
       [:li [:a.menu-item
             {:hx-get "/"
              :hx-target "#main-content"
@@ -87,32 +84,6 @@
    [:div
     [:p.title.is-4 (str title-text (apply str args))]
     [:hr.title-hr]]))
-
-(defn select-a-company [companies]
-  (str (h/html
-        [:nav.panel.is-primary
-         [:p.panel-heading "Companii înregistrate"]
-         [:div.panel-block
-          [:p.control.has-icons-left
-           [:input.input {:type "text" :placeholder "Search"}]
-           [:span.icon.is-left
-            [:i.fa.fa-search {:aria-hidden "true"}]]]]
-         #_[:p.panel-tabs
-            [:a.is-active "All"]
-            [:a "Public"]
-            [:a "Private"]]
-         [:div.panel-block
-          [:a {:href "/inregistrare-noua-companie"}
-           [:p.control
-            [:button.button.is-link.is-small "Înregistrează companie"]]]]
-         (for [c companies]
-           (let [{:keys [cif name]} c
-                 url (str "/profil/" cif)]
-             [:a.panel-block
-              {:href url}
-              [:span.panel-icon
-               [:i.fa.fa-bar-chart  {:aria-hidden "true"}]]
-              (str name " -- " cif)]))])))
 
 (defn facturi-descarcate [table-with-pagination]
   {:status 200
@@ -190,16 +161,6 @@
     [:th "tip"]
     [:th "download"]]))
 
-(defn row-log-api-call
-  [{:keys [id data_apelare url tip status_code]}]
-  (h/html
-   [:tr
-    [:td.is-size-7 id]
-    [:td.is-size-7 data_apelare]
-    [:td.is-size-7 url]
-    [:td.is-size-7 tip]
-    [:td.is-size-7 status_code]]))
-
 (defn tag-tip-factura [tip]
   (case tip
     "primita" "is-info"
@@ -245,8 +206,6 @@
            {:href pdf-download-url
             :target "_blank"} pdf-file-name]]]]]])))
 
-
-
 (defn tabel-facturi-descarcate [rows]
   (h/html
    [:table.table.is-hoverable
@@ -273,7 +232,6 @@
          [:th k]
          [:td.has-text-right v]])]]]))
 
-
 (defn lista-mesaje [r]
   {:status 200
    :body (str (h/html
@@ -283,34 +241,6 @@
                  r]]))
    :headers {"content-type" "text/html"}})
 
-(defn logs-list
-  [ds cif page per-page]
-  (let [uri (str "/logs/" cif)
-        count-logs (db/count-apeluri-anaf-logs ds cif)
-        api-call-logs (db/fetch-apeluri-anaf-logs ds cif page per-page)
-        total-pages (pag/calculate-pages-number count-logs per-page)
-        logs (for [c api-call-logs]
-               (row-log-api-call c))]
-    (h/html
-     [:table.table.is-hoverable
-      logs]
-     (pag/make-pagination total-pages page per-page uri))))
-
-(defn logs-api-calls
-  [ds opts]
-  (let [{:keys [page per-page cif]} opts
-        t (str "Istoric apeluri api Anaf - cif " cif)]
-    {:status 200
-     :headers {"content-type" "text/html"}
-     :body (str (h/html
-                 [:div#main-container.block
-                  (title t)
-                  [:div#logs-table
-                   (logs-list ds cif page per-page)]]))}))
-
-
-
-
 ^:rct/test
 (comment
   (facturi-descarcate {:path-params {:cif "12345678"}})
@@ -318,19 +248,18 @@
   ;;    :headers {"content-type" "text/html"},
   ;;    :body
   ;;    "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div>{:path-params {:cif &quot;12345678&quot;}}</div>"}
-  
-  (facturi-descarcate {:path-params {:cif nil}})
-  ;;=> {:status 200,
-  ;;    :headers {"content-type" "text/html"},
-  ;;    :body
-  ;;    "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div>{:path-params {:cif nil}}</div>"}
-  
+
   (facturi-descarcate {:path-params {:cif nil}})
   ;;=> {:status 200,
   ;;    :headers {"content-type" "text/html"},
   ;;    :body
   ;;    "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div>{:path-params {:cif nil}}</div>"}
 
+  (facturi-descarcate {:path-params {:cif nil}})
+  ;;=> {:status 200,
+  ;;    :headers {"content-type" "text/html"},
+  ;;    :body
+  ;;    "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div>{:path-params {:cif nil}}</div>"}
 
   0)
 

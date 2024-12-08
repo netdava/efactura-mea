@@ -1,23 +1,24 @@
 (ns efactura-mea.web.descarca-exporta
   (:require
+   [babashka.http-client :as http]
    [clojure.java.io :as cio]
-   [clojure.string :as str]
    [efactura-mea.config :as config]
+   [efactura-mea.db.db-ops :as db]
    [efactura-mea.layout :as layout]
    [efactura-mea.ui.componente :as ui]
-   [efactura-mea.db.db-ops :as db]
    [efactura-mea.util :as u]
    [efactura-mea.web.api :as api]
-   [hiccup2.core :as h]
-   [ring.util.io :as ruio]
-   [babashka.http-client :as http])
+   [ring.util.io :as ruio])
   (:import
-   (java.io ByteArrayOutputStream FileInputStream)
+   (java.io FileInputStream)
    (java.time DayOfWeek LocalDate)
-   (java.time.format DateTimeFormatter)
    (java.time.temporal TemporalAdjusters)
-   (java.util Locale)
-   (java.util.zip ZipEntry ZipInputStream ZipOutputStream)))
+   (java.util.zip ZipEntry ZipOutputStream)))
+
+(defn validate-date-after-spv-start
+  [parsed-date]
+  (let [anaf-start-date (LocalDate/parse "2024-01-01")]
+    (not (.isBefore parsed-date anaf-start-date))))
 
 (defn date->month-range
   "Receives a date as java.time.LocalDate
@@ -65,72 +66,6 @@
     {:start-date monday
      :end-date sunday}))
 
-(defn afisare-descarcare-exportare
-  [cif]
-  (let [t (str "Descarcă lista mesaje ANAF pentru cif:" cif)
-        now (u/simple-date-now)
-        r (str (h/html
-                [:div#main-container.block
-                 (ui/title t)
-                 [:div.columns
-                  [:div.column
-                   [:form {:action "/descarca-arhiva"
-                           :method "get"}
-                    [:div.field
-                     [:label.label
-                      {:for "perioada"}
-                      "Listă mesaje pentru: "]
-                     [:div.select.is-fullwidth
-                      [:select {:hx-get "/sumar-descarcare-arhiva"
-                                :hx-include "[name='cif'], [name='date_first']"
-                                :hx-trigger "change"
-                                :hx-target "#status"
-                                :name "perioada"}
-                       [:option {:value "luna"} "lună"]
-                       [:option {:value "saptamana"} "săptamână"]]]]
-                    [:div.field
-                     [:label.label {:for "date_first"} "Alege perioada:"]
-                     [:input.input {:hx-get "/sumar-descarcare-arhiva"
-                                    :hx-include "[name='cif'], [name='perioada']"
-                                    :hx-trigger "changeDate"
-                                    :hx-target "#status"
-                                    :type "text"
-                                    :value now
-                                    :name "date_first"
-                                    :id "date_first"}]]
-                    [:div#status.field.content.is-small]
-                    [:input {:name "cif"
-                             :value cif
-                             :type "hidden"}]
-                    [:label.label {:for "file_type"} "Tipul fișierului:"]
-                    [:div.checkboxes
-                     [:label.checkbox [:input {:type "checkbox"
-                                               :name "file_type_zip"} "ZIP"]]
-                     [:label.checkbox [:input {:type "checkbox"
-                                               :name "file_type_pdf"} "PDF"]]]
-
-                    [:div#validation-err-container {:style "display:none;"}
-                     [:article.message.is-warning
-                      [:div.message-body "Trebuie să selectezi cel puțin un tip de fișier"]]]
-
-                    #_[:div.field
-                       [:label.label "Alege perioada:"]
-                       [:div#date-range-picker
-                        [:input {:type "text"
-                                 :name "date_start"
-                                 :id "date_start"}]
-                        [:input {:type "text"
-                                 :name "date_end"
-                                 :id "date_end"}]]]
-                    [:button.button.is-small.is-link {:type "submit"} "Descarcă arhiva"]
-                    [:div#validation-err-container]]]
-                  [:div.column]]]))]
-    {:status 200
-     :body r
-     :headers {"content-type" "text/html"}}))
-
-
-
 (defn facturi->input-stream
   "Returns an input-stream (piped-input-stream) to be used directly in Ring HTTP responses"
   [zip-files]
@@ -156,9 +91,6 @@
         xml-name (str id_solicitare ".xml")
         xml-data (u/read-file-from-zip zip-path xml-name)]
     xml-data))
-
-
-
 
 (defn transformare-xml-to-pdf-salvare
   [ds cif pdf-name pdf-path xml-content]

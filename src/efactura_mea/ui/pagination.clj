@@ -1,24 +1,11 @@
 (ns efactura-mea.ui.pagination)
 
-#_(defn paginate [data page-size page]
-  (let [start-index (* page-size (dec page))]
-    (take page-size (drop start-index data))))
-
-(defn attach-index [index item]
-  {:index (inc index) :item item})
-
-(defn lazy-indexed-seq [list-seq-coll]
-  (map-indexed attach-index list-seq-coll))
-
 (defn calculate-pages-number [total-items items-per-page]
   (let [pages (quot total-items items-per-page)
         remaining-items (mod total-items items-per-page)]
     (if (zero? remaining-items)
       pages
       (inc pages))))
-
-(defn compose-pagination-url [url page-number per-page]
-  (str url "?page=" page-number "&per-page=" per-page))
 
 (defn return-pagination-range [total-page p siblings]
   (let [total-page-no-in-array (+ 7 siblings)
@@ -49,11 +36,10 @@
     updated-uri))
 
 (defn handle-prev-page [uri page-number per-page]
-  (let []
-    (if (> page-number 1)
-      (let [url (str uri "?page=" (dec page-number) "&per-page=" per-page)]
-        url)
-      (str uri "?page=" page-number "&per-page=" per-page))))
+  (if (> page-number 1)
+    (let [url (str uri "?page=" (dec page-number) "&per-page=" per-page)]
+      url)
+    (str uri "?page=" page-number "&per-page=" per-page)))
 
 (defn handle-next-page [uri pages page-number per-page]
   (if (< page-number pages)

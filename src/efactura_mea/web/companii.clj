@@ -1,9 +1,9 @@
 (ns efactura-mea.web.companii
   (:require
-   [efactura-mea.layout :as layout]
-   [efactura-mea.ui.componente :as ui]
    [efactura-mea.db.db-ops :as db]
    [efactura-mea.db.facturi :as facturi]
+   [efactura-mea.layout :as layout]
+   [efactura-mea.ui.componente :as ui]
    [efactura-mea.web.profil-companie :as profil]
    [hiccup2.core :as h]))
 
