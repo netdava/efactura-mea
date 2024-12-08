@@ -38,15 +38,7 @@
     (adapter/set-next-jdbc-adapter)
     (jdbc/get-datasource db-spec)))
 
-(defn descarca-factura-pdf
-  [req]
-  (let [{:keys [params ds conf]} req
-        {:keys [id_descarcare]} params
-        detalii-fact (db/detalii-factura-anaf ds id_descarcare)
-        {:keys [cif]} detalii-fact
-        a-token (db/fetch-access-token ds cif)
-        xml-data (api/zip-file->xml-data conf detalii-fact)]
-    (api/transformare-xml-to-pdf a-token xml-data detalii-fact conf)))
+
 
 (defn handle-facturi
   [content-fn req]
@@ -111,38 +103,6 @@
     ["/inregistrare-noua-companie" companii/handle-register-new-company]
     ["/inregistreaza-companie" companii/register-company]
     ["/profil/:cif" companii/handle-company-profile]]
-   #_["/facturi/:cif"
-      ["" {:get
-           {:handler (fn [req]
-                       (let [{:keys [path-params query-params ds conf uri headers]} req
-                             {:strs [page per-page]} query-params
-                             {:strs [hx-request]} headers
-                             cif (:cif path-params)
-                             opts {:cif cif :page page :per-page per-page :uri uri}
-                             mesaje-cerute (db/fetch-mesaje ds cif page per-page)
-                             mesaje (api/gather-invoices-data (add-path-for-download conf mesaje-cerute))
-                             table-with-pagination (api/afisare-facturile-mele mesaje ds opts)
-                             content (ui/facturi-descarcate table-with-pagination)
-                             sidebar (ui/sidebar-company-data opts)]
-                         (if (= hx-request "true")
-                           content
-                           (layout/main-layout (:body content) sidebar))))
-            :middleware [add-pagination-params-middleware]}}]
-      ["/facturile-mele" {:get
-                          {:handler (fn [req]
-                                      (let [{:keys [path-params query-params headers uri ds]} req
-                                            {:keys [cif]} path-params
-                                            {:strs [page per-page]} query-params
-                                            {:strs [hx-request]} headers
-                                            opts {:cif cif :page page :per-page per-page}
-                                            mesaje-cerute (db/fetch-mesaje ds cif page per-page)
-                                            mesaje (api/gather-invoices-data (add-path-for-download conf mesaje-cerute))
-                                            content (api/afisare-facturile-mele mesaje ds opts)
-                                            sidebar (ui/sidebar-company-data opts)]
-                                        (if (= hx-request "true")
-                                          content
-                                          (layout/main-layout (:body content) sidebar))))
-                           :middleware [add-pagination-params-middleware]}}]]
    ["/facturi/:cif"
     ["" {:get
          {:handler facturi/handler-afisare-facturi-descarcate
@@ -159,10 +119,8 @@
                                    (anaf-conf :client-id)
                                    (anaf-conf :client-secret)
                                    (anaf-conf :redirect-uri))]
-   ["/listare-sau-descarcare" (fn [req]
-                                (let [{:keys [params ds conf]} req]
-                                  (api/handle-list-or-download params ds conf)))]
-   ["/transformare-xml-pdf" descarca-factura-pdf]
+   ["/listare-sau-descarcare" api/handle-list-or-download]
+   ["/transformare-xml-pdf" api/handler-descarca-factura-pdf]
    ["/logs/:cif"
     ["" {:get
          {:handler (fn [req]

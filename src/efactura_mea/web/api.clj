@@ -413,8 +413,9 @@
             (error-message-invalid-result validation-result))]
     (ui-comp/lista-mesaje r)))
 
-(defn handle-list-or-download [params ds conf]
-  (let [{:keys [action cif zile]} params
+(defn handle-list-or-download [req]
+  (let [{:keys [params ds conf]} req
+        {:keys [action cif zile]} params
         zile (or (some-> zile Integer/parseInt) nil)
         vr (v/validate-input-data zile cif)
         opts {:cif cif :zile zile :validation-result vr}]
@@ -425,7 +426,6 @@
 (defn save-pdf [path pdf-name pdf-content]
   (let [save-to (str path "/" pdf-name)]
     (io/copy pdf-content (io/file save-to))))
-
 
 (defn zip-file->xml-data
   [conf detalii-fact]
@@ -538,6 +538,16 @@
   (let [c (db/companies-with-status db)
         live-companies (filter-companies-status-on c)]
     (submit-download-proc live-companies db conf {:interval-zile 10})))
+
+(defn handler-descarca-factura-pdf
+  [req]
+  (let [{:keys [params ds conf]} req
+        {:keys [id_descarcare]} params
+        detalii-fact (db/detalii-factura-anaf ds id_descarcare)
+        {:keys [cif]} detalii-fact
+        a-token (db/fetch-access-token ds cif)
+        xml-data (zip-file->xml-data conf detalii-fact)]
+    (transformare-xml-to-pdf a-token xml-data detalii-fact conf)))
 
 (defn pornire-serviciu-descarcare-automata [db conf]
   (println "la pornire AUTOMATA la setare conf este: " conf " in rest este " conf)
