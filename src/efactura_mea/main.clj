@@ -15,6 +15,7 @@
             [efactura-mea.web.oauth2-anaf :as o2a]
             [efactura-mea.db.facturi :as f]
             [efactura-mea.web.descarca-exporta :as de]
+            [efactura-mea.web.descarca-arhiva :as da]
             [efactura-mea.config :as config]
             [mount-up.core :as mu]
             [mount.core :as mount :refer [defstate]]
@@ -129,51 +130,11 @@
    ["/descarcare-automata/:cif" api/handler-afisare-formular-descarcare-automata]
    ["/pornire-descarcare-automata" api/handler-descarcare-automata-facturi]
    ["/formular-descarcare-automata/:cif" api/handler-formular-descarcare-automata]
-   ["/integrare/:cif" (fn [req]
-                        (let [{:keys [path-params]} req
-                              {:keys [cif]} path-params
-                              content (api/afisare-integrare-efactura req)
-                              sidebar (ui/sidebar-company-data {:cif cif})]
-                          (layout/main-layout content sidebar)))]
-   ["/autorizeaza-acces-fara-certificat/:cif" (fn [req]
-                                                (let [{:keys [path-params]} req
-                                                      {:keys [cif]} path-params
-                                                      content (api/modala-link-autorizare cif)]
-                                                  {:status 200
-                                                   :body content
-                                                   :headers {"content-type" "text/html"}}))]
-   ["/descarcare-exportare/:cif" (fn [req]
-                                   (let [{:keys [path-params headers]} req
-                                         {:strs [hx-request]} headers
-                                         {:keys [cif]} path-params
-                                         content (api/afisare-descarcare-exportare cif)
-                                         opts {:cif cif}
-                                         sidebar (ui/sidebar-company-data opts)]
-                                     (if (= hx-request "true")
-                                       content
-                                       (layout/main-layout (:body content) sidebar))))]
-   ["/descarca-arhiva" (fn [req]
-                         (let [{:keys [query-params ds]} req
-                               {:strs [file_type_pdf file_type_zip]} query-params
-                               content (de/descarca-lista-mesaje ds conf query-params)
-                               {:keys [archive-content archive-name]} content
-                               content-disposition (str "attachment; filename=" archive-name)]
-                           (if (and (not file_type_pdf) (not file_type_zip))
-                             {:status 200
-                              :body "Trebuie sa selectezi cel puțin un fip de fișier"
-                              :headers {"Content-Type" "text/html"}}
-                             (if (nil? archive-content)
-                               {:status 200
-                                :body "În perioada selectata, nu au fost identificate facturi pentru descarcare"
-                                :headers {"Content-Type" "text/html"}}
-                               {:status 200
-                                :body archive-content
-                                :headers {"Content-Type" "application/zip, application/octet-stream"
-                                          "Content-Disposition" content-disposition}}))))]
-   ["/sumar-descarcare-arhiva" (fn [req]
-                                 (let [{:keys [query-params ds conf]} req
-                                       locale "ro-RO"]
-                                   (de/sumar-descarcare-arhiva ds conf query-params locale)))]])
+   ["/integrare/:cif" api/handler-integrare]
+   ["/autorizeaza-acces-fara-certificat/:cif" api/handler-autorizare-fara-certificat]
+   ["/descarcare-exportare/:cif" de/handler-descarca-exporta]
+   ["/descarca-arhiva" da/handler-descarca-arhiva]
+   ["/sumar-descarcare-arhiva" da/handler-sumar-descarcare-arhiva]])
 
 
 (defn handler

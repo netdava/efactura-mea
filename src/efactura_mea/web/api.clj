@@ -463,8 +463,6 @@
                "Content-Disposition" content-disposition
                "Location" location}}))
 
-
-
 (defn handler-formular-descarcare-automata
   [req]
   (let [{:keys [path-params ds]} req
@@ -534,6 +532,14 @@
         opts {:cif cif}
         sidebar (layout/sidebar-company-data opts)
         content (set-descarcare-automata cif)]
+    (layout/main-layout content sidebar)))
+
+(defn handler-integrare
+  [req]
+  (let [{:keys [path-params]} req
+        {:keys [cif]} path-params
+        content (afisare-integrare-efactura req)
+        sidebar (layout/sidebar-company-data {:cif cif})]
     (layout/main-layout content sidebar)))
 
 (defn submit-download-proc
@@ -683,6 +689,15 @@
                   [:div.column]]]))]
     {:status 200
      :body r
+     :headers {"content-type" "text/html"}}))
+
+(defn handler-autorizare-fara-certificat 
+  [req]
+  (let [{:keys [path-params]} req
+        {:keys [cif]} path-params
+        content (modala-link-autorizare cif)]
+    {:status 200
+     :body content
      :headers {"content-type" "text/html"}}))
 
 

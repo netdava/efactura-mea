@@ -5,6 +5,10 @@
             [java-time.api :as jt]
             [efactura-mea.ui.pagination :as pag]))
 
+(defn hiccup-bold-span
+  [text]
+  (h/html [:span.has-text-weight-bold text]))
+
 (defn navbar [user-name]
   [:nav.navbar.is-white.top-nav
    [:div.container
