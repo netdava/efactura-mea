@@ -12,6 +12,7 @@
             [efactura-mea.ui.input-validation :as v]
             [efactura-mea.ui.pagination :as pag]
             [efactura-mea.util :as u]
+            [efactura-mea.web.login :as login]
             [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
             [hiccup2.core :as h]
             [java-time.api :as jt])
@@ -384,6 +385,13 @@
                                (ui-comp/tabel-facturi-descarcate detalii->table-rows)
                                (pag/make-pagination total-pages page per-page uri))]
     table-with-pagination))
+
+(defn handler-login
+  [_]
+  (let [content (login/login-form)]
+    {:status 200
+     :headers {"content-type" "text/html"}
+     :body content}))
 
 (defn descarca-mesaje-automat
   [zile cif ds conf]

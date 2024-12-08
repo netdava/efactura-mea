@@ -88,3 +88,32 @@
     (if (= hx-request "true")
       content
       (layout/main-layout (:body content) sidebar))))
+
+(defn handler-lista-mesaje-spv
+  [req]
+  (let [{:keys [path-params query-params headers conf ds]} req
+        {:keys [cif]} path-params
+        {:strs [page per-page]} query-params
+        {:strs [hx-request]} headers
+        opts {:cif cif :page page :per-page per-page}
+        mesaje-cerute (db/fetch-mesaje ds cif page per-page)
+        mesaje (gather-invoices-data (add-path-for-download conf mesaje-cerute))
+        content (afisare-facturile-mele mesaje ds opts)
+        sidebar (ui/sidebar-company-data opts)]
+    (if (= hx-request "true")
+      content
+      (layout/main-layout (:body content) sidebar))))
+
+(defn handler-facturi-spv
+  [req]
+  (let [{:keys [path-params query-params ds uri headers]} req
+        {:strs [page per-page]} query-params
+        {:strs [hx-request]} headers
+        cif (:cif path-params)
+        opts {:cif cif :page page :per-page per-page :uri uri}
+        content (ui/facturi-spv opts ds)
+        sidebar (ui/sidebar-company-data opts)]
+    (if (= hx-request "true")
+      content
+      (layout/main-layout (:body content) sidebar))))
+

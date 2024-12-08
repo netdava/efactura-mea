@@ -112,60 +112,46 @@
     ["/inregistreaza-companie" companii/register-company]
     ["/profil/:cif" companii/handle-company-profile]]
    #_["/facturi/:cif"
-    ["" {:get
-         {:handler (fn [req]
-                     (let [{:keys [path-params query-params ds conf uri headers]} req
-                           {:strs [page per-page]} query-params
-                           {:strs [hx-request]} headers
-                           cif (:cif path-params)
-                           opts {:cif cif :page page :per-page per-page :uri uri}
-                           mesaje-cerute (db/fetch-mesaje ds cif page per-page)
-                           mesaje (api/gather-invoices-data (add-path-for-download conf mesaje-cerute))
-                           table-with-pagination (api/afisare-facturile-mele mesaje ds opts)
-                           content (ui/facturi-descarcate table-with-pagination)
-                           sidebar (ui/sidebar-company-data opts)]
-                       (if (= hx-request "true")
-                         content
-                         (layout/main-layout (:body content) sidebar))))
-          :middleware [add-pagination-params-middleware]}}]
-    ["/facturile-mele" {:get
-                        {:handler (fn [req]
-                                    (let [{:keys [path-params query-params headers uri ds]} req
-                                          {:keys [cif]} path-params
-                                          {:strs [page per-page]} query-params
-                                          {:strs [hx-request]} headers
-                                          opts {:cif cif :page page :per-page per-page}
-                                          mesaje-cerute (db/fetch-mesaje ds cif page per-page)
-                                          mesaje (api/gather-invoices-data (add-path-for-download conf mesaje-cerute))
-                                          content (api/afisare-facturile-mele mesaje ds opts)
-                                          sidebar (ui/sidebar-company-data opts)]
-                                      (if (= hx-request "true")
-                                        content
-                                        (layout/main-layout (:body content) sidebar))))
-                         :middleware [add-pagination-params-middleware]}}]]
+      ["" {:get
+           {:handler (fn [req]
+                       (let [{:keys [path-params query-params ds conf uri headers]} req
+                             {:strs [page per-page]} query-params
+                             {:strs [hx-request]} headers
+                             cif (:cif path-params)
+                             opts {:cif cif :page page :per-page per-page :uri uri}
+                             mesaje-cerute (db/fetch-mesaje ds cif page per-page)
+                             mesaje (api/gather-invoices-data (add-path-for-download conf mesaje-cerute))
+                             table-with-pagination (api/afisare-facturile-mele mesaje ds opts)
+                             content (ui/facturi-descarcate table-with-pagination)
+                             sidebar (ui/sidebar-company-data opts)]
+                         (if (= hx-request "true")
+                           content
+                           (layout/main-layout (:body content) sidebar))))
+            :middleware [add-pagination-params-middleware]}}]
+      ["/facturile-mele" {:get
+                          {:handler (fn [req]
+                                      (let [{:keys [path-params query-params headers uri ds]} req
+                                            {:keys [cif]} path-params
+                                            {:strs [page per-page]} query-params
+                                            {:strs [hx-request]} headers
+                                            opts {:cif cif :page page :per-page per-page}
+                                            mesaje-cerute (db/fetch-mesaje ds cif page per-page)
+                                            mesaje (api/gather-invoices-data (add-path-for-download conf mesaje-cerute))
+                                            content (api/afisare-facturile-mele mesaje ds opts)
+                                            sidebar (ui/sidebar-company-data opts)]
+                                        (if (= hx-request "true")
+                                          content
+                                          (layout/main-layout (:body content) sidebar))))
+                           :middleware [add-pagination-params-middleware]}}]]
    ["/facturi/:cif"
     ["" {:get
          {:handler facturi/handler-afisare-facturi-descarcate
           :middleware [add-pagination-params-middleware]}}]
     ["/facturile-mele" {:get
-                        {:handler (fn [req]
-                                    (let [{:keys [path-params query-params headers uri ds]} req
-                                          {:keys [cif]} path-params
-                                          {:strs [page per-page]} query-params
-                                          {:strs [hx-request]} headers
-                                          opts {:cif cif :page page :per-page per-page}
-                                          mesaje-cerute (db/fetch-mesaje ds cif page per-page)
-                                          mesaje (api/gather-invoices-data (add-path-for-download conf mesaje-cerute))
-                                          content (api/afisare-facturile-mele mesaje ds opts)
-                                          sidebar (ui/sidebar-company-data opts)]
-                                      (if (= hx-request "true")
-                                        content
-                                        (layout/main-layout (:body content) sidebar))))
+                        {:handler facturi/handler-lista-mesaje-spv
                          :middleware [add-pagination-params-middleware]}}]]
-   ["/facturi-spv/:cif" (fn [req]
-                          (handle-facturi ui/facturi-spv req))]
-   ["/login" (fn [req]
-               (layout/login req))]
+   ["/facturi-spv/:cif" facturi/handler-facturi-spv]
+   ["/login" api/handler-login]
    ["/login-anaf" (o2a/make-anaf-login-handler
                    (anaf-conf :client-id)
                    (anaf-conf :redirect-uri))]
