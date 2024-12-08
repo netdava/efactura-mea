@@ -465,9 +465,12 @@
 
 
 
-(defn sda-form
-  [c-data cif]
-  (let [my-selected-val (fn [n]
+(defn handler-formular-descarcare-automata
+  [req]
+  (let [{:keys [path-params ds]} req
+        {:keys [cif]} path-params
+        c-data (db/get-company-data ds cif)
+        my-selected-val (fn [n]
                           (let [opts {:value n}]
                             (when (= n 5) (assoc opts :selected true))))
         days (range 1 60)
@@ -515,7 +518,7 @@
 (defn set-descarcare-automata
   [cif]
   (let [t (str "Activare descărcare automată facturi")
-        url (str "/get-sda-form/" cif)]
+        url (str "/formular-descarcare-automata/" cif)]
     (h/html
      [:div#main-container.block
       (ui/title t)

@@ -128,12 +128,7 @@
           :middleware [add-pagination-params-middleware]}}]]
    ["/descarcare-automata/:cif" api/handler-afisare-formular-descarcare-automata]
    ["/pornire-descarcare-automata" api/handler-descarcare-automata-facturi]
-
-   ["/get-sda-form/:cif" (fn [req]
-                           (let [{:keys [path-params ds]} req
-                                 {:keys [cif]} path-params
-                                 c-data (db/get-company-data ds cif)]
-                             (api/sda-form c-data cif)))]
+   ["/formular-descarcare-automata/:cif" api/handler-formular-descarcare-automata]
    ["/integrare/:cif" (fn [req]
                         (let [{:keys [path-params]} req
                               {:keys [cif]} path-params
