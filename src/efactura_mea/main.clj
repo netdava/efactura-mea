@@ -7,6 +7,7 @@
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.db.next-jdbc-adapter :as adapter]
             [efactura-mea.layout :as layout]
+            [efactura-mea.web.logs :as logs]
             [efactura-mea.ui.componente :as ui]
             [efactura-mea.util :as u]
             [efactura-mea.web.api :as api]
@@ -123,17 +124,7 @@
    ["/transformare-xml-pdf" api/handler-descarca-factura-pdf]
    ["/logs/:cif"
     ["" {:get
-         {:handler (fn [req]
-                     (let [{:keys [path-params query-params ds uri headers]} req
-                           {:strs [page per-page]} query-params
-                           {:strs [hx-request]} headers
-                           cif (:cif path-params)
-                           opts {:page page :per-page per-page :uri uri :cif cif}
-                           content (ui/logs-api-calls ds opts)
-                           sidebar (ui/sidebar-company-data opts)]
-                       (if (= hx-request "true")
-                         content
-                         (layout/main-layout (:body content) sidebar))))
+         {:handler logs/handler-logs
           :middleware [add-pagination-params-middleware]}}]]
    ["/descarcare-automata/:cif" (fn [req]
                                   (let [{:keys [path-params headers]} req
