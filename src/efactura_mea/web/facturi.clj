@@ -84,7 +84,7 @@
         mesaje (gather-invoices-data (add-path-for-download conf mesaje-cerute))
         table-with-pagination (afisare-facturile-mele mesaje ds opts)
         content (ui/facturi-descarcate table-with-pagination)
-        sidebar (ui/sidebar-company-data opts)]
+        sidebar (layout/sidebar-company-data opts)]
     (if (= hx-request "true")
       content
       (layout/main-layout (:body content) sidebar))))
@@ -99,7 +99,7 @@
         mesaje-cerute (db/fetch-mesaje ds cif page per-page)
         mesaje (gather-invoices-data (add-path-for-download conf mesaje-cerute))
         content (afisare-facturile-mele mesaje ds opts)
-        sidebar (ui/sidebar-company-data opts)]
+        sidebar (layout/sidebar-company-data opts)]
     (if (= hx-request "true")
       content
       (layout/main-layout (:body content) sidebar))))
@@ -112,7 +112,7 @@
         cif (:cif path-params)
         opts {:cif cif :page page :per-page per-page :uri uri}
         content (ui/facturi-spv opts ds)
-        sidebar (ui/sidebar-company-data opts)]
+        sidebar (layout/sidebar-company-data opts)]
     (if (= hx-request "true")
       content
       (layout/main-layout (:body content) sidebar))))

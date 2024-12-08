@@ -126,21 +126,8 @@
     ["" {:get
          {:handler logs/handler-logs
           :middleware [add-pagination-params-middleware]}}]]
-   ["/descarcare-automata/:cif" (fn [req]
-                                  (let [{:keys [path-params headers]} req
-                                        {:strs [hx-request]} headers
-                                        cif (:cif path-params)
-                                        opts {:cif cif}
-                                        sidebar (ui/sidebar-company-data opts)
-
-                                        content (api/set-descarcare-automata cif)]
-                                    #_(if (= hx-request "true")
-                                        content
-                                        (layout/main-layout content sidebar))
-                                    (layout/main-layout content sidebar)))]
-   ["/pornire-descarcare-automata" (fn [req]
-                                     (let [{:keys [params ds conf]} req]
-                                       (api/descarcare-automata-facturi params ds conf)))]
+   ["/descarcare-automata/:cif" api/handler-afisare-formular-descarcare-automata]
+   ["/pornire-descarcare-automata" api/handler-descarcare-automata-facturi]
 
    ["/get-sda-form/:cif" (fn [req]
                            (let [{:keys [path-params ds]} req

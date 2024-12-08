@@ -5,10 +5,11 @@
             [clojure.java.io :as io]
             [clojure.string :as s]
             [efactura-mea.config :as c]
+            [efactura-mea.layout :as layout]
             [efactura-mea.db.db-ops :as db]
             [efactura-mea.db.facturi :as facturi]
             [efactura-mea.job-scheduler :as scheduler]
-            [efactura-mea.ui.componente :as ui-comp]
+            [efactura-mea.ui.componente :as ui]
             [efactura-mea.ui.input-validation :as v]
             [efactura-mea.ui.pagination :as pag]
             [efactura-mea.util :as u]
@@ -51,7 +52,7 @@
   (let [t (str "Înregistrare companie în eFactura")]
     (h/html
      [:div#main-container.block
-      (ui-comp/title t)
+      (ui/title t)
       [:form.block {:hx-get "/inregistreaza-companie"
                     :hx-target "#main-container"
                     :hx-swap "innerHTML swap:1s"}
@@ -115,7 +116,7 @@
 (defn afisare-companii-inregistrate [ds]
   (let [companii (db/get-companies-data ds)]
     {:status 200
-     :body (ui-comp/select-a-company companii)
+     :body (ui/select-a-company companii)
      :headers {"content-type" "text/html"}}))
 
 (defn afisare-profil-companie
@@ -129,7 +130,7 @@
         descarcare-automata-url (str "/descarcare-automata/" cif)
         descarcare-automata-link [:a {:href descarcare-automata-url} [:span.icon [:i.fa.fa-pencil-square]]]]
     (h/html
-     (ui-comp/title "Pagina de profil a companiei")
+     (ui/title "Pagina de profil a companiei")
      [:div.columns.is-vcentered
       [:div.column.is-2.has-text-centered
        [:figure.image.is-128x128.is-inline-block
@@ -140,7 +141,7 @@
         [:a {:href website} website]]]]
      [:div.columns
       [:div.column
-       (ui-comp/details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Dată expirare access_token: " token-expiration-date "Descărcare automată:" [:div#das descarcare-automata-link descarcare-automata-status]})]])))
+       (ui/details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Dată expirare access_token: " token-expiration-date "Descărcare automată:" [:div#das descarcare-automata-link descarcare-automata-status]})]])))
 
 (defn afisare-integrare-efactura
   [req]
@@ -148,7 +149,7 @@
         {:keys [cif]} path-params
         url-autorizare (str "/autorizeaza-acces-fara-certificat/" cif)]
     (h/html
-     (ui-comp/title "Integrare E-factura")
+     (ui/title "Integrare E-factura")
      [:div.content
       [:p "Activează integrarea automata cu E-factura "]
       [:div.columns
@@ -259,14 +260,14 @@
         d (:data_c data-creare-mesaj)
         h (:ora_c data-creare-mesaj)
         parsed-tip (s/lower-case tip)]
-    (ui-comp/row-factura-anaf d h parsed-tip id_solicitare detalii id downloaded?-mark)))
+    (ui/row-factura-anaf d h parsed-tip id_solicitare detalii id downloaded?-mark)))
 
 (defn afisare-lista-mesaje [mesaje eroare]
   (println mesaje)
   (if mesaje
     (let [parsed-messages (for [m mesaje]
                             (parse-message m))
-          theader (ui-comp/table-header-facturi-anaf)
+          theader (ui/table-header-facturi-anaf)
           table-rows (cons theader parsed-messages)]
       table-rows)
     eroare))
@@ -298,7 +299,7 @@
   (let [{:keys [cif zile]} validation-result
         valid-cif? (first cif)
         valid-zile? (first zile)]
-    (ui-comp/validation-message valid-zile? valid-cif?)))
+    (ui/validation-message valid-zile? valid-cif?)))
 
 (defn verifica-descarca-facturi [mesaje conf ds]
   (reduce
@@ -331,7 +332,7 @@
                   tip-factura (parse-tip-factura tip)
                   invoice-details (assoc f :tip tip-factura)
                   _ (when is-downloaded? (db/scrie-detalii-factura-anaf->db invoice-details ds))]
-              (ui-comp/row-factura-descarcata-detalii invoice-details)))))
+              (ui/row-factura-descarcata-detalii invoice-details)))))
 
 (defn fetch-lista-mesaje [zile cif ds conf]
   (println "Entering fetch-lista-mesaje with zile:" zile ", cif:" cif "si conf " conf)
@@ -382,7 +383,7 @@
         detalii->table-rows (opis-facturi-descarcate facturi-sortate ds)
         total-pages (pag/calculate-pages-number count-mesaje per-page)
         table-with-pagination (h/html
-                               (ui-comp/tabel-facturi-descarcate detalii->table-rows)
+                               (ui/tabel-facturi-descarcate detalii->table-rows)
                                (pag/make-pagination total-pages page per-page uri))]
     table-with-pagination))
 
@@ -411,7 +412,7 @@
         r (if (nil? validation-result)
             (fetch-fn zile cif ds conf)
             (error-message-invalid-result validation-result))]
-    (ui-comp/lista-mesaje r)))
+    (ui/lista-mesaje r)))
 
 (defn handle-list-or-download [req]
   (let [{:keys [params ds conf]} req
@@ -517,13 +518,20 @@
         url (str "/get-sda-form/" cif)]
     (h/html
      [:div#main-container.block
-      (ui-comp/title t)
+      (ui/title t)
       [:div#sda-form
        {:hx-get url
         :hx-trigger "load"}]
       [:div#modal-wrapper]])))
 
-
+(defn handler-afisare-formular-descarcare-automata
+  [req]
+  (let [{:keys [path-params]} req
+        cif (:cif path-params)
+        opts {:cif cif}
+        sidebar (layout/sidebar-company-data opts)
+        content (set-descarcare-automata cif)]
+    (layout/main-layout content sidebar)))
 
 (defn submit-download-proc
   [live-companies ds conf & {:keys [interval-zile]
@@ -560,8 +568,9 @@
                           interval-executare
                           TimeUnit/HOURS)))
 
-(defn descarcare-automata-facturi [params ds conf]
-  (let [{:keys [cif descarcare-automata]} params
+(defn handler-descarcare-automata-facturi [req]
+  (let [{:keys [params ds conf]} req
+        {:keys [cif descarcare-automata]} params
         company-data (db/get-company-data ds cif)
         {:keys [id]} company-data
         now (u/formatted-date-now)
@@ -615,7 +624,7 @@
         now (u/simple-date-now)
         r (str (h/html
                 [:div#main-container.block
-                 (ui-comp/title t)
+                 (ui/title t)
                  [:div.columns
                   [:div.column
                    [:form {:action "/descarca-arhiva"

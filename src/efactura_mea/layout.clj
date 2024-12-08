@@ -1,56 +1,6 @@
 (ns efactura-mea.layout
   (:require [hiccup.page :refer [html5]]
-            [hiccup2.core :as h]
             [efactura-mea.ui.componente :as ui]))
-
-(defn main-layout
-  ([content]
-   (main-layout content (ui/sidebar-company-data) "User Admin"))
-  ([content sidebar]
-   (main-layout content sidebar "User Admin"))
-  ([content sidebar header]
-   {:status 200
-    :headers {"content-type" "text/html"}
-    :body (str (html5 {:lang "en"}
-                      [:head
-                       [:meta {:charset "utf-8"}]
-                       [:meta {:name "viewport"
-                               :content "width=device-width"
-                               :initial-scale "1"}]
-                       #_[:link {:rel "manifest"
-                                 :href "manifest.json"}]
-                       #_[:link {:rel "icon"
-                                 :type "image/x-icon"
-                                 :href "/images/favicon-32x32.png"}]
-                       [:title "eFacturaMea"]
-                       [:link {:rel "stylesheet"
-                               :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"}]
-                       [:link {:rel "stylesheet"
-                               :href "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"}]
-                       [:link {:rel "stylesheet"
-                               :href "/css/style.css"}]
-                       [:link {:rel "stylesheet"
-                               :href "/css/bulma-switch.min.css"}]
-                       [:link {:rel "stylesheet"
-                               :href "/assets/vanillajs-datepicker/dist/css/datepicker-bulma.min.css"}]
-                       [:script {:type "text/javascript"
-                                 :src "/assets/htmx.org/dist/htmx.min.js"}]
-                       [:script {:type "text/javascript"
-                                 :src "/assets/hyperscript.org/dist/_hyperscript.min.js"}]
-                       [:script {:type "module"
-                                 :src "/assets/vanillajs-datepicker/js/Datepicker.js"}]
-                       [:script {:type "module"
-                                 :src "/js/vanillajs-datepicker-constructor.js"}]
-
-
-                       [:body
-                        (ui/navbar header)
-                        [:section.container.mt-5
-                         [:div.columns
-                          [:div.column.is-one-fifth
-                           sidebar]
-                          [:div#main-content.column.main-content
-                           content]]]]]))}))
 
 (defn sidebar-select-company []
   [:div.p-3
@@ -95,7 +45,8 @@
         [:li [:a {:href link-facturi-descarcate} "Descărcate"]]
         [:li [:a {:href link-facturi-spv} "Spațiul Public Virtual"]]
         [:li [:a {:hx-get link-logs
-                  :hx-target "#main-content"} "Jurnal actiuni"]]]
+                  :hx-target "#main-content"
+                  :hx-push-url "true"} "Jurnal actiuni"]]]
        [:p.menu-label "Administrare"]
        [:ul.menu-list
         [:li [:a {:href link-descarcare-automata} "Descărcare automată facturi"]]
@@ -157,4 +108,54 @@
                             [:a {:href "../"} "Sign Up"] " · "
                             [:a {:href "../"} "Forgot Password"] " · "
                             [:a {:href "../"} "Need Help?"]]]]]]]]))})
+
+
+(defn main-layout
+  ([content]
+   (main-layout content (ui/sidebar-company-data) "User Admin"))
+  ([content sidebar]
+   (main-layout content sidebar "User Admin"))
+  ([content sidebar header]
+   {:status 200
+    :headers {"content-type" "text/html"}
+    :body (str (html5 {:lang "en"}
+                      [:head
+                       [:meta {:charset "utf-8"}]
+                       [:meta {:name "viewport"
+                               :content "width=device-width"
+                               :initial-scale "1"}]
+                       #_[:link {:rel "manifest"
+                                 :href "manifest.json"}]
+                       #_[:link {:rel "icon"
+                                 :type "image/x-icon"
+                                 :href "/images/favicon-32x32.png"}]
+                       [:title "eFacturaMea"]
+                       [:link {:rel "stylesheet"
+                               :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"}]
+                       [:link {:rel "stylesheet"
+                               :href "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"}]
+                       [:link {:rel "stylesheet"
+                               :href "/css/style.css"}]
+                       [:link {:rel "stylesheet"
+                               :href "/css/bulma-switch.min.css"}]
+                       [:link {:rel "stylesheet"
+                               :href "/assets/vanillajs-datepicker/dist/css/datepicker-bulma.min.css"}]
+                       [:script {:type "text/javascript"
+                                 :src "/assets/htmx.org/dist/htmx.min.js"}]
+                       [:script {:type "text/javascript"
+                                 :src "/assets/hyperscript.org/dist/_hyperscript.min.js"}]
+                       [:script {:type "module"
+                                 :src "/assets/vanillajs-datepicker/js/Datepicker.js"}]
+                       [:script {:type "module"
+                                 :src "/js/vanillajs-datepicker-constructor.js"}]
+
+
+                       [:body
+                        (ui/navbar header)
+                        [:section.container.mt-5
+                         [:div.columns
+                          [:div.column.is-one-fifth
+                           sidebar]
+                          [:div#main-content.column.main-content
+                           content]]]]]))}))
 
