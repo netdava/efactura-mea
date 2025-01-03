@@ -7,7 +7,7 @@ Aplicația folosește limbajul Clojure și salvează datele intr-o bază de date
 
 Are nevoie de:
 - Java 21+ (OpenJDK)
-- Clojure 1.11 +
+- Clojure 1.12 +
 - qemu-system, binfmt-support pentru imagini multi platformă https://docs.docker.com/build/building/multi-platform/#qemu 
 
 ## Comenzi utile

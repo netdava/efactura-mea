@@ -1,9 +1,8 @@
 (ns user
-  (:require ;;[hyperfiddle.rcf]
-
+  (:require
+   [clojure.test.check.generators :as gen]
    [malli.core :as m]
-   [malli.generator :as mg]
-   [clojure.test.check.generators :as gen]))
+   [malli.generator :as mg]))
 
 ;; https://github.com/djblue/portal?tab=readme-ov-file#api
 ;; (def p (p/open {:launcher :vs-code}))  ; jvm / node only

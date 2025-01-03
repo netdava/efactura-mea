@@ -8,6 +8,7 @@
  :anaf {:client-id "replace-me"
         :client-secret "replace-me"
         :redirect-uri "replace-me"}
+ :dev-mode? true
  :server {:public-path "public"
           :templates-path "templates"}
  :jetty {:port 8080

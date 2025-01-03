@@ -14,6 +14,7 @@
             [efactura-mea.web.descarca-exporta :as de]
             [efactura-mea.web.descarca-arhiva :as da]
             [efactura-mea.config :as config]
+            [efactura-mea.web.anaf-integrare :as anaf]
             [mount-up.core :as mu]
             [mount.core :as mount :refer [defstate]]
             [muuntaja.core :as m]
@@ -24,7 +25,11 @@
             [ring.middleware.defaults :as rmd]
             [ring.middleware.file :refer [wrap-file]]
             [ring.middleware.webjars :refer [wrap-webjars]]
-            [ring.middleware.content-type :refer [wrap-content-type]])
+            [ring.middleware.content-type :refer [wrap-content-type]]
+            [ring.middleware.lint :refer [wrap-lint]]
+            [ring.middleware.stacktrace :refer [wrap-stacktrace-web]]
+            [babashka.fs :as fs]
+            [reitit.core :as r])
   (:gen-class))
 
 (mu/on-upndown :info mu/log :before)
@@ -79,10 +84,8 @@
                         {:handler facturi/handler-lista-mesaje-spv
                          :middleware [add-pagination-params-middleware]}}]]
    ["/facturi-spv/:cif" facturi/handler-facturi-spv]
+   ["/anaf" (anaf/routes anaf-conf)]
    ["/login" api/handler-login]
-   ["/login-anaf" (o2a/make-anaf-login-handler
-                   (anaf-conf :client-id)
-                   (anaf-conf :redirect-uri))]
    ["/api/v1/oauth/anaf-callback" (o2a/make-authorization-token-handler
                                    (anaf-conf :client-id)
                                    (anaf-conf :client-secret)
@@ -96,8 +99,6 @@
    ["/descarcare-automata/:cif" api/handler-afisare-formular-descarcare-automata]
    ["/pornire-descarcare-automata" api/handler-descarcare-automata-facturi]
    ["/formular-descarcare-automata/:cif" api/handler-formular-descarcare-automata]
-   ["/integrare/:cif" api/handler-integrare]
-   ["/autorizeaza-acces-fara-certificat/:cif" api/handler-autorizare-fara-certificat]
    ["/descarcare-exportare/:cif" de/handler-descarca-exporta]
    ["/descarca-arhiva" da/handler-descarca-arhiva]
    ["/sumar-descarcare-arhiva" da/handler-sumar-descarcare-arhiva]])
@@ -110,14 +111,19 @@
 (defn app
   [conf]
   (api/create-dir-structure conf)
-  (-> (handler conf)
-      (wrap-app-config)
-      (middleware/wrap-format)
-      (rmd/wrap-defaults rmd/site-defaults)
-      (wrap-file (config/download-dir conf))
-      (wrap-file (get-in conf [:server :public-path]))
-      (wrap-webjars)
-      (wrap-content-type)))
+  (let [download-dir (config/download-dir conf)
+        dev-mode? (:dev-mode? conf)]
+    (fs/create-dirs download-dir)
+    (cond-> (handler conf)
+      true (wrap-app-config)
+      true (middleware/wrap-format)
+      true (rmd/wrap-defaults rmd/site-defaults)
+      true (wrap-file download-dir)
+      true (wrap-file (get-in conf [:server :public-path]))
+      dev-mode? (wrap-lint)
+      dev-mode? (wrap-stacktrace-web)
+      true (wrap-webjars)
+      true (wrap-content-type))))
 
 (defstate server
   :start (run-jetty (app conf) (:jetty conf))
@@ -133,6 +139,9 @@
   (-main)
   (mount/start)
   (mount/stop)
+
+  (mount/running-states)
+
   (db/get-company-data ds "35586426")
   (f/update-automated-download-status ds {:id 1 :status ""})
   
