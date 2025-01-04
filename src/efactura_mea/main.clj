@@ -110,14 +110,20 @@
 
 (defn app
   [conf]
-  (api/create-dir-structure conf)
   (let [download-dir (config/download-dir conf)
-        dev-mode? (:dev-mode? conf)]
+        dev-mode? (:dev-mode? conf)
+        site-defaults (if dev-mode?
+                    rmd/site-defaults
+                    rmd/secure-site-defaults)
+        site-defaults (-> site-defaults
+                      ;; change session cookie ID - avoid disclosing information
+                      (assoc-in [:session :cookie-name] "SID"))]
+    (api/create-dir-structure conf)
     (fs/create-dirs download-dir)
     (cond-> (handler conf)
       true (wrap-app-config)
       true (middleware/wrap-format)
-      true (rmd/wrap-defaults rmd/site-defaults)
+      true (rmd/wrap-defaults site-defaults)
       true (wrap-file download-dir)
       true (wrap-file (get-in conf [:server :public-path]))
       dev-mode? (wrap-lint)

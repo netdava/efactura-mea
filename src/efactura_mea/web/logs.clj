@@ -4,7 +4,8 @@
    [efactura-mea.ui.componente :as ui]
    [efactura-mea.db.db-ops :as db]
    [efactura-mea.ui.pagination :as pagination]
-   [hiccup2.core :as h]))
+   [hiccup2.core :as h]
+   [reitit.core :as r]))
 
 (defn row-log-api-call
   [{:keys [id data_apelare url tip status_code]}]
@@ -43,11 +44,11 @@
 
 (defn handler-logs
   [req]
-  (let [{:keys [path-params query-params ds uri headers]} req
+  (let [{:keys [path-params query-params ds uri headers ::r/router]} req
         {:strs [page per-page]} query-params
         {:strs [hx-request]} headers
         cif (:cif path-params)
-        opts {:page page :per-page per-page :uri uri :cif cif}
+        opts {:page page :per-page per-page :uri uri :cif cif :router router}
         content (logs-api-calls ds opts)
         sidebar (layout/sidebar-company-data opts)]
     (if (= hx-request "true")

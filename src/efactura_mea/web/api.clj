@@ -16,6 +16,7 @@
    [efactura-mea.web.login :as login]
    [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
    [hiccup2.core :as h]
+   [reitit.core :as r]
    [java-time.api :as jt])
   (:import
    (java.time LocalDate)
@@ -339,9 +340,9 @@
 
 (defn handler-afisare-formular-descarcare-automata
   [req]
-  (let [{:keys [path-params]} req
+  (let [{:keys [path-params ::r/router]} req
         cif (:cif path-params)
-        opts {:cif cif}
+        opts {:cif cif :router router}
         sidebar (layout/sidebar-company-data opts)
         content (set-descarcare-automata cif)]
     (layout/main-layout content sidebar)))

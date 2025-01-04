@@ -5,7 +5,8 @@
    [efactura-mea.layout :as layout]
    [efactura-mea.ui.componente :as ui]
    [efactura-mea.web.profil-companie :as profil]
-   [hiccup2.core :as h]))
+   [hiccup2.core :as h]
+   [reitit.core :as r]))
 
 (defn select-a-company [companies]
   (str (h/html
@@ -128,8 +129,8 @@
 
 (defn handle-company-profile
   [req]
-  (let [{:keys [path-params]} req
+  (let [{:keys [path-params ::r/router]} req
         {:keys [cif]} path-params
         content (profil/afisare-profil-companie req)
-        sidebar (layout/sidebar-company-data {:cif cif})]
+        sidebar (layout/sidebar-company-data {:cif cif :router router})]
     (layout/main-layout content sidebar)))

@@ -1,6 +1,7 @@
 (ns efactura-mea.layout
   (:require [hiccup.page :refer [html5]]
-            [efactura-mea.ui.componente :as ui]))
+            [efactura-mea.ui.componente :as ui]
+            [reitit.core :as r]))
 
 (defn sidebar-select-company []
   [:div.p-3
@@ -24,7 +25,7 @@
 
 (defn sidebar-company-data [opts]
   ;; TODO de pus conditia ca meniul sa fie disponibil doar daca compania a fost inregistrata corect cu token si tot ce trebuie
-  (let [{:keys [cif page per-page]} opts
+  (let [{:keys [cif page per-page router]} opts
         qp (when (and page per-page)
              (str "?page=" page "&per-page=" per-page))
         link-facturi-descarcate (str "/facturi/" cif)
@@ -32,7 +33,10 @@
         link-logs (str "/logs/" cif qp)
         link-descarcare-automata (str "/descarcare-automata/" cif)
         link-profil (str "/companii/profil/" cif)
-        link-integrare (str "/integrare/" cif)
+        link-integrare (-> router
+                           (r/match-by-name :efactura-mea.web.anaf-integrare/integrare-cif
+                                            {:cif cif})
+                           :path)
         link-descarcare-exportare (str "/descarcare-exportare/" cif)]
     [:div.p-3
      [:div.menu-wrapper

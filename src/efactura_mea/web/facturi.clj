@@ -8,7 +8,8 @@
    [efactura-mea.ui.componente :as ui]
    [efactura-mea.db.facturi :as f]
    [hiccup2.core :as h]
-   [clojure.string :as str]))
+   [clojure.string :as str]
+   [reitit.core :as r]))
 
 (defn parse-tip-factura [tip-factura]
   (let [tip (str/lower-case tip-factura)]
@@ -75,11 +76,11 @@
 
 (defn handler-afisare-facturi-descarcate
   [req]
-  (let [{:keys [path-params query-params ds conf uri headers]} req
+  (let [{:keys [path-params query-params ds conf uri headers ::r/router]} req
         {:strs [page per-page]} query-params
         {:strs [hx-request]} headers
         cif (:cif path-params)
-        opts {:cif cif :page page :per-page per-page :uri uri}
+        opts {:cif cif :page page :per-page per-page :uri uri :router router}
         mesaje-cerute (db/fetch-mesaje ds cif page per-page)
         mesaje (gather-invoices-data (add-path-for-download conf mesaje-cerute))
         table-with-pagination (afisare-facturile-mele mesaje ds opts)
@@ -91,11 +92,11 @@
 
 (defn handler-lista-mesaje-spv
   [req]
-  (let [{:keys [path-params query-params headers conf ds]} req
+  (let [{:keys [path-params query-params headers conf ds ::r/router]} req
         {:keys [cif]} path-params
         {:strs [page per-page]} query-params
         {:strs [hx-request]} headers
-        opts {:cif cif :page page :per-page per-page}
+        opts {:cif cif :page page :per-page per-page :router router}
         mesaje-cerute (db/fetch-mesaje ds cif page per-page)
         mesaje (gather-invoices-data (add-path-for-download conf mesaje-cerute))
         content (afisare-facturile-mele mesaje ds opts)
@@ -106,11 +107,12 @@
 
 (defn handler-facturi-spv
   [req]
-  (let [{:keys [path-params query-params ds uri headers]} req
+  (let [{:keys [path-params query-params ds uri headers ::r/router]} req
         {:strs [page per-page]} query-params
         {:strs [hx-request]} headers
         cif (:cif path-params)
-        opts {:cif cif :page page :per-page per-page :uri uri}
+        opts {:cif cif :page page :per-page per-page :uri uri
+              :router router}
         content (ui/facturi-spv opts ds)
         sidebar (layout/sidebar-company-data opts)]
     (if (= hx-request "true")

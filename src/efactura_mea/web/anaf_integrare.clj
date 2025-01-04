@@ -1,16 +1,32 @@
 (ns efactura-mea.web.anaf-integrare
-  "Integrare cu API ANAF pentru a genera / reîmprospăta token"
+  "Integrare cu API ANAF pentru a genera / reîmprospăta token:
+   
+   Authorization Endpoint 
+   https://logincert.anaf.ro/anaf-oauth2/v1/authorize
+   Token Issuance Endpoint
+   https://logincert.anaf.ro/anaf-oauth2/v1/token
+   Token Revocation Endpoint
+   https://logincert.anaf.ro/anaf-oauth2/v1/revoke
+
+   "
   (:require
    [efactura-mea.layout :as layout]
    [efactura-mea.ui.componente :as ui]
    [efactura-mea.web.oauth2-anaf :as o2a]
-   [hiccup2.core :as h]))
+   [hiccup2.core :as h]
+   [reitit.core :as r]))
+
+;; todo: 
+;; - funcționalitate de revocare a tokenului - în caz de compromitere
+;; 
 
 (defn afisare-integrare-efactura
   [req]
-  (let [{:keys [path-params]} req
+  (let [{:keys [path-params conf]} req
         {:keys [cif]} path-params
-        url-autorizare (str "/autorizeaza-acces-fara-certificat/" cif)]
+        url-autorizare (str "/autorizeaza-acces-fara-certificat/" cif)
+        {:keys [client-id client-secret redirect-uri]} (:anaf conf)
+        url (o2a/authorization-url client-id redirect-uri) ]
     (h/html
      (ui/title "Integrare E-factura")
      [:div.content
@@ -20,6 +36,8 @@
         [:div.notification
          [:p.is-size-7 "Dacă " [:span.has-text-weight-bold "ai permisiunea "] "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
          [:button.button.is-small.is-link {:hx-get "/autorizeaza-acces-cu-certificat"}
+          (str "Autorizează accesul pentru CUI:" cif)]
+         [:a {:href "/autorizeaza-acces-cu-certificat"}
           (str "Autorizează accesul pentru CUI:" cif)]]]
        [:div.column
         [:div.notification
@@ -32,10 +50,10 @@
 
 (defn handler-integrare
   [req]
-  (let [{:keys [path-params]} req
+  (let [{:keys [path-params ::r/router]} req
         {:keys [cif]} path-params
         content (afisare-integrare-efactura req)
-        sidebar (layout/sidebar-company-data {:cif cif})]
+        sidebar (layout/sidebar-company-data {:cif cif :router router})]
     (layout/main-layout content sidebar)))
 
 (defn modala-link-autorizare
@@ -71,5 +89,17 @@
   [["/login-anaf" (o2a/make-anaf-login-handler
                    (anaf-conf :client-id)
                    (anaf-conf :redirect-uri))]
-   ["/integrare/:cif" handler-integrare]
+   ["/integrare/:cif" {:name ::integrare-cif
+                       :handler handler-integrare}]
    ["/autorizeaza-acces-fara-certificat/:cif" handler-autorizare-fara-certificat]])
+
+
+(comment 
+  
+  (-> 
+   (r/router (routes {}))
+   (r/match-by-name ::integrare-cif {:cif "1234"}) 
+   :path)
+  ;;=> "/integrare/1234"
+  
+  )

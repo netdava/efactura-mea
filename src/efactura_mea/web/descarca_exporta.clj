@@ -8,7 +8,8 @@
    [efactura-mea.ui.componente :as ui]
    [efactura-mea.util :as u]
    [efactura-mea.web.api :as api]
-   [ring.util.io :as ruio])
+   [ring.util.io :as ruio]
+   [reitit.core :as r])
   (:import
    (java.io FileInputStream)
    (java.time DayOfWeek LocalDate)
@@ -157,11 +158,11 @@
         (ex-message e)))))
 
 (defn handler-descarca-exporta [req]
-  (let [{:keys [path-params headers]} req
+  (let [{:keys [path-params headers ::r/router]} req
         {:strs [hx-request]} headers
         {:keys [cif]} path-params
         content (api/afisare-descarcare-exportare cif)
-        opts {:cif cif}
+        opts {:cif cif :router router}
         sidebar (ui/sidebar-company-data opts)]
     (if (= hx-request "true")
       content
