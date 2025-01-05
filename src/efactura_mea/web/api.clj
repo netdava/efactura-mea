@@ -433,7 +433,7 @@
 (defn afisare-descarcare-exportare
   [cif]
   (let [t (str "Descarcă lista mesaje ANAF pentru cif:" cif)
-        now (u/simple-date-now)
+        now (u/date-now)
         r (str (h/html
                 [:div#main-container.block
                  (ui/title t)

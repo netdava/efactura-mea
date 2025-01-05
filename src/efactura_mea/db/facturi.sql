@@ -48,10 +48,12 @@ CREATE TABLE IF NOT EXISTS company (
 -- :result :raw
 CREATE TABLE IF NOT EXISTS tokens (
     id INTEGER PRIMARY KEY,
-    cif TEXT,
+    cif TEXT NOT NULL UNIQUE,
     access_token TEXT,
     refresh_token TEXT,
+    expires_in TEXT,
     expiration_date TEXT,
+    _updated TEXT,
     FOREIGN KEY (cif) REFERENCES company(cif)
 ) STRICT;
 
@@ -251,8 +253,16 @@ insert into tokens (
     cif,
     access_token,
     refresh_token,
-    expiration_date)
-    values (:cif, :access_token, :refresh_token, :expiration_date)
+    expires_in,
+    expiration_date,
+    _updated)
+    values (:cif, :access_token, :refresh_token, :expires_in, :expiration_date, :updated)
+    on conflict(cif) do update set 
+    access_token=excluded.access_token,
+    refresh_token=excluded.refresh_token,
+    expires_in=excluded.expires_in,
+    expiration_date=excluded.expiration_date,
+    _updated=excluded._updated 
 
 -- :name insert-into-descarcare-lista-mesaje :insert :*
 -- :command :execute

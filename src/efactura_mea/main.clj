@@ -1,35 +1,31 @@
 (ns efactura-mea.main
-  (:require [clj-commons.byte-streams :as bs]
-            [cprop.core :refer [load-config]]
-            [efactura-mea.web.companii :as companii]
-            [efactura-mea.web.home :as home]
-            [efactura-mea.web.facturi :as facturi]
-            [efactura-mea.db.db-ops :as db]
-            [efactura-mea.db.next-jdbc-adapter :as adapter]
-            [efactura-mea.web.logs :as logs]
-            [efactura-mea.web.api :as api]
-            [efactura-mea.web.json :as wj]
-            [efactura-mea.web.oauth2-anaf :as o2a]
-            [efactura-mea.db.facturi :as f]
-            [efactura-mea.web.descarca-exporta :as de]
-            [efactura-mea.web.descarca-arhiva :as da]
-            [efactura-mea.config :as config]
-            [efactura-mea.web.anaf-integrare :as anaf]
-            [mount-up.core :as mu]
-            [mount.core :as mount :refer [defstate]]
-            [muuntaja.core :as m]
-            [muuntaja.middleware :as middleware]
-            [next.jdbc :as jdbc]
-            [reitit.ring :as reitit]
-            [ring.adapter.jetty9 :refer [run-jetty stop-server]]
-            [ring.middleware.defaults :as rmd]
-            [ring.middleware.file :refer [wrap-file]]
-            [ring.middleware.webjars :refer [wrap-webjars]]
-            [ring.middleware.content-type :refer [wrap-content-type]]
-            [ring.middleware.lint :refer [wrap-lint]]
-            [ring.middleware.stacktrace :refer [wrap-stacktrace-web]]
-            [babashka.fs :as fs]
-            [reitit.core :as r])
+  (:require
+   [babashka.fs :as fs]
+   [cprop.core :refer [load-config]]
+   [efactura-mea.config :as config]
+   [efactura-mea.db.db-ops :as db]
+   [efactura-mea.db.facturi :as f]
+   [efactura-mea.db.next-jdbc-adapter :as adapter]
+   [efactura-mea.web.anaf-integrare :as anaf]
+   [efactura-mea.web.api :as api]
+   [efactura-mea.web.companii :as companii]
+   [efactura-mea.web.descarca-arhiva :as da]
+   [efactura-mea.web.descarca-exporta :as de]
+   [efactura-mea.web.facturi :as facturi]
+   [efactura-mea.web.home :as home]
+   [efactura-mea.web.logs :as logs]
+   [mount-up.core :as mu]
+   [mount.core :as mount :refer [defstate]]
+   [muuntaja.middleware :as middleware]
+   [next.jdbc :as jdbc]
+   [reitit.ring :as reitit]
+   [ring.adapter.jetty9 :refer [run-jetty stop-server]]
+   [ring.middleware.content-type :refer [wrap-content-type]]
+   [ring.middleware.defaults :as rmd]
+   [ring.middleware.file :refer [wrap-file]]
+   [ring.middleware.lint :refer [wrap-lint]]
+   [ring.middleware.stacktrace :refer [wrap-stacktrace-web]]
+   [ring.middleware.webjars :refer [wrap-webjars]])
   (:gen-class))
 
 (mu/on-upndown :info mu/log :before)
@@ -41,17 +37,6 @@
   (let [db-spec (:db-spec conf)]
     (adapter/set-next-jdbc-adapter)
     (jdbc/get-datasource db-spec)))
-
-(defn req->str
-  [req]
-  (let [body (:body req)
-        bis (m/encode wj/m
-                      "application/json"
-                      (-> req
-                          (assoc :body (bs/to-string body))
-                          (dissoc :reitit.core/router
-                                  :reitit.core/match)))]
-    (bs/to-string bis)))
 
 (defn wrap-app-config [handler]
   (fn [request]
@@ -86,7 +71,7 @@
    ["/facturi-spv/:cif" facturi/handler-facturi-spv]
    ["/anaf" (anaf/routes anaf-conf)]
    ["/login" api/handler-login]
-   ["/api/v1/oauth/anaf-callback" (o2a/make-authorization-token-handler
+   ["/api/v1/oauth/anaf-callback" (anaf/make-authorization-token-handler
                                    (anaf-conf :client-id)
                                    (anaf-conf :client-secret)
                                    (anaf-conf :redirect-uri))]
@@ -144,13 +129,27 @@
 (comment
   (-main)
   (mount/start)
+
+  (api/init-db ds)
+  (api/pornire-serviciu-descarcare-automata ds conf)
+
   (mount/stop)
 
   (mount/running-states)
 
   (db/get-company-data ds "35586426")
+
+  (f/insert-company-tokens
+   ds
+   {:cif "35586426"
+    :access_token "access_token2"
+    :refresh_token "refresh_token2"
+    :expires_in "expires_in"
+    :expiration_date "expiration_date2"
+    :updated "updated2"})
+
   (f/update-automated-download-status ds {:id 1 :status ""})
-  
+
   (jdbc/execute!
    ds
    ["SELECT timediff('2024-11-11 09:49:31', '2024-11-11 09:30:57')"])

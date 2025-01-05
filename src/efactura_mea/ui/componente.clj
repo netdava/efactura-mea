@@ -39,7 +39,7 @@
         link-descarcare-automata (str "/descarcare-automata/" cif)
         link-profil (str "/profil/" cif)
         link-integrare (-> router 
-                           (r/match-by-name :efactura-mea.web.anaf-integrare/integrare-cif
+                           (r/match-by-name :efactura-mea.web.anaf-integrare/integrare
                                             {:cif cif})
                            :path)
         link-descarcare-exportare (str "/descarcare-exportare/" cif)]

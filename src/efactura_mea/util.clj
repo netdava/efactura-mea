@@ -17,13 +17,40 @@
   (let [dir-file (io/file dir)]
     (some #(= (.getName %) file-name) (file-seq dir-file))))
 
-(defn formatted-date-now
+(defn ^:deprecated formatted-date-now
   []
   (let [inst-now (jt/zoned-date-time)
         now (jt/format "H:mm - MMMM dd, yyyy" inst-now)]
     now))
 
-(defn simple-date-now
+(defn date-time-now-utc
+  []
+  (jt/with-clock
+    (jt/system-clock "UTC")
+    (jt/zoned-date-time)))
+
+(defn date-time->iso-str
+  [inst-now]
+  (jt/format :iso-date-time inst-now))
+
+(defn expiration-date 
+  [zdate secs]
+  (jt/plus zdate (jt/seconds secs)))
+
+^:rct/test
+(comment
+
+  (date-time->iso-str
+   (jt/zoned-date-time (jt/zoned-date-time 2024 01 01 10)))
+  ;;=> "2024-01-01T10:00:00+02:00[Europe/Bucharest]" 
+
+  (date-time->iso-str
+   (expiration-date (jt/zoned-date-time 2024 01 01 10) 3600))
+  ;;=> "2024-01-01T11:00:00+02:00[Europe/Bucharest]" 
+
+  )
+
+(defn date-now
   []
   (let [inst-now (jt/zoned-date-time)
         now (jt/format "yyyy-MM-dd" inst-now)]

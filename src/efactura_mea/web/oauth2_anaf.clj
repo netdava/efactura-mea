@@ -1,10 +1,11 @@
 (ns efactura-mea.web.oauth2-anaf
-  (:require [babashka.http-client :as http]
-            [clj-commons.byte-streams :as bs]
-            [clojure.tools.logging :as log]
-            [muuntaja.core :as m]
-            [efactura-mea.web.json :as wj]
-            [ring.util.codec :refer [url-encode]]))
+  (:require
+   [babashka.http-client :as http]
+   [clj-commons.byte-streams :as bs]
+   [clojure.tools.logging :as log]
+   [efactura-mea.web.json :as wj]
+   [muuntaja.core :as m]
+   [ring.util.codec :refer [url-encode]]))
 
 (def default-anaf-url-logincert "https://logincert.anaf.ro")
 
@@ -86,48 +87,16 @@
    jetoane JWT pentru autentificare și împrospătare."
   [client-id client-secret redirect-uri code]
   (try
-    (http/post (token-url)
-               {:headers {"content-type" "application/x-www-form-urlencoded"}
-                :form-params {"grant_type" "authorization_code"
-                              "code" code
-                              "redirect_uri" redirect-uri
-                              "token_content_type" "jwt"
-                              "client_id" client-id
-                              "client_secret" client-secret}})
+    (let [response (http/post (token-url)
+                              {:headers {"content-type" "application/x-www-form-urlencoded"}
+                               :form-params {"grant_type" "authorization_code"
+                                             "code" code
+                                             "redirect_uri" redirect-uri
+                                             "token_content_type" "jwt"
+                                             "client_id" client-id
+                                             "client_secret" client-secret}})]
+      response)
     (catch Exception e
       (log/warn e "Exception")
       (ex-data e))))
-
-(defn res->str
-  [res]
-  (let [body (:body res)
-        bis (m/encode wj/m
-                      "application/json"
-                      (-> res
-                          (assoc :body (bs/to-string body))
-                          (dissoc :body
-                                  :reitit.core/router
-                                  :reitit.core/match)))]
-    (bs/to-string bis)))
-
-(defn make-authorization-token-handler
-  "Crează un handler ring pentru procesul oauth2 de conversie cod autorizare
-   în jeton autentificare și jeton de împrospătare.
-
-   Handlerul primește o cerere HTTP cu codul de autorizare.
-   Face un apel POST către serverul de autorizare cu codul primit
-   și secretul înregistrat.
-
-   Întoarce jetoanele de autentificare sau o structură de eroare.
-  "
-  [client-id client-secret redirect-uri]
-  (fn [req]
-    (log/info "Get authorization token")
-    (let [{:keys [query-params]} req
-          code (get query-params "code")
-          res (authorization-code->tokens! client-id client-secret redirect-uri code)]
-      (println "Body" (:body res))
-      {:status 200
-       :body (res->str res)
-       :headers {"content-type" "application/json"}})))
 
