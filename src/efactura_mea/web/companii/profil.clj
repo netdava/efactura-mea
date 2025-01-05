@@ -1,6 +1,6 @@
-(ns efactura-mea.web.profil-companie
+(ns efactura-mea.web.companii.profil
   (:require
-   [efactura-mea.ui.componente :as ui :refer [title details-table]]
+   [efactura-mea.web.ui.componente :as ui :refer [title details-table]]
    [efactura-mea.db.db-ops :as db :refer [get-company-data]]
    [efactura-mea.db.facturi :as facturi :refer [select-acc-token-exp-date]]
    [hiccup2.core :as h]))

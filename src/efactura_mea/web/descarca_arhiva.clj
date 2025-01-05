@@ -3,7 +3,7 @@
    [clojure.string :as str]
    [efactura-mea.config :as config]
    [efactura-mea.db.db-ops :as db]
-   [efactura-mea.ui.componente :as ui]
+   [efactura-mea.web.ui.componente :as ui]
    [efactura-mea.util :as u]
    [efactura-mea.web.descarca-exporta :as de]
    [hiccup2.core :as h])

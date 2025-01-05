@@ -1,8 +1,7 @@
-(ns efactura-mea.layout
+(ns efactura-mea.web.layout
   (:require [hiccup.page :refer [html5]]
-            [efactura-mea.ui.componente :as ui]
+            [efactura-mea.web.ui.componente :as ui]
             [reitit.core :as r]))
-
 (defn sidebar-select-company []
   [:div.p-3
    [:div#menu-wrapper.menu-wrapper

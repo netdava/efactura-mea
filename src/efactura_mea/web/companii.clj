@@ -2,9 +2,9 @@
   (:require
    [efactura-mea.db.db-ops :as db]
    [efactura-mea.db.facturi :as facturi]
-   [efactura-mea.layout :as layout]
-   [efactura-mea.ui.componente :as ui]
-   [efactura-mea.web.profil-companie :as profil]
+   [efactura-mea.web.layout :as layout]
+   [efactura-mea.web.ui.componente :as ui]
+   [efactura-mea.web.companii.profil :as profil]
    [hiccup2.core :as h]
    [reitit.core :as r]))
 
@@ -134,3 +134,10 @@
         content (profil/afisare-profil-companie req)
         sidebar (layout/sidebar-company-data {:cif cif :router router})]
     (layout/main-layout content sidebar)))
+
+
+(def routes
+  [["" handle-companies-list]
+   ["/inregistrare-noua-companie" handle-register-new-company]
+   ["/inregistreaza-companie" register-company]
+   ["/profil/:cif" handle-company-profile]])

@@ -1,5 +1,5 @@
 (ns efactura-mea.web.home
-  (:require [efactura-mea.layout :as layout]))
+  (:require [efactura-mea.web.layout :as layout]))
 
 (defn handle-homepage
   [req]

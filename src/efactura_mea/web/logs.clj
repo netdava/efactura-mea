@@ -1,9 +1,9 @@
 (ns efactura-mea.web.logs
   (:require
-   [efactura-mea.layout :as layout]
-   [efactura-mea.ui.componente :as ui]
+   [efactura-mea.web.layout :as layout]
+   [efactura-mea.web.ui.componente :as ui]
    [efactura-mea.db.db-ops :as db]
-   [efactura-mea.ui.pagination :as pagination]
+   [efactura-mea.web.ui.pagination :as pagination]
    [hiccup2.core :as h]
    [reitit.core :as r]))
 

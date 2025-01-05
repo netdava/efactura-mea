@@ -1,4 +1,4 @@
-(ns efactura-mea.ui.pagination)
+(ns efactura-mea.web.ui.pagination)
 
 (defn calculate-pages-number [total-items items-per-page]
   (let [pages (quot total-items items-per-page)

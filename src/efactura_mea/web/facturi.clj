@@ -1,11 +1,11 @@
 (ns efactura-mea.web.facturi
   (:require
-   [efactura-mea.layout :as layout]
+   [efactura-mea.web.layout :as layout]
    [efactura-mea.db.db-ops :as db]
    [efactura-mea.util :as util :refer [build-path get-invoice-data]]
    [efactura-mea.config :as config]
-   [efactura-mea.ui.pagination :as pagination]
-   [efactura-mea.ui.componente :as ui]
+   [efactura-mea.web.ui.pagination :as pagination]
+   [efactura-mea.web.ui.componente :as ui]
    [efactura-mea.db.facturi :as f]
    [hiccup2.core :as h]
    [clojure.string :as str]

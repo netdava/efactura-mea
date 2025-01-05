@@ -164,3 +164,19 @@
         total-facturi-in-date-range (:total select-total)]
     total-facturi-in-date-range))
 
+(comment
+
+  (f/insert-company-tokens
+   ds
+   {:cif "35586426"
+    :access_token "access_token2"
+    :refresh_token "refresh_token2"
+    :expires_in "expires_in"
+    :expiration_date "expiration_date2"
+    :updated "updated2"})
+
+  (f/update-automated-download-status ds {:id 1 :status ""})
+
+  (jdbc/execute!
+   ds
+   ["SELECT timediff('2024-11-11 09:49:31', '2024-11-11 09:30:57')"]))

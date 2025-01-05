@@ -1,4 +1,4 @@
-(ns efactura-mea.ui.componente
+(ns efactura-mea.web.ui.componente
   (:require [hiccup2.core :as h]
             [efactura-mea.util :as u]
             [reitit.core :as r]))
