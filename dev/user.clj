@@ -25,7 +25,4 @@
 
   (mount/running-states)
 
-  (db/get-company-data ds "35586426")
-
-
   0)

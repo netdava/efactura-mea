@@ -1,0 +1,1 @@
+drop table if EXISTS lista_mesaje2;

@@ -166,6 +166,10 @@
 
 (comment
 
+  (require '[efactura-mea.db.ds :refer [ds]])
+  
+  (get-company-data ds "35586426")
+
   (f/insert-company-tokens
    ds
    {:cif "35586426"
@@ -179,4 +183,5 @@
 
   (jdbc/execute!
    ds
-   ["SELECT timediff('2024-11-11 09:49:31', '2024-11-11 09:30:57')"]))
+   ["SELECT timediff('2024-11-11 09:49:31', '2024-11-11 09:30:57')"])
+  )

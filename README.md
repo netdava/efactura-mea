@@ -35,6 +35,17 @@ clj -M:test --watch
 # Vezi actualizări pentru bibliotecile de funcții
 clj -M:outdated
 
+# Aplicăm migrații la baza de date
+./bin/migratus.sh --config-file resources/migratus.edn create migration-name
+
+
+# Aplicăm toate migrațiile
+./bin/migratus.sh --config-file resources/migratus.edn migrate
+# Aplicăm până la migratia <id>
+./bin/migratus.sh --config-file resources/migratus.edn up <id>
+# Dez-aplicăm migratia 
+./bin/migratus.sh --config-file resources/migratus.edn down <id>
+
 ```
 
 

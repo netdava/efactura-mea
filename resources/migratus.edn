@@ -1,0 +1,3 @@
+{:store :database
+ :db {:dbtype   "sqlite"
+      :dbname   "data/facturi-anaf.db"}}
