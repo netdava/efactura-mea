@@ -79,29 +79,9 @@
 
 (defn db-config
   [ds]
-<<<<<<< HEAD
   (info "Enabling foreign-key constraint, convert to WAL mode")
   (db-init-pref ds)
   (info "Set :automated-proc-status to off for companies")
-=======
-  (log/debug "** Enabling foreign-key constraint, convert to WAL mode")
-  (db-init-pref ds)
-  (log/debug "** Creating table lista_mesaje")
-  (f/create-facturi-anaf-table ds)
-  (log/debug "** Creating table detalii_facturi_anaf")
-  (f/create-detalii-facturi-anaf-table ds)
-  (log/debug "** Creating table company")
-  (f/create-company-table ds)
-  (log/debug "** Creating table tokens")
-  (f/create-tokens-table ds)
-  (log/debug "** Creating table apeluri_api_anaf")
-  (f/create-apeluri-api-anaf ds)
-  (log/debug "** Creating table descarcare_lista_mesaje")
-  (f/create-descarcare-lista-mesaje ds)
-  (log/debug "** Creating table company_automated_proc")
-  (f/create-automated-processes-table ds)
-  (log/debug "** Set :automated-proc-status to off for companies")
->>>>>>> b43614d (Ceva modificări)
   (init-automated-download ds))
 
 (defn scrie-factura->db [factura ds]
