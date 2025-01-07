@@ -44,11 +44,6 @@
   (let [dir-name (:data-dir conf)]
     (fs/create-dirs dir-name)))
 
-(defn init-db [ds]
-  (println "Initialising database")
-  (println "* Creating SQL tables")
-  (db/create-sql-tables ds))
-
 (defn save-zip-file [data file-path]
   (let [f (io/file file-path)
         _ (doto (-> (.getParentFile f)

@@ -3,6 +3,7 @@
    [efactura-mea.config :as config]
    [efactura-mea.db.ds :refer [ds]]
    [efactura-mea.web.api :as api]
+   [efactura-mea.db.db-ops :as db]
    [efactura-mea.http-server]
    [mount-up.core :as mu]
    [clojure.tools.logging :refer [info]]
@@ -17,5 +18,5 @@
   [& args]
   (info "Starting Application Server")
   (mount/start)
-  (api/init-db ds)
+  (db/db-config ds)
   (api/pornire-serviciu-descarcare-automata ds config/conf))

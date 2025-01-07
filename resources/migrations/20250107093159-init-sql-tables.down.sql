@@ -1,0 +1,13 @@
+drop table if EXISTS lista_mesaje;
+--;;
+drop table if EXISTS detalii_facturi_anaf;
+--;;
+drop table if EXISTS company;
+--;;
+drop table if EXISTS tokens;
+--;;
+drop table if EXISTS apeluri_api_anaf;
+--;;
+drop table if EXISTS descarcare_lista_mesaje;
+--;;
+drop table if EXISTS company_automated_proc;
