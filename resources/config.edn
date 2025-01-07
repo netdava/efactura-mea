@@ -5,6 +5,9 @@
  :target {:endpoint :prod}
  :db-spec {:dbtype "sqlite"
            :dbname "data/facturi-anaf.db"}
+ :migratus {:store :database
+            :db {:dbtype "sqlite"
+                 :dbname "data/facturi-anaf.db"}}
  :anaf {:client-id "replace-me"
         :client-secret "replace-me"
         :redirect-uri "replace-me"}

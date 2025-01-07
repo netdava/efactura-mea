@@ -2,7 +2,8 @@
   (:require [efactura-mea.db.facturi :as f]
             [efactura-mea.util :as u]
             [java-time.api :as jt]
-            [next.jdbc :as jdbc]))
+            [next.jdbc :as jdbc]
+            [clojure.tools.logging :refer [info]]))
 
 (defn enable-foreignkey-constraint [spec]
   ;; Enable foreign key constraints
@@ -37,7 +38,7 @@
 
 (defn init-automated-download [db]
   (let [companies (f/get-companies-data db)
-        now (u/formatted-date-now)]
+        now (u/date-time-now-utc)]
     (doseq [c companies]
       (let [id (:id c)]
         (f/insert-into-company-automated-processes db {:company_id id :desc_aut_status "off" :date_modified now})))))
@@ -59,7 +60,7 @@
 
 (defn detalii-factura-anaf
   [db id]
-  (println "iau detalii-factura-anaf pentru " id)
+  (info "iau detalii-factura-anaf pentru " id)
   (first
    (f/select-detalii-factura-descarcata db {:id id})))
 
@@ -75,25 +76,11 @@
         :exists
         (= 1))))
 
-(defn create-sql-tables
+(defn db-config
   [ds]
-  (println "** Enabling foreign-key constraint, convert to WAL mode")
+  (info "Enabling foreign-key constraint, convert to WAL mode")
   (db-init-pref ds)
-  (println "** Creating table lista_mesaje")
-  (f/create-facturi-anaf-table ds)
-  (println "** Creating table detalii_facturi_anaf")
-  (f/create-detalii-facturi-anaf-table ds)
-  (println "** Creating table company")
-  (f/create-company-table ds)
-  (println "** Creating table tokens")
-  (f/create-tokens-table ds)
-  (println "** Creating table apeluri_api_anaf")
-  (f/create-apeluri-api-anaf ds)
-  (println "** Creating table descarcare_lista_mesaje")
-  (f/create-descarcare-lista-mesaje ds)
-  (println "** Creating table company_automated_proc")
-  (f/create-automated-processes-table ds)
-  (println "** Set :automated-proc-status to off for companies")
+  (info "Set :automated-proc-status to off for companies")
   (init-automated-download ds))
 
 (defn scrie-factura->db [factura ds]
