@@ -359,6 +359,17 @@
         live-companies (filter-companies-status-on c)]
     (submit-download-proc live-companies db conf {:interval-zile 10})))
 
+(defn schedule-token-refresh
+  "Scanăm baza de date pentru access_tokens care mai au x zile până la expirare (7 zile?!).
+   Și care au și numărul de încercări <= 5.
+   Pentru fiecare token access încercăm re-împrospătarea cu refresh_token.
+   Dacă nu reușește, creștem numărul de încercări până la 5+.
+   Conturile care au mai mult de 5 încercări - sunt marcate cu un mesaj.
+   Utilizatorul va trebui să re-împrospăteze tokenul manual."
+  [db conf]
+  ;; TODO: implementare
+  (log/info "Un ciot care așteaptă implementarea."))
+
 (defn handler-descarca-factura-pdf
   [req]
   (let [{:keys [params ds conf]} req
@@ -376,6 +387,11 @@
     (log/info "Initialising automatic download for every company with desc_aut_status \"on\", at every " interval-executare " hours")
     (.scheduleAtFixedRate scheduler/job-scheduler-pool
                           (fn [] (schedule-descarcare-automata-per-comp db conf))
+                          initial-delay
+                          interval-executare
+                          TimeUnit/HOURS)
+    (.scheduleAtFixedRate scheduler/job-scheduler-pool
+                          (fn [] (schedule-token-refresh db conf))
                           initial-delay
                           interval-executare
                           TimeUnit/HOURS)))

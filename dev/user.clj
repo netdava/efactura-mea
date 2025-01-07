@@ -18,8 +18,7 @@
 
   (mount/start)
 
-  (do
-    (api/init-db ds)
+  (do 
     (api/pornire-serviciu-descarcare-automata ds conf))
 
   (mount/stop)
