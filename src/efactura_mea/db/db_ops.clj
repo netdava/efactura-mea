@@ -2,7 +2,8 @@
   (:require [efactura-mea.db.facturi :as f]
             [efactura-mea.util :as u]
             [java-time.api :as jt]
-            [next.jdbc :as jdbc]))
+            [next.jdbc :as jdbc]
+            [clojure.tools.logging :refer [info]]))
 
 (defn enable-foreignkey-constraint [spec]
   ;; Enable foreign key constraints
@@ -59,7 +60,7 @@
 
 (defn detalii-factura-anaf
   [db id]
-  (println "iau detalii-factura-anaf pentru " id)
+  (info "iau detalii-factura-anaf pentru " id)
   (first
    (f/select-detalii-factura-descarcata db {:id id})))
 
@@ -77,9 +78,9 @@
 
 (defn db-config
   [ds]
-  (println "Enabling foreign-key constraint, convert to WAL mode")
+  (info "Enabling foreign-key constraint, convert to WAL mode")
   (db-init-pref ds)
-  (println "Set :automated-proc-status to off for companies")
+  (info "Set :automated-proc-status to off for companies")
   (init-automated-download ds))
 
 (defn scrie-factura->db [factura ds]
