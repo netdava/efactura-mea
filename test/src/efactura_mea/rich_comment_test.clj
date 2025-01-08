@@ -1,4 +1,4 @@
-(ns efactura-mea.tests.rich-comment-tests
+(ns efactura-mea.rich-comment-test
   (:require [clojure.test :refer :all]
             [com.mjdowney.rich-comment-tests.test-runner :as test-runner]))
 
