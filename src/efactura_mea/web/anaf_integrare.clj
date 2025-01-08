@@ -15,7 +15,7 @@
    [efactura-mea.util :as u]
    [efactura-mea.web.json :as wj]
    [efactura-mea.web.layout :as layout]
-   [efactura-mea.web.oauth2-anaf :as o2a]
+   [efactura-mea.web.anaf.oauth2 :as o2a]
    [efactura-mea.web.ui.componente :as ui]
    [hiccup2.core :as h]
    [muuntaja.core :as m]
@@ -40,18 +40,20 @@
       [:div.columns
        [:div.column
         [:div.notification
-         [:p.is-size-7 "Dacă " [:span.has-text-weight-bold "ai permisiunea "]
+         [:p "Dacă " [:span.has-text-weight-bold "ai permisiunea "]
           "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
-         [:a {:href url-autorizare}
+         [:a.button.is-link {:href url-autorizare}
           (str "Autorizează accesul pentru CUI:" cif)]]]
        [:div.column
         [:div.notification
-         [:p.is-size-7 [:span.has-text-weight-bold "Fără permisiunea "]
-          "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
-         [:button.button.is-small.is-link {:hx-get url-autorizare
-                                           :hx-target "#modal-wrapper"
-                                           :hx-swap "innerHTML"}
-          (str "Autorizează accesul pentru CUI:" cif)]]]]
+         [:p [:span.has-text-weight-bold "Fără permisiunea "]
+          "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]] 
+         [:button.button.is-link {:disabled true
+                                  :hx-get url-autorizare
+                                  :hx-target "#modal-wrapper"
+                                  :hx-swap "innerHTML"}
+          (str "Autorizează accesul pentru CUI:" cif)]
+         [:p.is-small "Nu este implementat încă."]]]]
       [:div#modal-wrapper]])))
 
 (defn page-anaf-integrare

@@ -5,6 +5,7 @@
    [efactura-mea.web.api :as api]
    [efactura-mea.db.db-ops :as db]
    [efactura-mea.http-server]
+   [efactura-mea.job-scheduler]
    [mount-up.core :as mu]
    [clojure.tools.logging :refer [info]]
    [mount.core :as mount])

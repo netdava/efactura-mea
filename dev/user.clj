@@ -3,6 +3,7 @@
    [efactura-mea.config :refer [conf]]
    [efactura-mea.db.ds :refer [ds]]
    [efactura-mea.web.api :as api]
+   [efactura-mea.http-server]
    [com.mjdowney.rich-comment-tests.test-runner :as test-runner]
    [mount.core :as mount]))
 

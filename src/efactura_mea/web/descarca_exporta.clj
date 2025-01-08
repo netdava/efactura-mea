@@ -2,14 +2,15 @@
   (:require
    [babashka.http-client :as http]
    [clojure.java.io :as cio]
+   [clojure.tools.logging :as log]
    [efactura-mea.config :as config]
    [efactura-mea.db.db-ops :as db]
-   [efactura-mea.web.layout :as layout]
-   [efactura-mea.web.ui.componente :as ui]
    [efactura-mea.util :as u]
    [efactura-mea.web.api :as api]
-   [ring.util.io :as ruio]
-   [reitit.core :as r])
+   [efactura-mea.web.layout :as layout]
+   [efactura-mea.web.ui.componente :as ui]
+   [reitit.core :as r]
+   [ring.util.io :as ruio])
   (:import
    (java.io FileInputStream)
    (java.time DayOfWeek LocalDate)
@@ -82,7 +83,7 @@
                (with-open [file-stream (FileInputStream. zip-file)]
                  (cio/copy file-stream zip-output-stream))
                (.closeEntry zip-output-stream))
-             (println "File not found:" zip-name))))
+             (log/debug "File not found:" zip-name))))
        (.finish zip-output-stream)))))
 
 (defn fetch-xml-data-from-zip
@@ -120,7 +121,7 @@
             app-dir (System/getProperty "user.dir")
             filter-opts (assoc filter-opts :cif cif)
             facturi-in-date-range (db/fetch-facturi-in-date-range ds filter-opts)
-            _ (println "facturiile cu iduri" facturi-in-date-range)
+            _ (log/info "facturiile cu iduri" facturi-in-date-range)
             empty-facturi-in-date-range? ((comp not seq) facturi-in-date-range)]
         (if empty-facturi-in-date-range?
           {:archive-content nil}
@@ -146,9 +147,9 @@
                                                 pdf-file-path
                                                 (transformare-xml-to-pdf-salvare ds cif pdf-name pdf-path xml-content))))
                                           facturi-in-date-range)))
-                _ (println "id->pdf-names: " id->pdf-names)
+                _ (log/info "id->pdf-names: " id->pdf-names)
                 facturi-for-archive (into [] (concat facturi-paths-for-archive id->pdf-names))
-                _ (println "facturi-for-archive : " facturi-for-archive)
+                _ (log/info "facturi-for-archive : " facturi-for-archive)
                 {:keys [start-date end-date]} filter-opts
                 arhive-name (str  cif "_" start-date "_" end-date ".zip")
                 facturi-input-stream (facturi->input-stream facturi-for-archive)]

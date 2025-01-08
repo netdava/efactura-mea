@@ -5,14 +5,15 @@
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.string :as s]
+   [clojure.tools.logging :as log]
    [efactura-mea.config :as c]
    [efactura-mea.db.db-ops :as db]
    [efactura-mea.db.facturi :as facturi]
    [efactura-mea.job-scheduler :as scheduler]
    [efactura-mea.util :as u]
+   [efactura-mea.web.anaf.oauth2 :refer [make-query-string]]
    [efactura-mea.web.layout :as layout]
    [efactura-mea.web.login :as login]
-   [efactura-mea.web.oauth2-anaf :refer [make-query-string]]
    [efactura-mea.web.ui.componente :as ui]
    [efactura-mea.web.ui.input-validation :as v]
    [hiccup2.core :as h]
@@ -78,7 +79,8 @@
               response (u/encode-body-json->edn body)]
           {:status status
            :body response})))
-    (catch Exception e (println (.getMessage e)))))
+    (catch Exception e
+      (log/error e (str "Eroare apel listaMesajeFactura " (.getMessage e))))))
 
 (defn descarca-factura
   "Descarcă factura în format zip pe baza id-ului.
@@ -98,7 +100,7 @@
         app-dir (System/getProperty "user.dir")
         file-path (str app-dir "/" path "/" id ".zip")]
     (save-zip-file data file-path)
-    (println "Am descărcat" (str id ".zip") "pe calea" file-path)))
+    (log/info "Am descărcat" (str id ".zip") "pe calea" file-path)))
 
 (defn download-zip-file [factura conf ds cif]
   (let [download-to (c/download-dir conf)
@@ -119,7 +121,7 @@
     (ui/row-factura-anaf d h parsed-tip id_solicitare detalii id downloaded?-mark)))
 
 (defn afisare-lista-mesaje [mesaje eroare]
-  (println mesaje)
+  (log/info mesaje)
   (if mesaje
     (let [parsed-messages (for [m mesaje]
                             (parse-message m))
@@ -165,7 +167,7 @@
            test-file-exist (facturi/test-factura-descarcata? ds {:id id})]
        (if (empty? test-file-exist)
          (do
-           (println "incep sa downloadez")
+           (log/info "incep sa downloadez")
            (download-zip-file f conf ds cif)
            (db/scrie-factura->db f ds)
            (conj acc (str "am descarcat mesajul " zip-name)))
@@ -173,7 +175,7 @@
    [] mesaje))
 
 (defn fetch-lista-mesaje [zile cif ds conf]
-  (println "Entering fetch-lista-mesaje with zile:" zile ", cif:" cif "si conf " conf)
+  (log/info "Entering fetch-lista-mesaje with zile:" zile ", cif:" cif "si conf " conf)
   (let [tip-apel "lista-mesaje-descarcare"
         apel-lista-mesaje (obtine-lista-facturi zile cif tip-apel ds conf)
         {:keys [status body]} apel-lista-mesaje
@@ -204,14 +206,14 @@
 
 (defn descarca-mesaje-automat
   [zile cif ds conf]
-  (println "PARAMS din descarca-mesaje-automat " zile " / " cif "/" conf)
+  (log/info "PARAMS din descarca-mesaje-automat " zile " / " cif "/" conf)
   (let [validation-result (v/validate-input-data zile cif)]
     (if (nil? validation-result)
       (do
-        (println "Pornesc descarcarea automata a facturilor pentru cif: " cif " la " zile " zile")
-        (println "o sa apelez (fetch-lista-mesaje) cu ")
+        (log/debug "Pornesc descarcarea automata a facturilor pentru cif: " cif " la " zile " zile")
+        (log/debug "o sa apelez (fetch-lista-mesaje) cu ")
         (fetch-lista-mesaje zile cif ds conf)
-        (println "Am terminat descarcarea automata a facturilor pentru cif: " cif))
+        (log/debug "Am terminat descarcarea automata a facturilor pentru cif: " cif))
       (error-message-invalid-result validation-result))))
 
 (defn handle-mesaje
@@ -348,8 +350,8 @@
                              :or {interval-zile 5}}]
   (doseq [c live-companies]
     (let [cif (:cif c)]
-      (println "Submitting download for cif : " cif)
-      (.submit scheduler/descarcari-pool
+      (log/info "Submitting download for cif : " cif)
+      (.submit scheduler/executor-service
                (fn [] (descarca-mesaje-automat interval-zile cif ds conf))))))
 
 (defn schedule-descarcare-automata-per-comp [db conf]
@@ -368,11 +370,11 @@
     (transformare-xml-to-pdf a-token xml-data detalii-fact conf)))
 
 (defn pornire-serviciu-descarcare-automata [db conf]
-  (println "la pornire AUTOMATA la setare conf este: " conf " in rest este " conf)
+  (log/info "la pornire AUTOMATA la setare conf este: " conf " in rest este " conf)
   (let [interval-executare 12
         initial-delay 0]
-    (println "Initialising automatic download for every company with desc_aut_status \"on\", at every " interval-executare " hours")
-    (.scheduleAtFixedRate scheduler/sched-pool
+    (log/info "Initialising automatic download for every company with desc_aut_status \"on\", at every " interval-executare " hours")
+    (.scheduleAtFixedRate scheduler/job-scheduler-pool
                           (fn [] (schedule-descarcare-automata-per-comp db conf))
                           initial-delay
                           interval-executare
@@ -390,7 +392,7 @@
         (do
           (db/update-company-desc-aut-status ds opts)
           (pornire-serviciu-descarcare-automata ds conf)
-          (println "updated for company-id: " id " status ON")
+          (log/info "updated for company-id: " id " status ON")
           {:status 200
            :body "Serviciul descărcare automată pornit"
            :headers {"content-type" "text/html"}})
@@ -402,7 +404,7 @@
         (let [opts {:id id :date_modified now :status "off"}]
           #_(oprire-descarcare-automata)
           (db/update-company-desc-aut-status ds opts)
-          (println "canceling timer, set for comp-id " id " status OFF")
+          (log/info "canceling timer, set for comp-id " id " status OFF")
           {:status 200
            :body "Serviciul descărcare automată oprit"
            :headers {"content-type" "text/html"}})
@@ -496,7 +498,7 @@
   (.shutdown scheduler/sched-pool)
 
   (defn some-job []
-    (println "writing to DB and other stuff"))
+    (log/info "writing to DB and other stuff"))
 
   (company_desc_aut_status ds "35586426")
   (desc_aut_status_on? "on")

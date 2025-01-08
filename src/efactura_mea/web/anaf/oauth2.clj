@@ -1,10 +1,7 @@
-(ns efactura-mea.web.oauth2-anaf
+(ns efactura-mea.web.anaf.oauth2
   (:require
    [babashka.http-client :as http]
-   [clj-commons.byte-streams :as bs]
    [clojure.tools.logging :as log]
-   [efactura-mea.web.json :as wj]
-   [muuntaja.core :as m]
    [ring.util.codec :refer [url-encode]]))
 
 (def default-anaf-url-logincert "https://logincert.anaf.ro")
