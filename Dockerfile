@@ -2,7 +2,7 @@ FROM docker.io/clojure:temurin-21-tools-deps-jammy AS build-clojure
 
 WORKDIR /build
 
-COPY deps.edn /build/
+COPY deps.edn build.clj /build/
 RUN clj -Stree && clj -Stree -A:build && clj -X:deps prep
 
 COPY . /build
@@ -26,4 +26,4 @@ COPY --from=build-clojure /build/templates /app/templates
 COPY --from=build-clojure /build/conf /app/conf
 COPY --from=build-clojure /build/dev-resources /app/dev-resources
 
-CMD ["java", "-jar", "/app/efactura-mea.jar"]
+CMD ["java", "-jar", "/app/efactura-mea.jar", "server"]

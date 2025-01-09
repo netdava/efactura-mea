@@ -24,6 +24,8 @@
   (b/jar {:class-dir class-dir
           :jar-file jar-file}))
 
+;; TODO: write git commit for buid - show in healthcheck 
+
 (defn uber [_]
   (clean nil)
   (b/copy-dir {:src-dirs ["src" "resources"]

@@ -8,5 +8,6 @@
   (str (:data-dir cfg) "/date"))
 
 (defstate conf
-  :start (load-config))
+  :start (load-config)
+  :stop nil)
 

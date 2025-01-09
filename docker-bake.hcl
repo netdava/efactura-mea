@@ -3,7 +3,7 @@
 #
 
 variable "REPO" {
-    default = "ieugen/efactura"
+    default = "docker.io/ieugen/efactura"
 }
 
 variable "TAG" {

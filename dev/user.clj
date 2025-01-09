@@ -3,7 +3,7 @@
    [efactura-mea.config :refer [conf]]
    [efactura-mea.db.ds :refer [ds]]
    [efactura-mea.web.api :as api]
-   [efactura-mea.http-server]
+   [efactura-mea.systems :refer [web-app cli-app]]
    [com.mjdowney.rich-comment-tests.test-runner :as test-runner]
    [mount.core :as mount]))
 
@@ -16,13 +16,16 @@
   ;; run tests
   (test-runner/run-tests-in-file-tree! :dirs #{"src"})
 
-  (mount/start)
+  (mount/start web-app) 
 
-  (do 
-    (api/pornire-serviciu-descarcare-automata ds conf))
-
+  (mount/start cli-app) 
   (mount/stop)
-
+  
   (mount/running-states)
+
+  conf
+  
+  (do 
+    (api/pornire-serviciu-descarcare-automata ds conf)) 
 
   0)

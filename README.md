@@ -19,6 +19,8 @@ clj -T:build uber
 
 # Pornește aplicația local
 # TODO:
+ ./bin/efacturier.sh --help
+ ./bin/efacturier.sh server
 
 # Pornește un REPL pentru dezvoltare
 clojure -Sdeps '{:deps {nrepl/nrepl {:mvn/version,"1.0.0"},cider/cider-nrepl {:mvn/version,"0.28.5"}}}' -M:dev -m nrepl.cmdline --middleware "[cider.nrepl/cider-middleware]
