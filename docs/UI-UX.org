@@ -1,0 +1,17 @@
+#+TITLE: UI/UX 
+
+
+* Homepage
+
+** Carduri companie
+
+Pe pagina principală, utilizatorul va vedea lista cu companiile pe care le are cu 
+informații sumare despre ele + opțiune să adauge companie.
+Dacă nu sunt companii, se afișează central acțiunea de a adăuga companie - care duce la pagina respectivă.
+
+Pentru fiecare companie, vor fi afișate:
+- detalii de identificare (cui, nume, logo)
+- link către pagina cu mesaje descărcate
+- numărul de mesaje / facturi primit în ultimele X zile (1 zi, 7 zile, 30 zile)
+- când a fost verificată ultima dată API-ul ANAF
+- dacă este activată integrarea ANAF și dacă este token valid + link către integrare
