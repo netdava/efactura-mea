@@ -1,16 +1,18 @@
 (ns efactura-mea.web.companii.profil
   (:require
    [efactura-mea.web.ui.componente :as ui :refer [title details-table]]
-   [efactura-mea.db.db-ops :as db :refer [get-company-data]]
-   [efactura-mea.db.facturi :as facturi :refer [select-acc-token-exp-date]]
-   [hiccup2.core :as h]))
+   [efactura-mea.db.db-ops :as db
+    :refer [get-company-data fetch-company-token-expiration-date]]
+   [hiccup2.core :as h]
+   [java-time.api :as jt]))
 
 (defn afisare-profil-companie
   [req]
   (let [{:keys [path-params ds]} req
         {:keys [cif]} path-params
         company (get-company-data ds cif)
-        token-expiration-date (select-acc-token-exp-date ds {:cif cif})
+        token-expiration-date (fetch-company-token-expiration-date ds cif)
+        parse-exp-date (jt/zoned-date-time token-expiration-date)
         {:keys [name website address desc_aut_status date_modified]} company
         descarcare-automata-status  (h/html [:span.has-text-weight-bold.is-uppercase desc_aut_status] " - " [:span.is-size-6 date_modified])
         descarcare-automata-url (str "/descarcare-automata/" cif)
@@ -27,4 +29,5 @@
         [:a {:href website} website]]]]
      [:div.columns
       [:div.column
-       (details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Dată expirare access_token: " token-expiration-date "Descărcare automată:" [:div#das descarcare-automata-link descarcare-automata-status]})]])))
+       (details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Dată expirare access_token: " parse-exp-date "Descărcare automată:" [:div#das descarcare-automata-link descarcare-automata-status]})]])))
+

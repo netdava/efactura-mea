@@ -22,7 +22,10 @@
    [hiccup2.core :as h]
    [muuntaja.core :as m]
    [reitit.core :as r]
-   [ring.util.response :as rur]))
+   [ring.util.response :as rur]
+   [java-time.api :as jt])
+  (:import
+   [java.time.temporal ChronoUnit]))
 
 ;; todo: 
 ;; - funcționalitate de revocare a tokenului - în caz de compromitere
@@ -176,6 +179,12 @@
         (catch Exception e
           (log/info e (str "Exception" (ex-cause e)))
           (throw e))))))
+
+(defn days-until-expiration [expiration-str]
+  (let [now (jt/local-date-time)
+        expiration (jt/zoned-date-time expiration-str)
+        days-difference (.between ChronoUnit/DAYS now expiration)]
+    days-difference))
 
 (defn routes
   [anaf-conf]

@@ -27,6 +27,9 @@
 (defn fetch-company-refresh-token [db cif]
   (:refresh_token (first (f/select-company-token-data db {:cif cif}))))
 
+(defn fetch-company-token-expiration-date [db cif]
+  (:expiration_date (first (f/select-company-token-data db {:cif cif}))))
+
 (defn fetch-mesaje [db cif page per-page]
   (let [offset-num (* (dec page) per-page)]
     (f/select-facturi-descarcate db {:cif cif :limit per-page :offset offset-num})))
