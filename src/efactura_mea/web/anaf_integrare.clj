@@ -11,7 +11,9 @@
    "
   (:require
    [clojure.tools.logging :as log]
+   [babashka.http-client :as http]
    [efactura-mea.db.facturi :as fdb]
+   [efactura-mea.db.db-ops :as db-ops]
    [efactura-mea.util :as u]
    [efactura-mea.web.json :as wj]
    [efactura-mea.web.layout :as layout]
@@ -133,6 +135,48 @@
           (log/info e (str "Exception" (ex-cause e)))
           (throw e))))))
 
+(defn handler-refresh-token
+  [client-id client-secret]
+  (fn [req]
+    (let [{:keys [path-params ds]} req
+          {:keys [cif]} path-params
+          refresh-token (db-ops/fetch-company-refresh-token ds cif)
+          refresh-token-anaf-uri "https://logincert.anaf.ro/anaf-oauth2/v1/token"
+          opts {:basic-auth [client-id client-secret]
+                :form-params {:grant_type "refresh_token"
+                              :refresh_token refresh-token}}]
+      (try
+        (let [response (http/post refresh-token-anaf-uri opts)
+              {:keys [status]} response]
+          (if (= 200 status)
+            response
+            (throw (ex-info "Failed to refresh token" {:status status
+                                                       :response response}))))
+        (catch Exception e
+          (log/info e (str "Exception" (ex-cause e)))
+          (throw e))))))
+
+(defn handler-revoke!-token
+  [client-id client-secret]
+  (fn [req]
+    (let [{:keys [path-params ds]} req
+          {:keys [cif]} path-params
+          revoke-token (db-ops/fetch-company-refresh-token ds cif)
+          revoke-token-anaf-uri "https://logincert.anaf.ro/anaf-oauth2/v1/revoke"
+          opts {:basic-auth [client-id client-secret]
+                :form-params {:token revoke-token}}]
+      (try
+        (let [response (http/post revoke-token-anaf-uri opts)
+              {:keys [status]} response]
+          (if (= 200 status)
+            ;; TODO: de implementat mesaj de informare si functia in DB care sa extraga revoke-token
+            (log/info "Tokenul a fost revocat cu succes!")
+            (throw (ex-info "Failed to refresh token" {:status status
+                                                       :response response}))))
+        (catch Exception e
+          (log/info e (str "Exception" (ex-cause e)))
+          (throw e))))))
+
 (defn routes
   [anaf-conf]
   [["/login-anaf" (o2a/make-anaf-login-handler
@@ -141,7 +185,13 @@
    ["/integrare/:cif" {:name ::integrare
                        :get page-anaf-integrare}]
    ["/autorizeaza-acces/:cif" {:name ::autorizare
-                               :get handler-autorizare}]])
+                               :get handler-autorizare}]
+   ["/refresh-access-token/:cif" (handler-refresh-token
+                                  (anaf-conf :client-id)
+                                  (anaf-conf :client-secret))]
+   ["/revoke-token/:cif" (handler-revoke!-token
+                                  (anaf-conf :client-id)
+                                  (anaf-conf :client-secret))]])
 
 
 (comment 

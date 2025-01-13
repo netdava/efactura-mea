@@ -126,6 +126,11 @@ where company.cif = :cif;
 -- :result :raw
 select access_token from tokens where cif = :cif
 
+-- :name select-company-token-data
+-- :command :execute
+-- :result :raw
+select * from tokens where cif = :cif
+
 -- :name select-acc-token-exp-date :? :1
 -- :command :execute
 -- :result :raw
