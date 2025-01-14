@@ -1,0 +1,1 @@
+alter table tokens add column retries_count INTEGER DEFAULT 0;

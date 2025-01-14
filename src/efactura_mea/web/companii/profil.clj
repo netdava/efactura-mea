@@ -1,6 +1,7 @@
 (ns efactura-mea.web.companii.profil
   (:require
    [efactura-mea.web.ui.componente :as ui :refer [title details-table]]
+   [efactura-mea.util :as u]
    [efactura-mea.db.db-ops :as db
     :refer [get-company-data fetch-company-token-expiration-date]]
    [hiccup2.core :as h]
@@ -12,7 +13,10 @@
         {:keys [cif]} path-params
         company (get-company-data ds cif)
         token-expiration-date (fetch-company-token-expiration-date ds cif)
-        parse-exp-date (jt/zoned-date-time token-expiration-date)
+        parse-exp-date (try (let [formatter "yyyy-MM-dd HH:mm:ss"
+                                  zoned-time (jt/zoned-date-time token-expiration-date)]
+                              (jt/format formatter zoned-time))
+                            (catch Exception _ "could not be displayed"))
         {:keys [name website address desc_aut_status date_modified]} company
         descarcare-automata-status  (h/html [:span.has-text-weight-bold.is-uppercase desc_aut_status] " - " [:span.is-size-6 date_modified])
         descarcare-automata-url (str "/descarcare-automata/" cif)
@@ -31,3 +35,4 @@
       [:div.column
        (details-table {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Dată expirare access_token: " parse-exp-date "Descărcare automată:" [:div#das descarcare-automata-link descarcare-automata-status]})]])))
 
+(jt/format   (jt/zoned-date-time "2025-01-14T16:24:20.369794436Z[UTC]"))
