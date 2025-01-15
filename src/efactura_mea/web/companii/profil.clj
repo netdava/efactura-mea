@@ -3,7 +3,7 @@
    [efactura-mea.web.ui.componente :as ui :refer [title details-table]]
    [efactura-mea.util :as u]
    [efactura-mea.db.db-ops :as db
-    :refer [get-company-data fetch-company-token-expiration-date]]
+    :refer [get-company-data fetch-company-token-data]]
    [hiccup2.core :as h]
    [java-time.api :as jt]))
 
@@ -11,19 +11,22 @@
   [req]
   (let [{:keys [path-params ds]} req
         {:keys [cif]} path-params
-        company (get-company-data ds cif)
-        token-expiration-date (fetch-company-token-expiration-date ds cif)
-        parse-exp-date (try (let [formatter "yyyy-MM-dd HH:mm:ss"
-                                  zoned-time (jt/zoned-date-time token-expiration-date)]
-                              (jt/format formatter zoned-time))
-                            (catch Exception _ "could not be displayed"))
+        company (get-company-data ds cif) 
+        token-data (fetch-company-token-data ds cif)
+        {:keys [expiration_date _updated expires_in]} token-data
+        milliseconds->days (u/seconds->days expires_in)
+        valability (or (str milliseconds->days " zile") "")
+        parse-exp-date (u/format-utc-date expiration_date)
+        parsed-token-updated-at (u/format-utc-date _updated)
+
         {:keys [name website address desc_aut_status date_modified]} company
         descarcare-automata-status  (h/html [:span.has-text-weight-bold.is-uppercase desc_aut_status] " - " [:span.is-size-6 date_modified])
         descarcare-automata-url (str "/descarcare-automata/" cif)
         descarcare-automata-link [:a {:href descarcare-automata-url} [:span.icon [:i.fa.fa-pencil-square]]]
-        refresh-token-anaf-uri (str "/refresh-access-token" cif)
+        refresh-token-anaf-uri (str "/anaf/refresh-access-token/" cif)
         refresh-btn [:button.button.is-small.is-info 
-                     {:hx-get refresh-token-anaf-uri}
+                     {:hx-get refresh-token-anaf-uri
+                      :hx-swap "none"}
                      "Refresh token"]]
     (h/html
      (title "Pagina de profil a companiei")
@@ -38,7 +41,10 @@
      [:div.columns
       [:div.column
        (details-table 
-        {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address "Dată expirare access_token: " [:div parse-exp-date [:div refresh-btn]] "Descărcare automată:" [:div#das descarcare-automata-link descarcare-automata-status]})]])))
+        {"Companie:" name "CIF:" cif "Website:" website "Adresă:" address  "Descărcare automată:" [:div#das descarcare-automata-link descarcare-automata-status]})]
+      [:div#token-card.column
+       (details-table
+        {"Token" "" "Dată expirare: " [:div parse-exp-date [:div refresh-btn]] "Reînnoit la:" parsed-token-updated-at "Valabilitate: " valability})]])))
 
 (comment
   (jt/format   (jt/zoned-date-time "2025-01-14T16:24:20.369794436Z[UTC]"))

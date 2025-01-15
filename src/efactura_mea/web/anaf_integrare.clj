@@ -16,6 +16,7 @@
    [efactura-mea.db.db-ops :as db-ops]
    [efactura-mea.util :as u]
    [efactura-mea.web.json :as wj]
+   [jsonista.core :as json]
    [efactura-mea.web.layout :as layout]
    [efactura-mea.web.anaf.oauth2 :as o2a]
    [efactura-mea.web.ui.componente :as ui]
@@ -138,6 +139,22 @@
           (log/info e (str "Exception" (ex-cause e)))
           (throw e))))))
 
+(defn save-refreshed-token
+  [ds refresh-token-data cif]
+  (println "incep cu functia SAVE_REFRESHED_TOKEN")
+  (let [b (json/read-value refresh-token-data)
+        access-token (get b "access_token")
+        refresh-token (get b "refresh_token")
+        expires-in (get b "expires_in")
+        now (u/date-time-now-utc)
+        expiration-date (u/expiration-date now expires-in)
+        _ (db-ops/save-refreshed-token-data!
+           ds access-token refresh-token expiration-date expires-in now cif)]
+    {:status 200
+     :body ""
+     :headers {"HX-Refresh" "true"}}))
+
+
 (defn handler-refresh-token
   [client-id client-secret]
   (fn [req]
@@ -150,14 +167,16 @@
                               :refresh_token refresh-token}}]
       (try
         (let [response (http/post refresh-token-anaf-uri opts)
-              {:keys [status]} response]
+              {:keys [status body]} response]
           (if (= 200 status)
-            response
+            (save-refreshed-token ds body cif)
             (throw (ex-info "Failed to refresh token" {:status status
                                                        :response response}))))
         (catch Exception e
           (log/info e (str "Exception" (ex-cause e)))
           (throw e))))))
+
+
 
 (defn handler-revoke!-token
   [client-id client-secret]
@@ -172,7 +191,7 @@
         (let [response (http/post revoke-token-anaf-uri opts)
               {:keys [status]} response]
           (if (= 200 status)
-            ;; TODO: de implementat mesaj de informare si functia in DB care sa extraga revoke-token
+            ;; TODO: de implementat mesaj de informare
             (log/info "Tokenul a fost revocat cu succes!")
             (throw (ex-info "Failed to refresh token" {:status status
                                                        :response response}))))
@@ -203,17 +222,16 @@
                                   (anaf-conf :client-secret))]])
 
 
-(comment 
-  
-  (-> 
+(comment
+
+  (->
    (r/router (routes {}))
-   (r/match-by-name ::integrare {:cif "1234"}) 
+   (r/match-by-name ::integrare {:cif "1234"})
    :path)
   ;;=> "/integrare/1234"
   
   (-> (r/router (routes {}))
       (r/match-by-name ::autorizare {:cif "123"})
-      :path) 
+      :path)
   ;;=> "/autorizeaza-acces/123" 
-
   )

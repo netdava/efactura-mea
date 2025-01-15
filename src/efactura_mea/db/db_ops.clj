@@ -27,8 +27,8 @@
 (defn fetch-company-refresh-token [db cif]
   (:refresh_token (first (f/select-company-token-data db {:cif cif}))))
 
-(defn fetch-company-token-expiration-date [db cif]
-  (:expiration_date (first (f/select-company-token-data db {:cif cif}))))
+(defn fetch-company-token-data [db cif]
+  (first (f/select-company-token-data db {:cif cif})))
 
 (defn fetch-mesaje [db cif page per-page]
   (let [offset-num (* (dec page) per-page)]
@@ -157,6 +157,17 @@
                                                                :end-date end-date}))
         total-facturi-in-date-range (:total select-total)]
     total-facturi-in-date-range))
+
+(defn save-refreshed-token-data!
+  [ds access-token refresh-token expiration-date expires-in now cif]
+  (println "incep cu functia SAVE_REFRESHED_TOKEN")
+  (f/refresh-token-data-update
+   ds {:cif cif
+       :access_token access-token
+       :refresh_token refresh-token
+       :expiration_date expiration-date
+       :expires_in expires-in
+       :_updated now}))
 
 (comment
 

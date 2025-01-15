@@ -229,7 +229,7 @@
   [details-map]
   (h/html
    [:div.column
-    [:table.table
+    [:table.table.is-fullwidth
      [:tbody
       (for [[k v] details-map]
         [:tr

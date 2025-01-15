@@ -6,12 +6,21 @@
    [java-time.api :as jt])
   (:import
    (java.util.zip ZipFile)
-   (java.time.format DateTimeFormatter)))
+   (java.time.format DateTimeFormatter)
+   (java.time Duration)))
 
 (defn back-to-string-formatter
   [date]
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format date formatter)))
+
+(defn format-utc-date
+  [utc-date]
+  (try
+    (let [formatter "yyyy-MM-dd HH:mm:ss"
+          zoned-time (jt/zoned-date-time utc-date)]
+      (jt/format formatter zoned-time))
+    (catch Exception _ "invalid utc date format")))
 
 (defn file-in-dir? [dir file-name]
   (let [dir-file (io/file dir)]
@@ -33,10 +42,19 @@
   [inst-now]
   (jt/format :iso-date-time inst-now))
 
-(defn expiration-date 
+(defn expiration-date
   [zdate secs]
   (jt/plus zdate (jt/seconds secs)))
 
+(defn seconds->days
+  [seconds]
+  (try
+    (let [s (case seconds "" 0 (parse-long seconds))
+          duration (Duration/ofSeconds s)]
+      (.toDays duration))
+    (catch Exception _ "Failed converting token expiry period")))
+
+(type 7776000)
 ^:rct/test
 (comment
 
@@ -47,7 +65,6 @@
   (date-time->iso-str
    (expiration-date (jt/zoned-date-time 2024 01 01 10) 3600))
   ;;=> "2024-01-01T11:00:00+02:00[Europe/Bucharest]" 
-
   )
 
 (defn date-now
@@ -148,12 +165,13 @@
         (throw (Exception. (str "File " file-name-inside-zip " not found in " zip-file-path)))))))
 
 #_(defn extract-query-params [url]
-  (try (let [uri (java.net.URI. url)
-             query (.getQuery uri)
-             params (when query
-                      (->> (s/split query #"&")
-                           (map #(s/split % #"="))
-                           (map (fn [[k v]] [(keyword k) (Integer/parseInt v)]))
-                           (into {})))]
-         params)
-       (catch Exception _ {:page nil :per-page nil})))
+    (try (let [uri (java.net.URI. url)
+               query (.getQuery uri)
+               params (when query
+                        (->> (s/split query #"&")
+                             (map #(s/split % #"="))
+                             (map (fn [[k v]] [(keyword k) (Integer/parseInt v)]))
+                             (into {})))]
+           params)
+         (catch Exception _ {:page nil :per-page nil})))
+
