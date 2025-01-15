@@ -15,3 +15,5 @@ SELECT id, cif, access_token, refresh_token, expires_in, expiration_date, _updat
 alter table tokens rename to tokens_backup;
 --;;
 alter table tokens_new rename to tokens;
+--;;
+drop table tokens_backup;
