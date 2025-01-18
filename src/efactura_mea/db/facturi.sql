@@ -218,3 +218,9 @@ SET access_token = :access_token,
     expires_in = :expires_in,
     _updated = :_updated
 WHERE cif = :cif;
+
+-- :name update-token-retries-counter
+-- :command :execute
+UPDATE tokens
+SET retries_count = :retries_count
+WHERE cif = :cif;

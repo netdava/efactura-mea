@@ -139,42 +139,62 @@
           (log/info e (str "Exception" (ex-cause e)))
           (throw e))))))
 
+
 (defn save-refreshed-token
-  [ds refresh-token-data cif]
+  [ds opts]
   (println "incep cu functia SAVE_REFRESHED_TOKEN")
-  (let [b (json/read-value refresh-token-data)
+  (let [{:keys [body cif]} opts
+        b (json/read-value body)
         access-token (get b "access_token")
         refresh-token (get b "refresh_token")
         expires-in (get b "expires_in")
         now (u/date-time-now-utc)
         expiration-date (u/expiration-date now expires-in)
-        _ (db-ops/save-refreshed-token-data!
-           ds access-token refresh-token expiration-date expires-in now cif)]
+        save-opts {:cif cif
+                   :access_token access-token
+                   :refresh_token refresh-token
+                   :expiration_date expiration-date
+                   :expires_in expires-in
+                   :_updated now}
+        _ (db-ops/save-refreshed-token-data! ds save-opts)]
     {:status 200
-     :body ""
-     :headers {"HX-Refresh" "true"}}))
+     :body "Token refreshed"
+     :headers {"content-type" "text/html"}}))
 
 
 (defn handler-refresh-token
   [client-id client-secret]
   (fn [req]
-    (let [{:keys [path-params ds]} req
+    (let [{:keys [path-params ds uri]} req
           {:keys [cif]} path-params
-          refresh-token (db-ops/fetch-company-refresh-token ds cif)
+          token-data (db-ops/fetch-company-token-data ds cif)
+          {:keys [refresh_token retries_count]} token-data
           refresh-token-anaf-uri "https://logincert.anaf.ro/anaf-oauth2/v1/token"
           opts {:basic-auth [client-id client-secret]
                 :form-params {:grant_type "refresh_token"
-                              :refresh_token refresh-token}}]
+                              :refresh_token refresh_token}}]
       (try
-        (let [response (http/post refresh-token-anaf-uri opts)
-              {:keys [status body]} response]
-          (if (= 200 status)
-            (save-refreshed-token ds body cif)
-            (throw (ex-info "Failed to refresh token" {:status status
-                                                       :response response}))))
+        (loop [retries retries_count]
+          (if (<= retries 5)
+            (let [response (http/post refresh-token-anaf-uri opts)
+                  {:keys [status body]} response
+                  opts {:body body :cif cif :uri uri}]
+              (if (= 200 status)
+                (do
+                  (log/info "Refresh token reușit!")
+                  (db-ops/update-retries-counter! ds cif 0)
+                  (log/info "test dupa db action :"))
+                (do
+                  (log/info "Eroare obtinere refresh-token, încerc din nou...")
+                  (db-ops/update-retries-counter! ds cif retries)
+                  (recur (inc retries)))))
+            (log/info "Am atins limita maximă de încercări!")))
         (catch Exception e
           (log/info e (str "Exception" (ex-cause e)))
-          (throw e))))))
+          (throw e)))
+      {:status 200
+       :body "refreshed token"
+       :headers {"Content-type" "text/html"}})))
 
 
 

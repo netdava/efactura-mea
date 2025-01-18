@@ -34,6 +34,10 @@
   (let [offset-num (* (dec page) per-page)]
     (f/select-facturi-descarcate db {:cif cif :limit per-page :offset offset-num})))
 
+(defn update-retries-counter!
+  [ds cif retries_count]
+  (f/update-token-retries-counter ds {:cif cif :retries_count retries_count}))
+
 (defn count-lista-mesaje
   [db cif]
   (let [qr (first (f/count-lista-mesaje-descarcate db {:cif cif}))]
@@ -159,15 +163,15 @@
     total-facturi-in-date-range))
 
 (defn save-refreshed-token-data!
-  [ds access-token refresh-token expiration-date expires-in now cif]
-  (println "incep cu functia SAVE_REFRESHED_TOKEN")
-  (f/refresh-token-data-update
-   ds {:cif cif
-       :access_token access-token
-       :refresh_token refresh-token
-       :expiration_date expiration-date
-       :expires_in expires-in
-       :_updated now}))
+  [ds opts]
+  (let [{:keys [cif access_token refresh_token expiration_date expires_in _updated]} opts]
+    (f/refresh-token-data-update
+     ds {:cif cif
+         :access_token access_token
+         :refresh_token refresh_token
+         :expiration_date expiration_date
+         :expires_in expires_in
+         :_updated _updated})))
 
 (comment
 
