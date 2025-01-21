@@ -16,10 +16,7 @@
    [ring.middleware.stacktrace :refer [wrap-stacktrace-web]]
    [ring.middleware.webjars :refer [wrap-webjars]]))
 
-(defn handler
-  [conf]
-  (reitit/ring-handler
-   (reitit/router (routes (get-in conf [:anaf])))))
+
 
 (defn app
   [conf]
@@ -33,7 +30,8 @@
                           (assoc-in [:session :cookie-name] "SID"))]
     (api/create-dir-structure conf)
     (fs/create-dirs download-dir)
-    (cond-> (handler conf)
+    ;; TODO: să mutăm middleware în ring / declarative
+    (cond-> (reitit/router (routes))
       true (wrap-app-config)
       true (middleware/wrap-format)
       true (rmd/wrap-defaults site-defaults)

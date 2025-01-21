@@ -1,15 +1,18 @@
 (ns efactura-mea.web.home
-  (:require 
-   [efactura-mea.web.layout :as layout]))
+  (:require
+   [clojure.tools.logging :as log]
+   [efactura-mea.web.companii :as companii]
+   [efactura-mea.web.layout :as layout]
+   [ring.util.response :as rur]))
 
 (defn handle-homepage
   [req]
-  (let [{:keys [headers]} req
+  (let [{:keys [headers ds :reitit.core/router]} req
         {:strs [hx-request]} headers
-        content {:status 200
-                 :body "Bine ai venit pe eFacturaMea"
-                 :headers {"content-type" "text/html"}}
+        content (companii/afisare-companii-inregistrate router ds)
         sidebar (layout/sidebar-select-company)]
+    ;; (log/info "Home page 3")
     (if hx-request
-      content
-      (layout/main-layout (:body content) sidebar))))
+      (-> (rur/response content)
+          (rur/content-type "text/html"))
+      (layout/main-layout content sidebar))))

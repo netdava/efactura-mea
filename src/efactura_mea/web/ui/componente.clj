@@ -1,7 +1,8 @@
 (ns efactura-mea.web.ui.componente
-  (:require [hiccup2.core :as h]
-            [efactura-mea.util :as u]
-            [reitit.core :as r]))
+  (:require
+   [efactura-mea.util :as u]
+   [efactura-mea.web.utils :as wu]
+   [hiccup2.core :as h]))
 
 (defn hiccup-bold-span
   [text]
@@ -29,39 +30,42 @@
         [:a.navbar-item.is-selected {:href "#"} "Logout"]]]]]]])
 
 (defn sidebar-company-data [opts]
-  ;; TODO de pus conditia ca meniul sa fie disponibil doar daca compania a fost inregistrata corect cu token si tot ce trebuie
+  ;; TODO de pus conditia ca meniul sa fie disponibil doar daca compania a 
+  ;; fost inregistrata corect cu token si tot ce trebuie
   (let [{:keys [cif page per-page router]} opts
-        qp (when (and page per-page)
-             (str "?page=" page "&per-page=" per-page))
-        link-facturi-descarcate (str "/facturi/" cif)
-        link-facturi-spv (str "/facturi-spv/" cif)
-        link-logs (str "/logs/" cif qp)
-        link-descarcare-automata (str "/descarcare-automata/" cif)
-        link-profil (str "/profil/" cif)
-        link-integrare (-> router 
-                           (r/match-by-name :efactura-mea.web.anaf-integrare/integrare
-                                            {:cif cif})
-                           :path)
-        link-descarcare-exportare (str "/descarcare-exportare/" cif)]
+        query-params {:page page
+                      :per-page per-page}
+        path-params {:cif cif}
+        link-facturi-descarcate (wu/route-name->url
+                                 router :efactura-mea.web.companii/facturi-companie path-params)
+        link-facturi-spv (wu/route-name->url
+                          router :efactura-mea.web.companii/facturi-spv path-params)
+        link-logs (wu/route-name->url
+                   router :efactura-mea.web.companii/jurnal-spv path-params query-params)
+        link-profil (wu/route-name->url
+                     router :efactura-mea.web.companii/profil path-params)
+        link-integrare (wu/route-name->url
+                        router :efactura-mea.web.anaf-integrare/integrare path-params)
+        link-descarcare-exportare (wu/route-name->url
+                                   router :efactura-mea.web.companii/export-facturi path-params)]
     [:div.p-3
      [:div.menu-wrapper
       [:aside.menu
        [:ul.menu-list
-        [:li [:a {:href "/"} "Acasă"]]
-        [:li [:a {:href link-profil} "Profil"]]]
+        [:li [:a {:href "/"} "Acasă"]]]
        [:p.menu-label "Facturi"]
        [:ul.menu-list
         [:li [:a {:href link-facturi-descarcate} "Descărcate"]]
         [:li [:a {:href link-facturi-spv} "Spațiul Public Virtual"]]
         [:li [:a {:hx-get link-logs
-                  :hx-target "#main-content"} "Jurnal actiuni"]]]
-       [:p.menu-label "Administrare"]
-       [:ul.menu-list
-        [:li [:a {:href link-descarcare-automata} "Descărcare automată facturi"]]
-        [:li [:a {:href link-integrare} "Integrare automată"]]
+                  :hx-target "#main-content"} "Jurnal actiuni"]]
         [:li [:a {:hx-get link-descarcare-exportare
                   :hx-target "#main-content"
-                  :hx-push-url "true"} "Descarcă/Exportă"]]]]]]))
+                  :hx-push-url "true"} "Descarcă/Exportă"]]]
+       [:p.menu-label "Administrare"]
+       [:ul.menu-list
+        [:li [:a {:href link-profil} "Profil"]]
+        [:li [:a {:href link-integrare} "Integrare eFactura ANAF"]]]]]]))
 
 (defn sidebar-select-company []
   [:div.p-3
@@ -88,14 +92,6 @@
    [:div
     [:p.title.is-4 (str title-text (apply str args))]
     [:hr.title-hr]]))
-
-(defn facturi-descarcate [table-with-pagination]
-  {:status 200
-   :headers {"content-type" "text/html"}
-   :body (str (h/html
-               [:div#main-container.block
-                (title "Facturi descărcate local")
-                table-with-pagination]))})
 
 (defn facturi-spv [opts _]
   (let [{:keys [cif]} opts
@@ -210,60 +206,39 @@
            {:href pdf-download-url
             :target "_blank"} pdf-file-name]]]]]])))
 
-(defn tabel-facturi-descarcate [rows]
-  (h/html
-   [:table.table.is-hoverable
-    (table-header-facturi-descarcate)
-    (for [r rows]
-      r)]))
+(defn tabel-facturi-descarcate
+  [rows]
+  [:table.table.is-hoverable
+   (table-header-facturi-descarcate)
+   (for [r rows] r)])
 
-(defn validation-message [err-days err-cif]
-  (h/html
-   [:ul.err-msg
-    (when err-days [:li err-days])
-    (when err-cif [:li err-cif])]))
+(defn validation-message
+  [err-days err-cif]
+  [:ul.err-msg
+   (when err-days [:li err-days])
+   (when err-cif [:li err-cif])])
 
 (defn details-table
   "Primeste un map
    Genereaza un tabel pe baza tuturor perechilor k-v"
   [details-map]
-  (h/html
+  [[:div.column
+    [:table.table.is-fullwidth
+     [:tbody
+      (for [[k v] details-map]
+        [:tr
+         [:th k]
+         [:td.has-text-right v]])]]]
    [:div.column
     [:table.table.is-fullwidth
      [:tbody
       (for [[k v] details-map]
         [:tr
          [:th k]
-         [:td.has-text-right v]])]]]))
+         [:td.has-text-right v]])]]]])
 
-(defn lista-mesaje [r]
-  {:status 200
-   :body (str (h/html
-               [:div.content.block
-                [:h2 "Facturi disponibile pentru descărcat:"]
-                [:table.table
-                 r]]))
-   :headers {"content-type" "text/html"}})
-
-^:rct/test
-(comment
-  (facturi-descarcate {:path-params {:cif "12345678"}})
-  ;;=> {:status 200,
-  ;;    :headers {"content-type" "text/html"},
-  ;;    :body
-  ;;    "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div>{:path-params {:cif &quot;12345678&quot;}}</div>"}
-
-  (facturi-descarcate {:path-params {:cif nil}})
-  ;;=> {:status 200,
-  ;;    :headers {"content-type" "text/html"},
-  ;;    :body
-  ;;    "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div>{:path-params {:cif nil}}</div>"}
-
-  (facturi-descarcate {:path-params {:cif nil}})
-  ;;=> {:status 200,
-  ;;    :headers {"content-type" "text/html"},
-  ;;    :body
-  ;;    "<div class=\"block\" id=\"main-container\"><div><p class=\"title is-4\">Facturi descărcate local</p><hr class=\"title-hr\" /></div>{:path-params {:cif nil}}</div>"}
-
-  0)
-
+(defn lista-mesaje
+  [r]
+  [:div.content.block
+   [:h2 "Facturi disponibile pentru descărcat:"]
+   [:table.table r]])

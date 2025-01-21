@@ -7,32 +7,24 @@
    [clojure.string :as s]
    [clojure.tools.logging :as log]
    [efactura-mea.config :as c]
-   [efactura-mea.db.db-ops :as db]
+   [efactura-mea.db.db-ops :as db-ops]
    [efactura-mea.db.facturi :as facturi]
    [efactura-mea.job-scheduler :as scheduler]
    [efactura-mea.util :as u]
    [efactura-mea.web.anaf.oauth2 :refer [make-query-string]]
-   [efactura-mea.web.layout :as layout]
-   [efactura-mea.web.login :as login]
    [efactura-mea.web.ui.componente :as ui]
    [efactura-mea.web.ui.input-validation :as v]
    [hiccup2.core :as h]
    [java-time.api :as jt]
-   [reitit.core :as r])
+   [ring.util.response :as rur])
   (:import
    (java.time LocalDate)
    (java.time.format DateTimeFormatter)
    (java.util.concurrent TimeUnit)))
 
 (defn company_desc_aut_status [db cif]
-  (let [c (db/get-company-data db cif)]
+  (let [c (db-ops/get-company-data db cif)]
     (:desc_aut_status c)))
-
-(defn desc_aut_status_on? [status]
-  (case status
-    "on" true
-    "off" false
-    false))
 
 (defn filter-companies-status-on [companies]
   (filter
@@ -64,7 +56,7 @@
   [zile cif tip-apel ds conf]
   (try
     (let [target (:target conf)
-          a-token (db/fetch-access-token ds cif)]
+          a-token (db-ops/fetch-access-token ds cif)]
       (if (nil? a-token)
         (no-token-found-err-msg cif)
         (let [headers {:headers {"Authorization" (str "Bearer " a-token)}}
@@ -75,7 +67,7 @@
               endpoint (str base-url "?" (make-query-string q-str))
               r (http/get endpoint headers)
               {:keys [body status]} r
-              _ (db/log-api-calls ds cif r tip-apel)
+              _ (db-ops/log-api-calls ds cif r tip-apel)
               response (u/encode-body-json->edn body)]
           {:status status
            :body response})))
@@ -87,7 +79,7 @@
    - funcționează doar cu endpointurile de test/prod;
    - target un map {:endpoint <type>}, <type> poate fi :prod sau :test ."
   [cif id path ds conf]
-  (let [a-token (db/fetch-access-token ds cif)
+  (let [a-token (db-ops/fetch-access-token ds cif)
         target (:target conf)
         headers {:headers {"Authorization" (str "Bearer " a-token)} :as :stream}
         format-url "https://api.anaf.ro/%s/FCTEL/rest/descarcare"
@@ -95,7 +87,7 @@
         endpoint (str base-url "?id=" id)
         response (http/get endpoint headers)
         tip-apel "descarcare"
-        _ (db/log-api-calls ds cif response tip-apel)
+        _ (db-ops/log-api-calls ds cif response tip-apel)
         data (:body response)
         app-dir (System/getProperty "user.dir")
         file-path (str app-dir "/" path "/" id ".zip")]
@@ -145,7 +137,7 @@
         {:keys [status body]} apel-lista-mesaje
         {:keys [mesaje eroare]} body
         ids-mesaje-disponibile (mapv :id mesaje)
-        mesaje-disponibile-descarcate (db/fetch-ids-mesaje-descarcate ds ids-mesaje-disponibile)
+        mesaje-disponibile-descarcate (db-ops/fetch-ids-mesaje-descarcate ds ids-mesaje-disponibile)
         ids-map->set (set (map :id_descarcare mesaje-disponibile-descarcate))
         mesaje-marcate (add-status-downloaded? ids-map->set mesaje)]
     (if
@@ -169,7 +161,7 @@
          (do
            (log/info "incep sa downloadez")
            (download-zip-file f conf ds cif)
-           (db/scrie-factura->db f ds)
+           (db-ops/scrie-factura->db f ds)
            (conj acc (str "am descarcat mesajul " zip-name)))
          (conj acc (str "factura " zip-name " exista salvata local")))))
    [] mesaje))
@@ -182,7 +174,7 @@
         {:keys [eroare mesaje]} body]
     (if (= 200 status)
       (if mesaje
-        (let [_ (db/track-descarcare-mesaje ds mesaje)
+        (let [_ (db-ops/track-descarcare-mesaje ds mesaje)
               queue-lista-mesaje (facturi/select-queue-lista-mesaje ds)
               {:keys [id lista_mesaje]} queue-lista-mesaje
               lista-mesaje (edn/read-string lista_mesaje)
@@ -196,13 +188,6 @@
           (h/html raport-descarcare-facturi->ui))
         eroare)
       body)))
-
-(defn handler-login
-  [_]
-  (let [content (login/login-form)]
-    {:status 200
-     :headers {"content-type" "text/html"}
-     :body content}))
 
 (defn descarca-mesaje-automat
   [zile cif ds conf]
@@ -224,15 +209,18 @@
             (error-message-invalid-result validation-result))]
     (ui/lista-mesaje r)))
 
-(defn handle-list-or-download [req]
+(defn handle-list-or-download
+  [req]
   (let [{:keys [params ds conf]} req
         {:keys [action cif zile]} params
         zile (or (some-> zile Integer/parseInt) nil)
         vr (v/validate-input-data zile cif)
-        opts {:cif cif :zile zile :validation-result vr}]
-    (case action
-      "listare" (handle-mesaje opts ds conf call-for-lista-facturi)
-      "descarcare" (handle-mesaje opts ds conf fetch-lista-mesaje))))
+        opts {:cif cif :zile zile :validation-result vr}
+        result (case action
+                 "listare" (handle-mesaje opts ds conf call-for-lista-facturi)
+                 "descarcare" (handle-mesaje opts ds conf fetch-lista-mesaje))]
+    (-> (rur/response result)
+        (rur/content-type "text/html"))))
 
 (defn save-pdf [path pdf-name pdf-content]
   (let [save-to (str path "/" pdf-name)]
@@ -273,78 +261,6 @@
                "Content-Disposition" content-disposition
                "Location" location}}))
 
-(defn handler-formular-descarcare-automata
-  [req]
-  (let [{:keys [path-params ds]} req
-        {:keys [cif]} path-params
-        c-data (db/get-company-data ds cif)
-        my-selected-val (fn [n]
-                          (let [opts {:value n}]
-                            (when (= n 5) (assoc opts :selected true))))
-        days (range 1 60)
-        days-select-vals (for [n days]
-                           [:option (my-selected-val n) n])
-        {:keys [desc_aut_status]} c-data
-        status (desc_aut_status_on? desc_aut_status)
-        status-msg (if status
-                     "Serviciul descărcare automată pornit"
-                     "Serviciul descărcare automată oprit")]
-    {:status 200
-     :body (str
-            (h/html
-             [:form.block {:hx-get "/pornire-descarcare-automata"
-                           :hx-target "#status"
-                           :hx-swap "innerHTML"}
-              [:div.field
-               [:label.label "CIF:"]
-               [:input.input {:readonly "readonly"
-                              :type "text"
-                              :id "cif-number"
-                              :list "cif"
-                              :name "cif"
-                              :value cif
-                              :placeholder cif}]]
-              [:div.field
-               [:label.label "Număr de zile pentru descărcare automată facturi anaf:"]
-               [:div.select [:select {:id "zile" :name "zile"}
-                             days-select-vals]]]
-              [:div.field
-               [:input {:id "descarcare-automata"
-                        :type "checkbox"
-                        :checked status
-                        :name "descarcare-automata"
-                        :class "switch is-rounded is-info"}]
-               [:label {:for "descarcare-automata"} "Activează descarcarea automată"]]
-              [:div.field.content.is-small
-               [:span.icon-text
-                [:span.icon.has-text-info
-                 [:i.fa.fa-info-circle]]
-                [:p#status status-msg]]]
-              [:button.button.is-small.is-link {:type "submit"} "Setează"]]))
-     :headers {"content-type" "text/html"}}))
-
-(defn set-descarcare-automata
-  [cif]
-  (let [t (str "Activare descărcare automată facturi")
-        url (str "/formular-descarcare-automata/" cif)]
-    (h/html
-     [:div#main-container.block
-      (ui/title t)
-      [:div#sda-form
-       {:hx-get url
-        :hx-trigger "load"}]
-      [:div#modal-wrapper]])))
-
-(defn handler-afisare-formular-descarcare-automata
-  [req]
-  (let [{:keys [path-params ::r/router]} req
-        cif (:cif path-params)
-        opts {:cif cif :router router}
-        sidebar (layout/sidebar-company-data opts)
-        content (set-descarcare-automata cif)]
-    (layout/main-layout content sidebar)))
-
-
 (defn submit-download-proc
   [live-companies ds conf & {:keys [interval-zile]
                              :or {interval-zile 5}}]
@@ -355,7 +271,7 @@
                (fn [] (descarca-mesaje-automat interval-zile cif ds conf))))))
 
 (defn schedule-descarcare-automata-per-comp [db conf]
-  (let [c (db/companies-with-status db)
+  (let [c (db-ops/companies-with-status db)
         live-companies (filter-companies-status-on c)]
     (submit-download-proc live-companies db conf {:interval-zile 10})))
 
@@ -374,9 +290,9 @@
   [req]
   (let [{:keys [params ds conf]} req
         {:keys [id_descarcare]} params
-        detalii-fact (db/detalii-factura-anaf ds id_descarcare)
+        detalii-fact (db-ops/detalii-factura-anaf ds id_descarcare)
         {:keys [cif]} detalii-fact
-        a-token (db/fetch-access-token ds cif)
+        a-token (db-ops/fetch-access-token ds cif)
         xml-data (zip-file->xml-data conf detalii-fact)]
     (transformare-xml-to-pdf a-token xml-data detalii-fact conf)))
 
@@ -395,39 +311,6 @@
                           initial-delay
                           interval-executare
                           TimeUnit/HOURS)))
-
-(defn handler-descarcare-automata-facturi [req]
-  (let [{:keys [params ds conf]} req
-        {:keys [cif descarcare-automata]} params
-        company-data (db/get-company-data ds cif)
-        {:keys [id]} company-data
-        now (u/formatted-date-now)
-        opts {:id id :date_modified now :status "on"}]
-    (if descarcare-automata
-      (try
-        (do
-          (db/update-company-desc-aut-status ds opts)
-          (pornire-serviciu-descarcare-automata ds conf)
-          (log/info "updated for company-id: " id " status ON")
-          {:status 200
-           :body "Serviciul descărcare automată pornit"
-           :headers {"content-type" "text/html"}})
-        (catch Exception e
-          (let [msg (.getMessage e)]
-            [:div.notification.is-danger
-             msg])))
-      (try
-        (let [opts {:id id :date_modified now :status "off"}]
-          #_(oprire-descarcare-automata)
-          (db/update-company-desc-aut-status ds opts)
-          (log/info "canceling timer, set for comp-id " id " status OFF")
-          {:status 200
-           :body "Serviciul descărcare automată oprit"
-           :headers {"content-type" "text/html"}})
-        (catch Exception e
-          (let [msg (.getMessage e)]
-            [:div.notification.is-danger
-             msg]))))))
 
 ^:rct/test
 (comment
@@ -506,6 +389,38 @@
     {:status 200
      :body r
      :headers {"content-type" "text/html"}}))
+(defn handler-descarcare-automata-facturi
+  [req]
+  (let [{:keys [params ds]} req
+        {:keys [cif descarcare-automata]} params
+        company-data (db-ops/get-company-data ds cif)
+        {:keys [id]} company-data
+        now (u/formatted-date-now)
+        opts {:id id :date_modified now :status "on"}]
+    (if descarcare-automata
+      (try
+        (db-ops/update-company-desc-aut-status ds opts)
+        (log/info "updated for company-id: " id " status ON")
+        {:status 200
+         :body "Serviciul descărcare automată pornit"
+         :headers {"content-type" "text/html"}}
+        (catch Exception e
+          (let [msg (.getMessage e)]
+            [:div.notification.is-danger
+             msg])))
+      (try
+        (let [opts {:id id :date_modified now :status "off"}]
+          #_(oprire-descarcare-automata)
+          (db-ops/update-company-desc-aut-status ds opts)
+          (log/info "canceling timer, set for comp-id " id " status OFF")
+          {:status 200
+           :body "Serviciul descărcare automată oprit"
+           :headers {"content-type" "text/html"}})
+        (catch Exception e
+          (let [msg (.getMessage e)]
+            [:div.notification.is-danger
+             msg]))))))
+
 
 
 (comment
@@ -516,7 +431,6 @@
   (defn some-job []
     (log/info "writing to DB and other stuff"))
 
-  (company_desc_aut_status ds "35586426")
-  (desc_aut_status_on? "on")
+  (company_desc_aut_status efactura-mea.db.ds/ds "35586426")
 
   0)

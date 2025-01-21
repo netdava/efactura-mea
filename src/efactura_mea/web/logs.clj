@@ -50,7 +50,7 @@
         cif (:cif path-params)
         opts {:page page :per-page per-page :uri uri :cif cif :router router}
         content (logs-api-calls ds opts)
-        sidebar (layout/sidebar-company-data opts)]
+        sidebar (ui/sidebar-company-data opts)]
     (if (= hx-request "true")
       content
       (layout/main-layout (:body content) sidebar))))
