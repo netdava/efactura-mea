@@ -146,21 +146,6 @@
     [:td.is-size-7 detalii]
     [:td.is-size-7 id]]))
 
-(defn table-header-facturi-descarcate []
-  (h/html
-   [:tr
-    [:th "id descărcare"]
-    [:th "serie/număr"]
-    [:th "data urcare SPV"]
-    [:th "data emiterii"]
-    [:th "data scadenței"]
-    [:th "furnizor"]
-    [:th "client"]
-    [:th "valoare"]
-    [:th "moneda"]
-    [:th "tip"]
-    [:th "download"]]))
-
 (defn tag-tip-factura [tip]
   (case tip
     "primita" "is-info"
@@ -209,7 +194,18 @@
 (defn tabel-facturi-descarcate
   [rows]
   [:table.table.is-hoverable
-   (table-header-facturi-descarcate)
+   [:tr
+    [:th "id descărcare"]
+    [:th "serie/număr"]
+    [:th "data urcare SPV"]
+    [:th "data emiterii"]
+    [:th "data scadenței"]
+    [:th "furnizor"]
+    [:th "client"]
+    [:th "valoare"]
+    [:th "moneda"]
+    [:th "tip"]
+    [:th "download"]]
    (for [r rows] r)])
 
 (defn validation-message

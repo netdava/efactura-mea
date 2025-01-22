@@ -16,7 +16,11 @@
    [ring.middleware.stacktrace :refer [wrap-stacktrace-web]]
    [ring.middleware.webjars :refer [wrap-webjars]]))
 
-
+;; putem folosi handlerul pentru teste
+;; https://cljdoc.org/d/metosin/reitit/0.7.2/doc/ring/ring-router#request-method-based-routing
+(defstate main-handler 
+  :start (reitit/ring-handler (reitit/router (routes)))
+  :stop nil)
 
 (defn app
   [conf]
@@ -31,7 +35,7 @@
     (api/create-dir-structure conf)
     (fs/create-dirs download-dir)
     ;; TODO: să mutăm middleware în ring / declarative
-    (cond-> (reitit/router (routes))
+    (cond-> main-handler
       true (wrap-app-config)
       true (middleware/wrap-format)
       true (rmd/wrap-defaults site-defaults)

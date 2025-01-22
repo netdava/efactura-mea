@@ -9,13 +9,12 @@
 
 (defn row-log-api-call
   [{:keys [id data_apelare url tip status_code]}]
-  (h/html
-   [:tr
-    [:td.is-size-7 id]
-    [:td.is-size-7 data_apelare]
-    [:td.is-size-7 url]
-    [:td.is-size-7 tip]
-    [:td.is-size-7 status_code]]))
+  [:tr
+   [:td.is-size-7 id]
+   [:td.is-size-7 data_apelare]
+   [:td.is-size-7 url]
+   [:td.is-size-7 tip]
+   [:td.is-size-7 status_code]])
 
 (defn logs-list
   [ds cif page per-page]

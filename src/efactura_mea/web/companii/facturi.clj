@@ -94,15 +94,16 @@
         opts {:cif cif :page page :per-page per-page :uri uri :router router}
         mesaje-cerute (db/fetch-mesaje ds cif page per-page)
         _ (def mesaje mesaje-cerute)
-        download-dir (config/download-dir conf) 
+        download-dir (config/download-dir conf)
         mesaje (gather-invoices-data (add-path-for-download download-dir mesaje-cerute))
         table-with-pagination (afisare-facturile-mele mesaje ds opts)
         content (facturi-descarcate table-with-pagination)
-        sidebar (ui/sidebar-company-data opts)]
-    (if (= hx-request "true")
-      (-> (rur/response content)
-          (rur/content-type "text/html"))
-      (layout/main-layout (:body content) sidebar))))
+        sidebar (ui/sidebar-company-data opts)
+        body (if (= hx-request "true")
+               (h/html content)
+               (layout/main-layout content sidebar))]
+    (-> (rur/response (str body))
+        (rur/content-type "text/html"))))
 
 (comment 
   mesaje
@@ -112,7 +113,8 @@
    (afisare-facturile-mele 
     efactura-mea.db.ds/ds 
     {:cif "35586426"
-     :page 1 :per-page 10 :uri "aaaa" :router nil}))
+     :page 1 :per-page 10 :uri "aaaa" :router nil})
+   (facturi-descarcate))
   
   )
 
