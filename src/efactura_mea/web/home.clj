@@ -3,16 +3,18 @@
    [clojure.tools.logging :as log]
    [efactura-mea.web.companii :as companii]
    [efactura-mea.web.layout :as layout]
-   [ring.util.response :as rur]))
+   [ring.util.response :as rur]
+   [hiccup2.core :as h]))
 
 (defn handle-homepage
   [req]
   (let [{:keys [headers ds :reitit.core/router]} req
         {:strs [hx-request]} headers
         content (companii/afisare-companii-inregistrate router ds)
-        sidebar (layout/sidebar-select-company)]
+        sidebar (layout/sidebar-select-company)
+        body (if hx-request
+               (str (h/html content))
+               (layout/main-layout content sidebar))]
     ;; (log/info "Home page 3")
-    (if hx-request
-      (-> (rur/response content)
-          (rur/content-type "text/html"))
-      (layout/main-layout content sidebar))))
+    (-> (rur/response body)
+        (rur/content-type "text/html"))))

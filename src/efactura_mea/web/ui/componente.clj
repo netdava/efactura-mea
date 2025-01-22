@@ -6,7 +6,7 @@
 
 (defn hiccup-bold-span
   [text]
-  (h/html [:span.has-text-weight-bold text]))
+  [:span.has-text-weight-bold text])
 
 (defn navbar [user-name]
   [:nav.navbar.is-white.top-nav
@@ -41,7 +41,7 @@
         link-facturi-spv (wu/route-name->url
                           router :efactura-mea.web.companii/facturi-spv path-params)
         link-logs (wu/route-name->url
-                   router :efactura-mea.web.companii/jurnal-spv path-params query-params)
+                   router :efactura-mea.web.companii/jurnal-spv path-params)
         link-profil (wu/route-name->url
                      router :efactura-mea.web.companii/profil path-params)
         link-integrare (wu/route-name->url
@@ -57,11 +57,8 @@
        [:ul.menu-list
         [:li [:a {:href link-facturi-descarcate} "Descărcate"]]
         [:li [:a {:href link-facturi-spv} "Spațiul Public Virtual"]]
-        [:li [:a {:hx-get link-logs
-                  :hx-target "#main-content"} "Jurnal actiuni"]]
-        [:li [:a {:hx-get link-descarcare-exportare
-                  :hx-target "#main-content"
-                  :hx-push-url "true"} "Descarcă/Exportă"]]]
+        [:li [:a {:href link-logs} "Jurnal actiuni"]]
+        [:li [:a {::href link-descarcare-exportare} "Descarcă/Exportă"]]]
        [:p.menu-label "Administrare"]
        [:ul.menu-list
         [:li [:a {:href link-profil} "Profil"]]
@@ -87,64 +84,60 @@
              :hx-push-url "true"}
             "Companii"]]]]]])
 
-(defn title [title-text & args]
-  (h/html
-   [:div
-    [:p.title.is-4 (str title-text (apply str args))]
-    [:hr.title-hr]]))
+(defn title
+  [title-text & args]
+  [:div
+   [:p.title.is-4 (str title-text (apply str args))]
+   [:hr.title-hr]])
 
 (defn facturi-spv [opts _]
   (let [{:keys [cif]} opts
         days (range 1 60)
         days-select-vals (for [n days]
                            [:option {:value n} n])]
-    {:status 200
-     :headers {"content-type" "text/html"}
-     :body (str (h/html
-                 [:div#main-container.block
-                  (title "Aici poți vizualiza și descărca facturile din SPV:")
-                  [:form.block {:hx-get "/listare-sau-descarcare"
-                                :hx-target "#facturi-anaf"}
-                   [:div.field
-                    [:label.label "CIF:"]
-                    [:input.input {:readonly "readonly"
-                                   :type "text"
-                                   :id "cif-number"
-                                   :list "cif"
-                                   :name "cif"
-                                   :value cif
-                                   :placeholder cif}]]
-                   [:div.field
-                    [:label.label "Număr de zile pentru vizualizare/descărcare facturi anaf:"]
-                    [:div.select [:select {:id "zile" :name "zile"}
-                                  days-select-vals]]]
-                   [:div.buttons
-                    [:button.button.is-small.is-link {:type "submit"
-                                                      :name "action"
-                                                      :value "listare"} "vezi facturi"]
-                    [:button.button.is-small.is-link {:type "submit" :name "action" :value "descarcare"} "descarca facturi"]]]
-                  [:div#facturi-anaf]]))}))
+    [:div#main-container.block
+     (title "Aici poți vizualiza și descărca facturile din SPV:")
+     [:form.block {:hx-get "/listare-sau-descarcare"
+                   :hx-target "#facturi-anaf"}
+      [:div.field
+       [:label.label "CIF:"]
+       [:input.input {:readonly "readonly"
+                      :type "text"
+                      :id "cif-number"
+                      :list "cif"
+                      :name "cif"
+                      :value cif
+                      :placeholder cif}]]
+      [:div.field
+       [:label.label "Număr de zile pentru vizualizare/descărcare facturi anaf:"]
+       [:div.select [:select {:id "zile" :name "zile"}
+                     days-select-vals]]]
+      [:div.buttons
+       [:button.button.is-small.is-link {:type "submit"
+                                         :name "action"
+                                         :value "listare"} "vezi facturi"]
+       [:button.button.is-small.is-link {:type "submit" :name "action" :value "descarcare"} "descarca facturi"]]]
+     [:div#facturi-anaf]]))
 
-(defn table-header-facturi-anaf []
-  (h/html
-   [:tr
-    [:th]
-    [:th "dată răspuns"]
-    [:th "tip factură"]
-    [:th "id solicitare"]
-    [:th "detalii"]
-    [:th "id factură"]]))
+(defn table-header-facturi-anaf
+  []
+  [:tr
+   [:th]
+   [:th "dată răspuns"]
+   [:th "tip factură"]
+   [:th "id solicitare"]
+   [:th "detalii"]
+   [:th "id factură"]])
 
 (defn row-factura-anaf
   [data ora tip-factura id_solicitare detalii id downloaded?-mark]
-  (h/html
-   [:tr
-    [:td downloaded?-mark]
-    [:td.is-size-7 data [:br] ora]
-    [:td.is-size-7 tip-factura]
-    [:td.is-size-7 id_solicitare]
-    [:td.is-size-7 detalii]
-    [:td.is-size-7 id]]))
+  [:tr
+   [:td downloaded?-mark]
+   [:td.is-size-7 data [:br] ora]
+   [:td.is-size-7 tip-factura]
+   [:td.is-size-7 id_solicitare]
+   [:td.is-size-7 detalii]
+   [:td.is-size-7 id]])
 
 (defn tag-tip-factura [tip]
   (case tip
@@ -166,30 +159,29 @@
         link-opts {:href final-path :target "_blank"}
         pdf-download-query-params (str "?id_descarcare=" id_descarcare)
         pdf-download-url (str "/transformare-xml-pdf" pdf-download-query-params)]
-    (h/html
-     [:tr
-      [:td.is-size-7 id_descarcare]
-      [:td.is-size-7 serie_numar]
-      [:td.is-size-7 parsed_date]
-      [:td.is-size-7 data_emitere]
-      [:td.is-size-7 data_scadenta]
-      [:td.is-size-7 furnizor]
-      [:td.is-size-7 client]
-      [:td.is-size-7 total]
-      [:td.is-size-7 valuta]
-      [:td.is-size-7 [:span tag-opts tip]]
-      [:td.is-size-7.has-text-centered
-       [:div.dropdown.is-hoverable
-        [:div.dropdown-trigger
-         [:button.button.is-small {:aria-haspopup "true" :aria-controls "dropdown-menu3"}
-          [:i {:class "fa fa-ellipsis-h "
-               :aria-hidden true}]]]
-        [:div.dropdown-menu {:id "dropdown-menu3" :role "menu"}
-         [:div.dropdown-content
-          [:a.dropdown-item link-opts zip-file-name]
-          [:a.dropdown-item
-           {:href pdf-download-url
-            :target "_blank"} pdf-file-name]]]]]])))
+    [:tr
+     [:td.is-size-7 id_descarcare]
+     [:td.is-size-7 serie_numar]
+     [:td.is-size-7 parsed_date]
+     [:td.is-size-7 data_emitere]
+     [:td.is-size-7 data_scadenta]
+     [:td.is-size-7 furnizor]
+     [:td.is-size-7 client]
+     [:td.is-size-7 total]
+     [:td.is-size-7 valuta]
+     [:td.is-size-7 [:span tag-opts tip]]
+     [:td.is-size-7.has-text-centered
+      [:div.dropdown.is-hoverable
+       [:div.dropdown-trigger
+        [:button.button.is-small {:aria-haspopup "true" :aria-controls "dropdown-menu3"}
+         [:i {:class "fa fa-ellipsis-h "
+              :aria-hidden true}]]]
+       [:div.dropdown-menu {:id "dropdown-menu3" :role "menu"}
+        [:div.dropdown-content
+         [:a.dropdown-item link-opts zip-file-name]
+         [:a.dropdown-item
+          {:href pdf-download-url
+           :target "_blank"} pdf-file-name]]]]]]))
 
 (defn tabel-facturi-descarcate
   [rows]
@@ -206,7 +198,8 @@
     [:th "moneda"]
     [:th "tip"]
     [:th "download"]]
-   (for [r rows] r)])
+   (for [r rows]
+     r)])
 
 (defn validation-message
   [err-days err-cif]
@@ -218,20 +211,20 @@
   "Primeste un map
    Genereaza un tabel pe baza tuturor perechilor k-v"
   [details-map]
-  [[:div.column
-    [:table.table.is-fullwidth
-     [:tbody
-      (for [[k v] details-map]
-        [:tr
-         [:th k]
-         [:td.has-text-right v]])]]]
-   [:div.column
-    [:table.table.is-fullwidth
-     [:tbody
-      (for [[k v] details-map]
-        [:tr
-         [:th k]
-         [:td.has-text-right v]])]]]])
+  [:div.column
+   [:table.table.is-fullwidth
+    [:tbody
+     (for [[k v] details-map]
+       [:tr
+        [:th k]
+        [:td.has-text-right (or v "N/A")]])]]]
+  [:div.column
+   [:table.table.is-fullwidth
+    [:tbody
+     (for [[k v] details-map]
+       [:tr
+        [:th k]
+        [:td.has-text-right (or v "N/A")]])]]])
 
 (defn lista-mesaje
   [r]

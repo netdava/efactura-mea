@@ -1,6 +1,7 @@
 (ns efactura-mea.web.descarca-exporta
   (:require
    [babashka.http-client :as http]
+   [hiccup2.core :as h]
    [clojure.java.io :as cio]
    [clojure.tools.logging :as log]
    [efactura-mea.config :as config]
@@ -10,6 +11,7 @@
    [efactura-mea.web.layout :as layout]
    [efactura-mea.web.ui.componente :as ui]
    [reitit.core :as r]
+   [ring.util.response :as rur]
    [ring.util.io :as ruio])
   (:import
    (java.io FileInputStream)
@@ -164,16 +166,9 @@
         {:keys [cif]} path-params
         content (api/afisare-descarcare-exportare cif)
         opts {:cif cif :router router}
-        sidebar (ui/sidebar-company-data opts)]
-    (if (= hx-request "true")
-      content
-      (layout/main-layout (:body content) sidebar))))
-
-
-
-
-
-
-
-
-
+        sidebar (ui/sidebar-company-data opts)
+        body (if (= hx-request "true")
+               content
+               (layout/main-layout content sidebar))]
+    (-> (rur/response body)
+        (rur/content-type "text/html"))))

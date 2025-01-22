@@ -4,8 +4,10 @@
    [efactura-mea.web.ui.componente :as ui]
    [efactura-mea.db.db-ops :as db]
    [efactura-mea.web.ui.pagination :as pagination]
+   [efactura-mea.web.utils :as wu]
    [hiccup2.core :as h]
-   [reitit.core :as r]))
+   [reitit.core :as r]
+   [ring.util.response :as rur]))
 
 (defn row-log-api-call
   [{:keys [id data_apelare url tip status_code]}]
@@ -17,40 +19,41 @@
    [:td.is-size-7 status_code]])
 
 (defn logs-list
-  [ds cif page per-page]
-  (let [uri (str "/logs/" cif)
+  [ds opts]
+  (let [{:keys [page per-page cif router]} opts
+        uri (wu/route-name->url router :efactura-mea.web.companii/jurnal-spv {:cif cif})
         count-logs (db/count-apeluri-anaf-logs ds cif)
         api-call-logs (db/fetch-apeluri-anaf-logs ds cif page per-page)
         total-pages (pagination/calculate-pages-number count-logs per-page)
         logs (for [c api-call-logs]
                (row-log-api-call c))]
-    (h/html
+    [:div
      [:table.table.is-hoverable
       logs]
-     (pagination/make-pagination total-pages page per-page uri))))
+     (pagination/make-pagination total-pages page per-page uri)]))
 
 (defn logs-api-calls
   [ds opts]
-  (let [{:keys [page per-page cif]} opts
+  (let [{:keys [cif]} opts
         t (str "Istoric apeluri api Anaf - cif " cif)]
-    {:status 200
-     :headers {"content-type" "text/html"}
-     :body (str (h/html
-                 [:div#main-container.block
-                  (ui/title t)
-                  [:div#logs-table
-                   (logs-list ds cif page per-page)]]))}))
+    [:div#main-container.block
+     (ui/title t)
+     [:div#logs-table
+      (logs-list ds opts)]]))
 
 (defn handler-logs
   [req]
-  (let [{:keys [path-params query-params ds uri headers ::r/router]} req
-        {:strs [page per-page]} query-params
+  (let [{:keys [path-params query-params ds ::r/router headers]} req
         {:strs [hx-request]} headers
-        cif (:cif path-params)
-        opts {:page page :per-page per-page :uri uri :cif cif :router router}
+        {:keys [cif]} path-params
+        {:strs [page per-page]} query-params
+        opts {:page page :per-page per-page :cif cif :router router}
         content (logs-api-calls ds opts)
-        sidebar (ui/sidebar-company-data opts)]
-    (if (= hx-request "true")
-      content
-      (layout/main-layout (:body content) sidebar))))
+        _ (println "is HX_REQUEST??? " hx-request)
+        sidebar (ui/sidebar-company-data opts)
+        body (if (= hx-request "true")
+               (str (h/html content))
+               (layout/main-layout content sidebar))]
+    (-> (rur/response body)
+        (rur/content-type "text/html"))))
 

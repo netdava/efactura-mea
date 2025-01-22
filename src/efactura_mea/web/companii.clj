@@ -107,7 +107,7 @@
 (defn afisare-companii-inregistrate
   [router ds]
   (let [companii (db-ops/get-companies-data ds)]
-    (str (h/html (select-a-company router companii)))))
+    (select-a-company router companii)))
 
 (comment
 
@@ -138,11 +138,17 @@
 
 (defn handle-company-profile
   [req]
-  (let [{:keys [path-params ::r/router]} req
+  (let [{:keys [path-params ::r/router ds headers]} req
+        {:strs [hx-request]} headers
         {:keys [cif]} path-params
-        content (profil/afisare-profil-companie req)
-        sidebar (ui/sidebar-company-data {:cif cif :router router})]
-    (layout/main-layout content sidebar)))
+        content (profil/afisare-profil-companie {:cif cif :ds ds})
+        sidebar (ui/sidebar-company-data {:cif cif :router router})
+        _ (println "conteeeent " content)
+        body (if (= hx-request "true")
+               (str (h/html content))
+               (layout/main-layout content sidebar))]
+    (-> (rur/response body)
+        (rur/content-type "text/html"))))
 
 (defn desc_aut_status_on? [status]
   (case status

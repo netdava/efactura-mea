@@ -8,10 +8,8 @@
    [java-time.api :as jt]))
 
 (defn afisare-profil-companie
-  [req]
-  (let [{:keys [path-params ds]} req
-        {:keys [cif]} path-params
-        company (get-company-data ds cif)
+  [{:keys [cif ds]}]
+  (let [company (get-company-data ds cif)
         token-data (fetch-company-token-data ds cif)
         {:keys [expiration_date _updated expires_in]} token-data
         milliseconds->days (u/seconds->days expires_in)
@@ -19,9 +17,9 @@
         parse-exp-date (u/format-utc-date expiration_date)
         parsed-token-updated-at (u/format-utc-date _updated)
         {:keys [name website address desc_aut_status date_modified]} company
-         descarcare-automata-url (str "/descarcare-automata/" cif)
+        descarcare-automata-url (str "/descarcare-automata/" cif)
         refresh-token-anaf-uri (str "/anaf/refresh-access-token/" cif)]
-    (h/html
+    [:div
      [:div.columns.is-vcentered
       [:div.column.is-2.has-text-centered
        [:figure.image.is-128x128.is-inline-block
@@ -31,31 +29,29 @@
         [:h1.title.is-4 name]
         [:a {:href website} website]]]]
      [:div.columns
-      [:div.column
-       (details-table
-        {"Companie:" name
-         "CIF:" cif
-         "Website:" website
-         "Adresă:" address
-         "Descărcare automată:" [:div#das
-                                 [:a {:href descarcare-automata-url}
-                                  [:span.icon [:i.fa.fa-pencil-square]]]
-                                 [:span.has-text-weight-bold.is-uppercase desc_aut_status]
-                                 " - "
-                                 [:span.is-size-6 date_modified]]})]
-      [:div#token-card.column
-       (details-table
-        {"Token" ""
-         "Dată expirare: " [:div parse-exp-date
-                            [:div
-                             [:a.button.is-small.is-info
-                              {:href refresh-token-anaf-uri}
-                              "Înnoiește token"]
-                             [:a.button.is-small.is-info
-                              {:href refresh-token-anaf-uri}
-                              "Revocă token"]]]
-         "Reînnoit la:" parsed-token-updated-at
-         "Valabilitate: " valability})]])))
+      (details-table
+       {"Companie:" name
+        "CIF:" cif
+        "Website:" website
+        "Adresă:" address
+        "Descărcare automată:" [:div#das
+                                [:a {:href descarcare-automata-url}
+                                 [:span.icon [:i.fa.fa-pencil-square]]]
+                                [:span.has-text-weight-bold.is-uppercase desc_aut_status]
+                                " - "
+                                [:span.is-size-6 date_modified]]})
+      (details-table
+       {"Token" ""
+        "Dată expirare: " [:div parse-exp-date
+                           [:div
+                            [:a.button.is-small.is-info
+                             {:href refresh-token-anaf-uri}
+                             "Înnoiește token"]
+                            [:a.button.is-small.is-info
+                             {:href refresh-token-anaf-uri}
+                             "Revocă token"]]]
+        "Reînnoit la:" parsed-token-updated-at
+        "Valabilitate: " valability})]]))
 
 
 (comment

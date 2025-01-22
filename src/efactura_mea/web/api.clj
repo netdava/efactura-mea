@@ -113,7 +113,6 @@
     (ui/row-factura-anaf d h parsed-tip id_solicitare detalii id downloaded?-mark)))
 
 (defn afisare-lista-mesaje [mesaje eroare]
-  (log/info mesaje)
   (if mesaje
     (let [parsed-messages (for [m mesaje]
                             (parse-message m))
@@ -211,15 +210,19 @@
 
 (defn handle-list-or-download
   [req]
-  (let [{:keys [params ds conf]} req
+  (let [{:keys [params ds conf headers]} req
+        {:strs [hx-request]} headers
         {:keys [action cif zile]} params
         zile (or (some-> zile Integer/parseInt) nil)
         vr (v/validate-input-data zile cif)
         opts {:cif cif :zile zile :validation-result vr}
         result (case action
                  "listare" (handle-mesaje opts ds conf call-for-lista-facturi)
-                 "descarcare" (handle-mesaje opts ds conf fetch-lista-mesaje))]
-    (-> (rur/response result)
+                 "descarcare" (handle-mesaje opts ds conf fetch-lista-mesaje))
+        #_(if (= hx-request "true")
+          result
+          (layout/main-layout result sidebar))]
+    (-> (rur/response (str (h/html result)))
         (rur/content-type "text/html"))))
 
 (defn save-pdf [path pdf-name pdf-content]
@@ -329,66 +332,63 @@
 (defn afisare-descarcare-exportare
   [cif]
   (let [t (str "Descarcă lista mesaje ANAF pentru cif:" cif)
-        now (u/date-now)
-        r (str (h/html
-                [:div#main-container.block
-                 (ui/title t)
-                 [:div.columns
-                  [:div.column
-                   [:form {:action "/descarca-arhiva"
-                           :method "get"}
-                    [:div.field
-                     [:label.label
-                      {:for "perioada"}
-                      "Listă mesaje pentru: "]
-                     [:div.select.is-fullwidth
-                      [:select {:hx-get "/sumar-descarcare-arhiva"
-                                :hx-include "[name='cif'], [name='date_first']"
-                                :hx-trigger "change"
-                                :hx-target "#status"
-                                :name "perioada"}
-                       [:option {:value "luna"} "lună"]
-                       [:option {:value "saptamana"} "săptamână"]]]]
-                    [:div.field
-                     [:label.label {:for "date_first"} "Alege perioada:"]
-                     [:input.input {:hx-get "/sumar-descarcare-arhiva"
-                                    :hx-include "[name='cif'], [name='perioada']"
-                                    :hx-trigger "changeDate"
-                                    :hx-target "#status"
-                                    :type "text"
-                                    :value now
-                                    :name "date_first"
-                                    :id "date_first"}]]
-                    [:div#status.field.content.is-small]
-                    [:input {:name "cif"
-                             :value cif
-                             :type "hidden"}]
-                    [:label.label {:for "file_type"} "Tipul fișierului:"]
-                    [:div.checkboxes
-                     [:label.checkbox [:input {:type "checkbox"
-                                               :name "file_type_zip"} "ZIP"]]
-                     [:label.checkbox [:input {:type "checkbox"
-                                               :name "file_type_pdf"} "PDF"]]]
+        now (u/date-now)]
+    [:div#main-container.block
+     (ui/title t)
+     [:div.columns
+      [:div.column
+       [:form {:action "/descarca-arhiva"
+               :method "get"}
+        [:div.field
+         [:label.label
+          {:for "perioada"}
+          "Listă mesaje pentru: "]
+         [:div.select.is-fullwidth
+          [:select {:hx-get "/sumar-descarcare-arhiva"
+                    :hx-include "[name='cif'], [name='date_first']"
+                    :hx-trigger "change"
+                    :hx-target "#status"
+                    :name "perioada"}
+           [:option {:value "luna"} "lună"]
+           [:option {:value "saptamana"} "săptamână"]]]]
+        [:div.field
+         [:label.label {:for "date_first"} "Alege perioada:"]
+         [:input.input {:hx-get "/sumar-descarcare-arhiva"
+                        :hx-include "[name='cif'], [name='perioada']"
+                        :hx-trigger "changeDate"
+                        :hx-target "#status"
+                        :type "text"
+                        :value now
+                        :name "date_first"
+                        :id "date_first"}]]
+        [:div#status.field.content.is-small]
+        [:input {:name "cif"
+                 :value cif
+                 :type "hidden"}]
+        [:label.label {:for "file_type"} "Tipul fișierului:"]
+        [:div.checkboxes
+         [:label.checkbox [:input {:type "checkbox"
+                                   :name "file_type_zip"} "ZIP"]]
+         [:label.checkbox [:input {:type "checkbox"
+                                   :name "file_type_pdf"} "PDF"]]]
+    
+        [:div#validation-err-container {:style "display:none;"}
+         [:article.message.is-warning
+          [:div.message-body "Trebuie să selectezi cel puțin un tip de fișier"]]]
+    
+        #_[:div.field
+           [:label.label "Alege perioada:"]
+           [:div#date-range-picker
+            [:input {:type "text"
+                     :name "date_start"
+                     :id "date_start"}]
+            [:input {:type "text"
+                     :name "date_end"
+                     :id "date_end"}]]]
+        [:button.button.is-small.is-link {:type "submit"} "Descarcă arhiva"]
+        [:div#validation-err-container]]]
+      [:div.column]]]))
 
-                    [:div#validation-err-container {:style "display:none;"}
-                     [:article.message.is-warning
-                      [:div.message-body "Trebuie să selectezi cel puțin un tip de fișier"]]]
-
-                    #_[:div.field
-                       [:label.label "Alege perioada:"]
-                       [:div#date-range-picker
-                        [:input {:type "text"
-                                 :name "date_start"
-                                 :id "date_start"}]
-                        [:input {:type "text"
-                                 :name "date_end"
-                                 :id "date_end"}]]]
-                    [:button.button.is-small.is-link {:type "submit"} "Descarcă arhiva"]
-                    [:div#validation-err-container]]]
-                  [:div.column]]]))]
-    {:status 200
-     :body r
-     :headers {"content-type" "text/html"}}))
 (defn handler-descarcare-automata-facturi
   [req]
   (let [{:keys [params ds]} req

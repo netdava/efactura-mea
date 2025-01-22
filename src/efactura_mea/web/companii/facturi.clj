@@ -74,8 +74,8 @@
         facturi-sortate (sortare-facturi-data-creare mesaje)
         detalii->table-rows (opis-facturi-descarcate facturi-sortate ds)
         total-pages (pagination/calculate-pages-number count-mesaje per-page)
-        table-with-pagination [(ui/tabel-facturi-descarcate detalii->table-rows)
-                               (pagination/make-pagination total-pages page per-page uri)]]
+        table-with-pagination [:div (ui/tabel-facturi-descarcate detalii->table-rows)
+                                    (pagination/make-pagination total-pages page per-page uri)]]
     table-with-pagination))
 
 
@@ -100,9 +100,9 @@
         content (facturi-descarcate table-with-pagination)
         sidebar (ui/sidebar-company-data opts)
         body (if (= hx-request "true")
-               (h/html content)
+               (str (h/html content))
                (layout/main-layout content sidebar))]
-    (-> (rur/response (str body))
+    (-> (rur/response body)
         (rur/content-type "text/html"))))
 
 (comment 
@@ -142,8 +142,8 @@
         opts {:cif cif :page page :per-page per-page :uri uri
               :router router}
         content (ui/facturi-spv opts ds)
-        sidebar (ui/sidebar-company-data opts)]
-    (if (= hx-request "true")
-      content
-      (layout/main-layout (:body content) sidebar))))
+        sidebar (ui/sidebar-company-data opts)
+        body (layout/main-layout content sidebar)]
+    (-> (rur/response body)
+        (rur/content-type "text/html"))))
 

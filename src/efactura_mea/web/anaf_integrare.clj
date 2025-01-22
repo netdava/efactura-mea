@@ -41,41 +41,42 @@
         t (str "Activare descărcare automată facturi")
         url-descarcare-automata (wu/route-name->url
                                  router :efactura-mea.web.companii/descarcare-automata path-params)]
-    (h/html
-     (ui/title "Integrare E-factura")
-     [:div.content
-      [:p "Activează integrarea automata cu E-factura "]
-      [:div.columns
-       [:div.column
-        [:div.notification
-         [:p "Dacă " [:span.has-text-weight-bold "ai permisiunea "]
-          "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
-         [:a.button.is-link {:href url-autorizare}
-          (str "Autorizează accesul pentru CUI:" cif)]]]
-       [:div.column
-        [:div.notification
-         [:p [:span.has-text-weight-bold "Fără permisiunea "]
-          "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
-         [:button.button.is-link {:disabled true
-                                  :hx-get url-autorizare
-                                  :hx-target "#modal-wrapper"
-                                  :hx-swap "innerHTML"}
-          (str "Autorizează accesul pentru CUI:" cif)]
-         [:p.is-small "Nu este implementat încă."]]]]
-      [:div#main-container.block
-       (ui/title t)
-       [:div#sda-form
-        {:hx-get url-descarcare-automata
-         :hx-trigger "load"}]
-       [:div#modal-wrapper]]])))
+    (ui/title "Integrare E-factura")
+    [:div.content
+     [:p "Activează integrarea automata cu E-factura "]
+     [:div.columns
+      [:div.column
+       [:div.notification
+        [:p "Dacă " [:span.has-text-weight-bold "ai permisiunea "]
+         "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
+        [:a.button.is-link {:href url-autorizare}
+         (str "Autorizează accesul pentru CUI:" cif)]]]
+      [:div.column
+       [:div.notification
+        [:p [:span.has-text-weight-bold "Fără permisiunea "]
+         "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
+        [:button.button.is-link {:disabled true
+                                 :hx-get url-autorizare
+                                 :hx-target "#modal-wrapper"
+                                 :hx-swap "innerHTML"}
+         (str "Autorizează accesul pentru CUI:" cif)]
+        [:p.is-small "Nu este implementat încă."]]]]
+     [:div#main-container.block
+      (ui/title t)
+      [:div#sda-form
+       {:hx-get url-descarcare-automata
+        :hx-trigger "load"}]
+      [:div#modal-wrapper]]]))
 
 (defn page-anaf-integrare
   [req]
   (let [{:keys [path-params ::r/router]} req
         {:keys [cif]} path-params
         content (content-integrare-efactura req)
-        sidebar (ui/sidebar-company-data {:cif cif :router router})]
-    (layout/main-layout content sidebar)))
+        sidebar (ui/sidebar-company-data {:cif cif :router router})
+        body (layout/main-layout content sidebar)]
+    (-> (rur/response body)
+        (rur/content-type "text/html"))))
 
 (defn modala-link-autorizare
   [_]
