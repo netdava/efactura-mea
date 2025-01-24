@@ -178,19 +178,18 @@
               {:keys [id lista_mesaje]} queue-lista-mesaje
               lista-mesaje (edn/read-string lista_mesaje)
               raport-descarcare-facturi (verifica-descarca-facturi lista-mesaje conf ds)
-              raport-descarcare-facturi->ui (h/html [:article.message.is-info
-                                                     [:div.message-body
-                                                      [:ul
-                                                       (for [item raport-descarcare-facturi]
-                                                         [:li item])]]])]
+              raport-descarcare-facturi->ui [:article.message.is-info
+                                             [:div.message-body
+                                              [:ul
+                                               (for [item raport-descarcare-facturi]
+                                                 [:li item])]]]]
           (facturi/clear-download-queue ds {:id id})
-          (h/html raport-descarcare-facturi->ui))
+          raport-descarcare-facturi->ui)
         eroare)
       body)))
 
 (defn descarca-mesaje-automat
   [zile cif ds conf]
-  (log/info "PARAMS din descarca-mesaje-automat " zile " / " cif "/" conf)
   (let [validation-result (v/validate-input-data zile cif)]
     (if (nil? validation-result)
       (do
@@ -361,7 +360,7 @@
                         :value now
                         :name "date_first"
                         :id "date_first"}]]
-        [:div#status.field.content.is-small]
+        [:div#status.field.content]
         [:input {:name "cif"
                  :value cif
                  :type "hidden"}]
@@ -371,21 +370,11 @@
                                    :name "file_type_zip"} "ZIP"]]
          [:label.checkbox [:input {:type "checkbox"
                                    :name "file_type_pdf"} "PDF"]]]
-    
+
         [:div#validation-err-container {:style "display:none;"}
          [:article.message.is-warning
           [:div.message-body "Trebuie să selectezi cel puțin un tip de fișier"]]]
-    
-        #_[:div.field
-           [:label.label "Alege perioada:"]
-           [:div#date-range-picker
-            [:input {:type "text"
-                     :name "date_start"
-                     :id "date_start"}]
-            [:input {:type "text"
-                     :name "date_end"
-                     :id "date_end"}]]]
-        [:button.button.is-small.is-link {:type "submit"} "Descarcă arhiva"]
+        [:button.button.is-link {:type "submit"} "Descarcă arhiva"]
         [:div#validation-err-container]]]
       [:div.column]]]))
 
@@ -395,15 +384,16 @@
         {:keys [cif descarcare-automata]} params
         company-data (db-ops/get-company-data ds cif)
         {:keys [id]} company-data
-        now (u/formatted-date-now)
-        opts {:id id :date_modified now :status "on"}]
+        now (u/date-time-now-utc)
+        opts {:id id :date_modified now :status "on"}
+        status-on-info-text "Serviciul descărcare automată pornit"
+        status-off-info-text "Serviciul descărcare automată oprit"]
     (if descarcare-automata
       (try
         (db-ops/update-company-desc-aut-status ds opts)
         (log/info "updated for company-id: " id " status ON")
-        {:status 200
-         :body "Serviciul descărcare automată pornit"
-         :headers {"content-type" "text/html"}}
+        (-> (rur/response status-on-info-text)
+            (rur/content-type "text/html"))
         (catch Exception e
           (let [msg (.getMessage e)]
             [:div.notification.is-danger
@@ -413,9 +403,8 @@
           #_(oprire-descarcare-automata)
           (db-ops/update-company-desc-aut-status ds opts)
           (log/info "canceling timer, set for comp-id " id " status OFF")
-          {:status 200
-           :body "Serviciul descărcare automată oprit"
-           :headers {"content-type" "text/html"}})
+          (-> (rur/response status-off-info-text)
+              (rur/content-type "text/html")))
         (catch Exception e
           (let [msg (.getMessage e)]
             [:div.notification.is-danger

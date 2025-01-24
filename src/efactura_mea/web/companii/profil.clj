@@ -43,7 +43,7 @@
       (details-table
        {"Token" ""
         "Dată expirare: " [:div parse-exp-date
-                           [:div
+                           [:div.buttons.is-right
                             [:a.button.is-small.is-info
                              {:href refresh-token-anaf-uri}
                              "Înnoiește token"]

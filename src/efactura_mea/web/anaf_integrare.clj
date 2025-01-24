@@ -41,8 +41,8 @@
         t (str "Activare descărcare automată facturi")
         url-descarcare-automata (wu/route-name->url
                                  router :efactura-mea.web.companii/descarcare-automata path-params)]
-    (ui/title "Integrare E-factura")
     [:div.content
+     (ui/title "Integrare E-factura")
      [:p "Activează integrarea automata cu E-factura "]
      [:div.columns
       [:div.column
@@ -199,9 +199,8 @@
         (catch Exception e
           (log/info e (str "Exception" (ex-cause e)))
           (throw e)))
-      {:status 200
-       :body "refreshed token"
-       :headers {"Content-type" "text/html"}})))
+      (-> (rur/response "refreshed token")
+          (rur/header "Content-Type" "text/html")))))
 
 
 

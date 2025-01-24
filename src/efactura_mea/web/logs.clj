@@ -49,7 +49,6 @@
         {:strs [page per-page]} query-params
         opts {:page page :per-page per-page :cif cif :router router}
         content (logs-api-calls ds opts)
-        _ (println "is HX_REQUEST??? " hx-request)
         sidebar (ui/sidebar-company-data opts)
         body (if (= hx-request "true")
                (str (h/html content))

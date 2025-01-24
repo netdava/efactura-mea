@@ -9,19 +9,9 @@
    [:div#menu-wrapper.menu-wrapper
     [:aside.menu {:_ "on click take .is-active from .menu-item for the event's target"}
      [:ul.menu-list
+      [:p.menu-label "Acasa"]
       [:li [:a.menu-item
-            {:hx-get "/"
-             :hx-target "#main-content"
-             :hx-change "innerHTML"
-             :hx-push-url "true"}
-            "Acasă"]]]
-     [:p.menu-label "Portofoliu"]
-     [:ul.menu-list
-      [:li [:a.menu-item
-            {:hx-get "/companii"
-             :hx-target "#main-content"
-             :hx-change "innerHTML"
-             :hx-push-url "true"}
+            {:href "/"}
             "Companii"]]]]]])
 
 (defn main-layout

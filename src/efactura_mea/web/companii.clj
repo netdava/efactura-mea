@@ -20,15 +20,15 @@
     [:nav.panel
      [:p.panel-heading "Companii"]
      [:div.panel-block
-      [:div.control.has-icons-left
-       [:input.input {:type "text" :placeholder "Search"}]
-       [:span.icon.is-left
-        [:i.fa.fa-search {:aria-hidden "true"}]]]
-      [:div.pannel-block
-       [:button.button {:href "/companii/search"} "Caută"]]
-      [:a.panel-block {:href registration-url}
-       [:p.control
-        [:button.button.is-link "Înregistrează companie"]]]]
+      [:div.columns.is-vcentered.is-flex-grow-1
+       [:div.column.is-9
+        [:div.field.has-addons
+         [:p.control.is-expanded
+          [:input.input {:type "text" :placeholder "Search"}]]
+         [:p.control
+          [:button.button "Caută"]]]]
+       [:div.column.is-3.has-text-right
+        [:a.button.is-link {:href registration-url} "Înregistrează companie"]]]]
      (for [c companies]
        (let [{:keys [cif name]} c
              url (wu/route-name->url router ::facturi-companie {:cif cif})]
@@ -143,7 +143,6 @@
         {:keys [cif]} path-params
         content (profil/afisare-profil-companie {:cif cif :ds ds})
         sidebar (ui/sidebar-company-data {:cif cif :router router})
-        _ (println "conteeeent " content)
         body (if (= hx-request "true")
                (str (h/html content))
                (layout/main-layout content sidebar))]

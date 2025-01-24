@@ -6,7 +6,8 @@
    [efactura-mea.web.ui.componente :as ui]
    [efactura-mea.util :as u]
    [efactura-mea.web.descarca-exporta :as de]
-   [hiccup2.core :as h])
+   [hiccup2.core :as h]
+   [ring.util.response :as rur])
   (:import
    (java.time DayOfWeek LocalDate)
    (java.time.format DateTimeFormatter)
@@ -44,19 +45,18 @@
         {:strs [file_type_pdf file_type_zip]} query-params
         content (de/descarca-lista-mesaje ds conf query-params)
         {:keys [archive-content archive-name]} content
-        content-disposition (str "attachment; filename=" archive-name)]
+        content-disposition (str "attachment; filename=" archive-name)
+        no-file-selected-info "Trebuie sa selectezi cel puțin un fip de fișier"
+        no-invoices-found-info "În perioada selectata, nu au fost identificate facturi pentru descarcare"]
     (if (and (not file_type_pdf) (not file_type_zip))
-      {:status 200
-       :body "Trebuie sa selectezi cel puțin un fip de fișier"
-       :headers {"Content-Type" "text/html"}}
+      (-> (rur/response no-file-selected-info)
+          (rur/content-type "text/html"))
       (if (nil? archive-content)
-        {:status 200
-         :body "În perioada selectata, nu au fost identificate facturi pentru descarcare"
-         :headers {"Content-Type" "text/html"}}
-        {:status 200
-         :body archive-content
-         :headers {"Content-Type" "application/zip, application/octet-stream"
-                   "Content-Disposition" content-disposition}}))))
+        (-> (rur/response no-invoices-found-info)
+            (rur/content-type "text/html"))
+        (-> (rur/response archive-content)
+            (rur/header "Content-Type" "application/zip, application/octet-stream")
+            (rur/header "Content-Disposition" content-disposition))))))
 
 (defn month-name-formatter [date locale]
   (let [[language country] (str/split locale #"-")
@@ -100,22 +100,30 @@
                    (.with (TemporalAdjusters/nextOrSame DayOfWeek/SUNDAY))
                    (simple-formatter last-day-formatter)
                    ui/hiccup-bold-span)
-        message-text-saptamana (h/raw (str "Pentru intervalul " monday "-" sunday " am identificat un număr de "  sum-facturi " facturi pentru cif " cif))
-        message-text-luna (h/raw (str "Pentru luna " month-name " am identificat un număr de " sum-facturi " facturi pentru cif " cif))
+        message-text-saptamana (h/html "Pentru intervalul " monday "-" sunday " am identificat un număr de " sum-facturi " facturi pentru cif " cif)
+        message-text-luna  (h/html "Pentru luna " month-name " am identificat un număr de " sum-facturi " facturi pentru cif " cif)
         mesage-text (case perioada
                       "saptamana" message-text-saptamana
                       "luna" message-text-luna)
-        info-message (str (h/html [:span.icon-text
-                                   [:span.icon.has-text-info
-                                    [:i.fa.fa-info-circle]]
-                                   [:p#status mesage-text]
-                                   facturi-negsite]))]
-    {:status 200
-     :body info-message
-     :headers {"content-type" "text/html"}}))
+        info-message [:div
+                      [:div.notification.is-info.is-light
+                       mesage-text]
+                      facturi-negsite]]
+    info-message))
 
 (defn handler-sumar-descarcare-arhiva
   [req]
   (let [{:keys [query-params ds conf]} req
-        locale "ro-RO"]
-    (sumar-descarcare-arhiva ds conf query-params locale)))
+        locale "ro-RO"
+        sumar-descarcare-arhiva (sumar-descarcare-arhiva ds conf query-params locale)]
+    (-> (rur/response (str (h/html sumar-descarcare-arhiva)))
+        (rur/content-type "text/html"))))
+
+(comment
+  (let [message-text-saptamana [:span "12-12-2024"]
+        a (h/html "pentru " message-text-saptamana)]
+    (@a))
+  
+
+  
+  0)
