@@ -163,14 +163,16 @@
     total-facturi-in-date-range))
 
 (defn save-refreshed-token-data!
-  [ds access-token refresh-token expiration-date expires-in now cif]
-  (f/refresh-token-data-update
-   ds {:cif cif
-       :access_token access-token
-       :refresh_token refresh-token
-       :expiration_date expiration-date
-       :expires_in expires-in
-       :_updated now}))
+  [ds save-opts]
+  (let [{:keys [cif access_token refresh_token expiration_date expires_in _updated]} save-opts]
+    (info "updating token now: " _updated)
+    (f/refresh-token-data-update
+     ds {:cif cif
+         :access_token access_token
+         :refresh_token refresh_token
+         :expiration_date expiration_date
+         :expires_in expires_in
+         :_updated _updated})))
 
 (comment
 

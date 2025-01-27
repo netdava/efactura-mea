@@ -149,9 +149,9 @@
 
 
 (defn save-refreshed-token
-  [ds refresh-token-data cif]
-  (log/info "incep cu functia SAVE_REFRESHED_TOKEN")
-  (let [b (json/read-value refresh-token-data)
+  [opts]
+  (let [{:keys [token-new-data cif ds]} opts
+        b (json/read-value token-new-data)
         access-token (get b "access_token")
         refresh-token (get b "refresh_token")
         expires-in (get b "expires_in")
@@ -172,25 +172,26 @@
 (defn handler-refresh-token
   ([req]
     (let [{:keys [path-params ds uri conf]} req
-          {:keys [client-id client-secret]} conf
+          {:keys [client-id client-secret]} (:anaf conf)
           {:keys [cif]} path-params
           token-data (db-ops/fetch-company-token-data ds cif)
           {:keys [refresh_token retries_count]} token-data
           refresh-token-anaf-uri "https://logincert.anaf.ro/anaf-oauth2/v1/token"
           opts {:basic-auth [client-id client-secret]
                 :form-params {:grant_type "refresh_token"
-                              :refresh_token refresh_token}}]
+                              :refresh_token refresh_token}
+                :throw false}]
       (try
         (loop [retries retries_count]
           (if (<= retries 5)
             (let [response (http/post refresh-token-anaf-uri opts)
                   {:keys [status body]} response
-                  opts {:body body :cif cif :uri uri}]
+                  save-opts {:token-new-data body :cif cif :ds ds}]
               (if (= 200 status)
                 (do
                   (log/info "Refresh token reușit!")
                   (db-ops/update-retries-counter! ds cif 0)
-                  (log/info "test dupa db action :"))
+                  (save-refreshed-token save-opts))
                 (do
                   (log/info "Eroare obtinere refresh-token, încerc din nou...")
                   (db-ops/update-retries-counter! ds cif retries)
