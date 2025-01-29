@@ -14,6 +14,12 @@
             {:href "/"}
             "Companii"]]]]]])
 
+(def tabulator-cdn (list
+                [:link {:href "https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css"
+                        :rel "stylesheet"}]
+                [:script {:type "text/javascript"
+                          :src "https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"}]))
+
 (defn main-layout
   ([content]
    (main-layout content sidebar-select-company "User Admin"))
@@ -33,6 +39,7 @@
                :type "image/x-icon"
                :href "/images/favicon-32x32.png"}]
      [:title "eFacturaMea"]
+     tabulator-cdn
      [:link {:rel "stylesheet"
              :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"}]
      [:link {:rel "stylesheet"

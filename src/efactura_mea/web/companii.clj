@@ -223,6 +223,9 @@
     ["/jurnal-spv" {:name ::jurnal-spv
                     :get #'logs/handler-logs
                     :middleware [pagination-params-middleware]}]
+    ["/get-logs" {:name ::get-logs
+                    :get #'logs/handler-get-logs
+                    :middleware [pagination-params-middleware]}]
     ["/facturi-spv" {:name ::facturi-spv
                      :get #'wfacturi/handler-facturi-spv
                      :middleware [pagination-params-middleware]}]

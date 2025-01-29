@@ -11,11 +11,12 @@
   [handler]
   (fn [request]
     (let [{:keys [query-params]} request
-          {:strs [page per-page]} query-params
+          {:strs [page per-page size]} query-params
           page (or (some-> page Integer/parseInt) 1)
           per-page (or (some-> per-page Integer/parseInt) 20)
-          new-params (merge query-params {"page" page "per-page" per-page})]
-      ;; Apelăm handler-ul cu request-ul modificat
+          size (or (some-> size Integer/parseInt) 20)
+          new-params (merge query-params {"page" page "per-page" per-page "size" size})]
+      ;; Apelăm handler-ul cu request-ul modificat 
       (handler (assoc request :query-params new-params)))))
 
 (defn wrap-app-config
