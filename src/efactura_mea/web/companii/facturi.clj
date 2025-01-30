@@ -1,6 +1,7 @@
 (ns efactura-mea.web.companii.facturi
   (:require
    [clojure.string :as str]
+   [clojure.data.json :as json]
    [efactura-mea.config :as config]
    [efactura-mea.db.db-ops :as db]
    [efactura-mea.db.facturi :as f]
@@ -8,6 +9,7 @@
    [efactura-mea.web.layout :as layout]
    [efactura-mea.web.ui.componente :as ui]
    [efactura-mea.web.ui.pagination :as pagination]
+   [efactura-mea.web.utils :as wu]
    [hiccup2.core :as h]
    [reitit.core :as r]
    [ring.util.response :as rur]))
@@ -50,7 +52,7 @@
    []
    p))
 
-(defn opis-facturi-descarcate
+#_(defn opis-facturi-descarcate
   [facturi ds]
   (for [ff facturi]
     (when ff
@@ -61,11 +63,22 @@
             _ (when is-downloaded? (db/scrie-detalii-factura-anaf->db invoice-details ds))]
         (ui/row-factura-descarcata-detalii invoice-details)))))
 
+(defn opis-facturi-descarcate
+  [facturi ds]
+  (for [ff facturi]
+    (when ff
+      (let [{:keys [tip id_descarcare]} ff
+            is-downloaded? (> (count (f/test-factura-descarcata? ds {:id id_descarcare})) 0)
+            tip-factura (parse-tip-factura tip)
+            invoice-details (assoc ff :tip tip-factura)
+            _ (when is-downloaded? (db/scrie-detalii-factura-anaf->db invoice-details ds))]
+        invoice-details))))
+
 (defn sortare-facturi-data-creare
   [facturi]
   (sort #(compare (:data_emitere %2) (:data_emitere %1)) facturi))
 
-(defn afisare-facturile-mele
+#_(defn afisare-facturile-mele
   "Receives messages data, pagination details,
    return html table with pagination;"
   [mesaje ds opts]
@@ -78,35 +91,98 @@
                                     (pagination/make-pagination total-pages page per-page uri)]]
     table-with-pagination))
 
+(defn afisare-facturile-mele
+  "Receives messages data, pagination details,
+   returns map with last_page and data"
+  [mesaje ds opts]
+  (let [{:keys [page per-page uri cif]} opts
+        count-mesaje (db/count-lista-mesaje ds cif)
+        facturi-sortate (sortare-facturi-data-creare mesaje)
+        detalii->table-rows (opis-facturi-descarcate facturi-sortate ds)
+        total-pages (pagination/calculate-pages-number count-mesaje per-page)]
+    {:last_page total-pages
+     :data detalii->table-rows}))
+
+(defn facturi-tabulator-config [opts]
+  (let [{:keys [page url size]} opts]
+    {:locale true
+     :langs {:default
+             {:pagination
+              {:counter {:showing "pagina"
+                         :of "/"
+                         :rows "rows"
+                         :pages "pagini"}}}}
+     :ajaxURL url
+     :columns [{:title "Id descărcare" :field "id_solicitare"}
+               {:title "Serie/număr" :field "serie_numar"}
+               {:title "Data urcare SPV"  :field "data_creare"}
+               {:title "emisă" :field "data_emitere"}
+               {:title "scadentă" :field "data_scadenta"}
+               {:title "furnizor" :field "furnizor"}
+               {:title "client" :field "client"}
+               {:title "valoare" :field "total"}
+               {:title "monedă" :field "valuta"}
+               {:title "tip" :field "tip"}]
+     :layout "fitColumns"
+     :pagination true
+     :paginationMode "remote"
+     :paginationSize size
+     :paginationInitialPage page
+     :paginationCounter "pages"
+     :paginationSizeSelector [20, 50, 100]}))
+
+
+(defn facturi-tabulator [opts]
+  (let [{:keys [router cif page per-page size]} opts
+        url (wu/route-name->url router :efactura-mea.web.companii/endpoint-facturi {:cif cif})
+        cfg-opts {:page page :per-page per-page :url url :size size}
+        cfg (json/write-str (facturi-tabulator-config cfg-opts))]
+    [:script
+     (str "document.addEventListener('DOMContentLoaded', function() {
+                                                  var table = new Tabulator('#facturile-mele', " cfg ")});")]))
+
 
 (defn facturi-descarcate
-  [table-with-pagination]
+  [opts]
   [:div#main-container.block
    (ui/title "Facturi descărcate local")
-   table-with-pagination])
+   [:div#facturile-mele]
+   (facturi-tabulator opts)])
 
 (defn handler-afisare-facturi-descarcate
   [req] 
   (let [{:keys [path-params query-params ds conf uri headers ::r/router]} req
-        {:strs [page per-page]} query-params
+        {:strs [page per-page size]} query-params
         {:strs [hx-request]} headers
         cif (:cif path-params)
-        opts {:cif cif :page page :per-page per-page :uri uri :router router}
+        opts {:cif cif :page page :per-page per-page :uri uri :router router :size size}
         mesaje-cerute (db/fetch-mesaje ds cif page per-page)
-        _ (def mesaje mesaje-cerute)
         download-dir (config/download-dir conf)
         mesaje (gather-invoices-data (add-path-for-download download-dir mesaje-cerute))
-        table-with-pagination (afisare-facturile-mele mesaje ds opts)
-        content (facturi-descarcate table-with-pagination)
         sidebar (ui/sidebar-company-data opts)
         body (if (= hx-request "true")
-               (str (h/html content))
-               (layout/main-layout content sidebar))]
+               (str (h/html (facturi-descarcate opts)))
+               (layout/main-layout (facturi-descarcate opts) sidebar))]
     (-> (rur/response body)
         (rur/content-type "text/html"))))
 
+
+
+(defn handler-facturi-descarcate
+  [req]
+  (let [{:keys [path-params query-params ds conf uri ::r/router]} req
+        {:strs [page per-page]} query-params
+        cif (:cif path-params)
+        opts {:cif cif :page page :per-page per-page :uri uri :router router}
+        mesaje-cerute (db/fetch-mesaje ds cif page per-page)
+        download-dir (config/download-dir conf)
+        mesaje (gather-invoices-data (add-path-for-download download-dir mesaje-cerute))
+        table-with-pagination (afisare-facturile-mele mesaje ds opts)]
+    (-> (rur/response (json/write-str table-with-pagination))
+        (rur/content-type "text/html"))))
+
 (comment 
-  mesaje
+  
 
   (-> 
    (gather-invoices-data (add-path-for-download "test" mesaje))
@@ -137,7 +213,6 @@
   [req]
   (let [{:keys [path-params query-params ds uri headers ::r/router]} req
         {:strs [page per-page]} query-params
-        {:strs [hx-request]} headers
         cif (:cif path-params)
         opts {:cif cif :page page :per-page per-page :uri uri
               :router router}
@@ -146,4 +221,6 @@
         body (layout/main-layout content sidebar)]
     (-> (rur/response body)
         (rur/content-type "text/html"))))
+
+
 

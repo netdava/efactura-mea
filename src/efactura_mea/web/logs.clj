@@ -78,7 +78,6 @@
 (defn generate-table-script [opts]
   (let [{:keys [router cif page per-page]} opts
         url (wu/route-name->url router :efactura-mea.web.companii/get-logs {:cif cif})
-        url (str "http://localhost:8080" url)
         cfg-opts {:page page :per-page per-page :url url}
         cfg (json/write-str (table-config cfg-opts))]
     [:script
@@ -111,11 +110,8 @@
 
 (defn handler-get-logs
   [req]
-  (println "requestul nostru : " req)
-  (let [{:keys [path-params query-params ds ::r/router headers]} req
-        {:strs [hx-request]} headers
+  (let [{:keys [path-params query-params ds]} req
         {:keys [cif]} path-params
-        _ (println "querryyyy: " query-params)
         {:strs [page size]} query-params
         count-logs (db/count-apeluri-anaf-logs ds cif)
         api-call-logs (db/fetch-apeluri-anaf-logs ds cif page size)

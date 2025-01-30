@@ -146,7 +146,7 @@
     "eroare" "is-danger"
     "is-warning"))
 
-(defn row-factura-descarcata-detalii
+#_(defn row-factura-descarcata-detalii
   [{:keys [data_creare client id_descarcare tip furnizor valuta total data_scadenta data_emitere serie_numar cif]}]
   (let [dc (u/parse-date data_creare)
         parsed_date (str (:data_c dc) "-" (:ora_c dc))
@@ -182,6 +182,23 @@
          [:a.dropdown-item
           {:href pdf-download-url
            :target "_blank"} pdf-file-name]]]]]]))
+
+(defn row-factura-descarcata-detalii
+  [{:keys [data_creare client id_descarcare tip furnizor valuta total data_scadenta data_emitere serie_numar cif]}]
+  (let [dc (u/parse-date data_creare)
+        parsed_date (str (:data_c dc) "-" (:ora_c dc))
+        
+        ]
+    {:id_descarcare id_descarcare
+     :serie_numar serie_numar
+     :parsed_date parsed_date
+     :data_emitere data_emitere
+     :data_scadenta data_scadenta
+     :furnizor furnizor
+     :client client
+     :total total
+     :valuta valuta
+     :tip tip}))
 
 (defn tabel-facturi-descarcate
   [rows]
