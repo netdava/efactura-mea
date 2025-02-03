@@ -15,7 +15,7 @@
             "Companii"]]]]]])
 
 (def tabulator-cdn (list
-                [:link {:href "https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css"
+                [:link {:href "https://unpkg.com/tabulator-tables/dist/css/tabulator_bulma.min.css"
                         :rel "stylesheet"}]
                 [:script {:type "text/javascript"
                           :src "https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"}]))
@@ -60,7 +60,7 @@
                :src "/js/vanillajs-datepicker-constructor.js"}]
      [:body
       (ui/navbar header)
-      [:section.container.mt-5
+      [:section.mt-5
        [:div.columns
         [:div.column.is-one-fifth
          sidebar]

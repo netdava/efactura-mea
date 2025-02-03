@@ -4,7 +4,9 @@
    [efactura-mea.db.facturi :as f]
    [efactura-mea.util :as u]
    [java-time.api :as jt]
-   [next.jdbc :as jdbc]))
+   [honey.sql :as sql]
+   [next.jdbc :as jdbc]
+   [next.jdbc.result-set :as rs]))
 
 (defn enable-foreignkey-constraint [spec]
   ;; Enable foreign key constraints
@@ -174,8 +176,30 @@
          :expires_in expires_in
          :_updated _updated})))
 
-(comment
 
+;; REMOTE SORTERS FOR TABULATOR
+
+(defn simple-sorter
+  [opts]
+  (let [{:keys [cif field table-name sort-order size offset]} opts]
+    (sql/format {:select [:*]
+                 :from [table-name]
+                 :where [:= cif :cif]
+                 :order-by [[field sort-order]]
+                 :limit [size]
+                 :offset [offset]})))
+
+(defn fetch-sorted
+  [ds opts]
+  (let [{:keys [page size]} opts
+        page-offset (* (dec page) size)
+        sorter-opts (assoc opts :offset page-offset)
+        sorter (simple-sorter sorter-opts)]
+    (jdbc/execute! ds sorter {:builder-fn rs/as-unqualified-lower-maps})))
+
+
+(comment
+(simple-sorter {:cif 12344 :field :id :table-name :anaf-table :sort-order :asc :page 3 :per-page 20 :offset 20})
   (require '[efactura-mea.db.ds :refer [ds]])
   
   (get-company-data ds "35586426")

@@ -19,6 +19,17 @@
       ;; Apelăm handler-ul cu request-ul modificat 
       (handler (assoc request :query-params new-params)))))
 
+(defn sorting-params-middleware
+  "tabulator sorting params parser"
+  [handler]
+  (fn [request]
+    (let [{:keys [query-params]} request
+          sort-field (get query-params "sort[0][field]")
+          sort-dir (get query-params "sort[0][dir]")
+          sort-params (merge query-params {"order-by" sort-field "dir" sort-dir})]
+      ;; Apelăm handler-ul cu request-ul modificat 
+      (handler (assoc request :query-params sort-params)))))
+
 (defn wrap-app-config
   "Add config and datasource to requests"
   [handler]

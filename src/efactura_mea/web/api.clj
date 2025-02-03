@@ -205,6 +205,7 @@
         r (if (nil? validation-result)
             (fetch-fn zile cif ds conf)
             (error-message-invalid-result validation-result))]
+    ;; TODO: access_token nu era valid, nu a dat nicio eroare in UI
     (ui/lista-mesaje r)))
 
 (defn handle-list-or-download
