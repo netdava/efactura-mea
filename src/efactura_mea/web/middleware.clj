@@ -1,6 +1,7 @@
 (ns efactura-mea.web.middleware
   (:require [efactura-mea.config :refer [conf]]
-            [efactura-mea.db.ds :refer [ds]]))
+            [efactura-mea.db.ds :refer [ds]]
+            [ring.util.response :as res]))
 
 (defn pagination-params-middleware 
   "Add default pagination to query params if no pagination is present:
@@ -11,13 +12,16 @@
   [handler]
   (fn [request]
     (let [{:keys [query-params]} request
-          {:strs [page per-page size]} query-params
-          page (or (some-> page Integer/parseInt) 1)
-          per-page (or (some-> per-page Integer/parseInt) 20)
-          size (or (some-> size Integer/parseInt) 20)
-          new-params (merge query-params {"page" page "per-page" per-page "size" size})]
-      ;; Apelăm handler-ul cu request-ul modificat 
-      (handler (assoc request :query-params new-params)))))
+          {:strs [page per-page size]} query-params]
+      (try
+        (let [page (or (some-> page Integer/parseInt) 1)
+              per-page (or (some-> per-page Integer/parseInt) 20)
+              size (or (some-> size Integer/parseInt) 20)
+              new-params (merge query-params {"page" page "per-page" per-page "size" size})]
+          (handler (assoc request :query-params new-params)))
+        (catch NumberFormatException e
+          (res/bad-request {:error "Invalid pagination patameters. Expected integers."
+                            :details (.getMessage e)}))))))
 
 (defn sorting-params-middleware
   "tabulator sorting params parser"
