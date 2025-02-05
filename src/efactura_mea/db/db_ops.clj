@@ -179,9 +179,14 @@
 
 ;; REMOTE SORTERS FOR TABULATOR
 
-(defn simple-sorter
+
+
+(defn anaf-api-calls-db-sorter
   [opts]
-  (let [{:keys [cif field table-name sort-order size offset]} opts]
+  (let [{:keys [cif field table-name sort-order size offset]} opts
+        table-name (keyword table-name)
+        field (keyword field)
+        sort-order (keyword sort-order)]
     (sql/format {:select [:*]
                  :from [table-name]
                  :where [:= cif :cif]
@@ -189,17 +194,17 @@
                  :limit [size]
                  :offset [offset]})))
 
-(defn fetch-sorted
+(defn anaf-api-calls-sorted-results
   [ds opts]
   (let [{:keys [page size]} opts
         page-offset (* (dec page) size)
         sorter-opts (assoc opts :offset page-offset)
-        sorter (simple-sorter sorter-opts)]
+        sorter (anaf-api-calls-db-sorter sorter-opts)]
     (jdbc/execute! ds sorter {:builder-fn rs/as-unqualified-lower-maps})))
 
 
 (comment
-(simple-sorter {:cif 12344 :field :id :table-name :anaf-table :sort-order :asc :page 3 :per-page 20 :offset 20})
+(anaf-api-calls-db-sorter {:cif 12344 :field :id :table-name :anaf-table :sort-order :asc :page 3 :per-page 20 :offset 20})
   (require '[efactura-mea.db.ds :refer [ds]])
   
   (get-company-data ds "35586426")
