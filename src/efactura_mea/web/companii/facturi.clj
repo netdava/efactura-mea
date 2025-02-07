@@ -1,8 +1,7 @@
 (ns efactura-mea.web.companii.facturi
   (:require
-   [clojure.string :as str]
    [clojure.data.json :as json]
-   [efactura-mea.config :as config]
+   [clojure.string :as str]
    [efactura-mea.db.db-ops :as db]
    [efactura-mea.db.facturi :as f]
    [efactura-mea.util :as util :refer [build-path get-invoice-data]]
@@ -103,6 +102,15 @@
     {:last_page total-pages
      :data detalii->table-rows}))
 
+(defn fetch-facturi-descarcate
+  [fetch-opts]
+  (let [{:keys [ds cif size]} fetch-opts
+        facturi-descarcate (db/fetch-sorted-lista-mesaje fetch-opts)
+        items (db/count-lista-mesaje ds cif)
+        total-pages (pagination/calculate-pages-number items size)]
+    {:last_page total-pages
+     :data facturi-descarcate}))
+
 (defn facturi-tabulator-config [opts]
   (let [{:keys [page url size]} opts]
     {:locale true
@@ -124,6 +132,7 @@
                {:title "monedă" :field "valuta"}
                {:title "tip" :field "tip"}]
      :layout "fitColumns"
+     :sortMode "remote"
      :pagination true
      :paginationMode "remote"
      :paginationSize size
@@ -156,9 +165,6 @@
         {:strs [hx-request]} headers
         cif (:cif path-params)
         opts {:cif cif :page page :per-page per-page :uri uri :router router :size size}
-        mesaje-cerute (db/fetch-mesaje ds cif page per-page)
-        download-dir (config/download-dir conf)
-        mesaje (gather-invoices-data (add-path-for-download download-dir mesaje-cerute))
         sidebar (ui/sidebar-company-data opts)
         body (if (= hx-request "true")
                (str (h/html (facturi-descarcate opts)))
@@ -166,33 +172,33 @@
     (-> (rur/response body)
         (rur/content-type "text/html"))))
 
+(defn parse-facturile-mele
+  [data-facturile-mele]
+  (let [{:keys [data]} data-facturile-mele
+        new-data (mapv (fn [f]
+                         (let [{:keys [data_creare]} f
+                               an (subs data_creare 0 4)
+                               luna (subs data_creare 4 6)
+                               zi (subs data_creare 6 8)
+                               data_creare (str an "-" luna "-" zi)]
+                           (assoc f :data_creare data_creare))) data)]
+    (assoc data-facturile-mele :data new-data)))
 
 
 (defn handler-facturi-descarcate
   [req]
-  (let [{:keys [path-params query-params ds conf uri ::r/router]} req
-        {:strs [page per-page]} query-params
+  (let [{:keys [path-params query-params ds]} req
+        {:strs [page size]} query-params
         cif (:cif path-params)
-        opts {:cif cif :page page :per-page per-page :uri uri :router router}
-        mesaje-cerute (db/fetch-mesaje ds cif page per-page)
-        download-dir (config/download-dir conf)
-        mesaje (gather-invoices-data (add-path-for-download download-dir mesaje-cerute))
-        table-with-pagination (afisare-facturile-mele mesaje ds opts)]
-    (-> (rur/response (json/write-str table-with-pagination))
-        (rur/content-type "text/html"))))
+        order-by (or (get query-params "sort[0][field]") "data_emitere")
+        sort-dir (or (get query-params "sort[0][dir]") "asc")
+        fetch-opts {:ds ds :cif cif :size size :page page :order-by order-by :sort-dir sort-dir :table-name "detalii_facturi_anaf"}
+        data-facturile-mele (fetch-facturi-descarcate fetch-opts)
+        parsed-facturile-mele (parse-facturile-mele data-facturile-mele)
+        facturile-mele->json (json/write-str parsed-facturile-mele)]
+    (-> (rur/response facturile-mele->json)
+        (rur/content-type "application/json"))))
 
-(comment 
-  
-
-  (-> 
-   (gather-invoices-data (add-path-for-download "test" mesaje))
-   (afisare-facturile-mele 
-    efactura-mea.db.ds/ds 
-    {:cif "35586426"
-     :page 1 :per-page 10 :uri "aaaa" :router nil})
-   (facturi-descarcate))
-  
-  )
 
 (defn handler-lista-mesaje-spv
   [req]

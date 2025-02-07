@@ -134,7 +134,8 @@
 (defn parse-invoice-data [data]
   (let [serie-numar (extract-nested-field data [:ID])
         data-emitere (extract-nested-field data [:IssueDate])
-        data-scadenta (extract-nested-field data [:DueDate])
+        data-scadenta (or (extract-nested-field data [:DueDate])
+                          (extract-nested-field data [:InvoicePeriod :EndDate]))
         valuta (extract-nested-field data [:DocumentCurrencyCode])
         furnizor (or (extract-nested-field data [:AccountingSupplierParty :Party :PartyName :Name])
                      (extract-nested-field data [:AccountingSupplierParty :Party :PartyLegalEntity :RegistrationName]))
