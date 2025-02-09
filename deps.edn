@@ -12,6 +12,10 @@
         metosin/muuntaja {:mvn/version "0.6.11"}
         metosin/muuntaja-form {:mvn/version "0.6.11"}
         metosin/reitit {:mvn/version "0.7.2"}
+        metosin/reitit-middleware {:mvn/version "0.7.2"}
+        fi.metosin/reitit-openapi {:mvn/version "0.7.2"}
+        metosin/ring-swagger-ui {:mvn/version "5.18.2"}
+        com.fbeyer/reitit-ring-defaults {:mvn/version "0.1.0"}
         mount/mount {:mvn/version "0.1.20"}
         migratus/migratus {:git/url "https://github.com/yogthos/migratus"
                            :git/sha "bf3b619ff729b314afffe05e90ce11a9b35c81f6"}
@@ -28,7 +32,8 @@
         org.xerial/sqlite-jdbc {:mvn/version "3.47.2.0"}
         ring/ring-codec {:mvn/version "1.2.0"}
         ring/ring-core {:mvn/version "1.13.0"}
-        ring/ring-defaults {:mvn/version "0.5.0"} 
+        ring/ring-defaults {:mvn/version "0.5.0"}
+        ring-oauth2/ring-oauth2 {:mvn/version "0.3.0"}
         ring/ring-devel {:mvn/version "1.13.0"} ;; TODO: cum sa le folosim doar in dev ?
         ring-webjars/ring-webjars {:mvn/version "0.3.0"}
         tolitius/mount-up {:mvn/version "0.1.3"}

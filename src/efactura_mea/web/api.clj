@@ -337,14 +337,14 @@
      (ui/title t)
      [:div.columns
       [:div.column
-       [:form {:action "/descarca-arhiva"
+       [:form {:action "/api/alfa/descarca-arhiva"
                :method "get"}
         [:div.field
          [:label.label
           {:for "perioada"}
           "Listă mesaje pentru: "]
          [:div.select.is-fullwidth
-          [:select {:hx-get "/sumar-descarcare-arhiva"
+          [:select {:hx-get "/api/alfa/sumar-descarcare-arhiva"
                     :hx-include "[name='cif'], [name='date_first']"
                     :hx-trigger "change"
                     :hx-target "#status"
@@ -353,7 +353,7 @@
            [:option {:value "saptamana"} "săptamână"]]]]
         [:div.field
          [:label.label {:for "date_first"} "Alege perioada:"]
-         [:input.input {:hx-get "/sumar-descarcare-arhiva"
+         [:input.input {:hx-get "/api/alfa/sumar-descarcare-arhiva"
                         :hx-include "[name='cif'], [name='perioada']"
                         :hx-trigger "changeDate"
                         :hx-target "#status"

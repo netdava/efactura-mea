@@ -97,7 +97,7 @@
                            [:option {:value n} n])]
     [:div#main-container.block
      (title "Aici poți vizualiza și descărca facturile din SPV:")
-     [:form.block {:hx-get "/listare-sau-descarcare"
+     [:form.block {:hx-get "/api/alfa/listare-sau-descarcare"
                    :hx-target "#facturi-anaf"}
       [:div.field
        [:label.label "CIF:"]
@@ -158,7 +158,7 @@
         tag-opts (update {:class "tag is-normal "} :class str type)
         link-opts {:href final-path :target "_blank"}
         pdf-download-query-params (str "?id_descarcare=" id_descarcare)
-        pdf-download-url (str "/transformare-xml-pdf" pdf-download-query-params)]
+        pdf-download-url (str "/api/alfa/transformare-xml-pdf" pdf-download-query-params)]
     [:tr
      [:td.is-size-7 id_descarcare]
      [:td.is-size-7 serie_numar]

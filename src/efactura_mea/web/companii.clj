@@ -171,7 +171,7 @@
         status-msg (if status
                      "Serviciul descărcare automată pornit"
                      "Serviciul descărcare automată oprit")
-        body [:form.block {:hx-get "/pornire-descarcare-automata"
+        body [:form.block {:hx-get "/api/alfa/pornire-descarcare-automata"
                            :hx-target "#status"
                            :hx-swap "innerHTML"}
               [:div.field
