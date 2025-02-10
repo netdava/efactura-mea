@@ -6,22 +6,25 @@
    [java-time.api :as jt])
   (:import
    (java.util.zip ZipFile)
-   (java.time.format DateTimeFormatter)))
+   (java.time.format DateTimeFormatter)
+   (java.time Duration)))
 
 (defn back-to-string-formatter
   [date]
   (let [formatter (DateTimeFormatter/ofPattern "yyyy-MM-dd")]
     (.format date formatter)))
 
+(defn format-utc-date
+  [utc-date]
+  (try
+    (let [formatter "yyyy-MM-dd HH:mm:ss"
+          zoned-time (jt/zoned-date-time utc-date)]
+      (jt/format formatter zoned-time))
+    (catch Exception _ "invalid utc date format")))
+
 (defn file-in-dir? [dir file-name]
   (let [dir-file (io/file dir)]
     (some #(= (.getName %) file-name) (file-seq dir-file))))
-
-(defn ^:deprecated formatted-date-now
-  []
-  (let [inst-now (jt/zoned-date-time)
-        now (jt/format "H:mm - MMMM dd, yyyy" inst-now)]
-    now))
 
 (defn date-time-now-utc
   []
@@ -33,10 +36,19 @@
   [inst-now]
   (jt/format :iso-date-time inst-now))
 
-(defn expiration-date 
+(defn expiration-date
   [zdate secs]
   (jt/plus zdate (jt/seconds secs)))
 
+(defn seconds->days
+  [seconds]
+  (try
+    (let [s (case seconds "" 0 (parse-long seconds))
+          duration (Duration/ofSeconds s)]
+      (.toDays duration))
+    (catch Exception _ "Failed converting token expiry period")))
+
+(type 7776000)
 ^:rct/test
 (comment
 
@@ -47,7 +59,6 @@
   (date-time->iso-str
    (expiration-date (jt/zoned-date-time 2024 01 01 10) 3600))
   ;;=> "2024-01-01T11:00:00+02:00[Europe/Bucharest]" 
-
   )
 
 (defn date-now
@@ -74,10 +85,9 @@
         zi (subs date 6 8)
         ora (subs date 8 10)
         min (subs date 10 12)
-        data-creare (str zi "." luna "." an)
+        data-creare (str an "-" luna "-" zi)
         ora-creare (str ora ":" min)]
-    {:data_c data-creare
-     :ora_c ora-creare}))
+    (str data-creare " " ora-creare)))
 
 (defn encode-body-json->edn [body]
   (let [object-mapper (j/object-mapper {:decode-key-fn true})
@@ -117,7 +127,8 @@
 (defn parse-invoice-data [data]
   (let [serie-numar (extract-nested-field data [:ID])
         data-emitere (extract-nested-field data [:IssueDate])
-        data-scadenta (extract-nested-field data [:DueDate])
+        data-scadenta (or (extract-nested-field data [:DueDate])
+                          (extract-nested-field data [:InvoicePeriod :EndDate]))
         valuta (extract-nested-field data [:DocumentCurrencyCode])
         furnizor (or (extract-nested-field data [:AccountingSupplierParty :Party :PartyName :Name])
                      (extract-nested-field data [:AccountingSupplierParty :Party :PartyLegalEntity :RegistrationName]))
@@ -146,14 +157,3 @@
         (with-open [stream (.getInputStream zip-file entry)]
           (slurp (io/reader stream)))
         (throw (Exception. (str "File " file-name-inside-zip " not found in " zip-file-path)))))))
-
-#_(defn extract-query-params [url]
-  (try (let [uri (java.net.URI. url)
-             query (.getQuery uri)
-             params (when query
-                      (->> (s/split query #"&")
-                           (map #(s/split % #"="))
-                           (map (fn [[k v]] [(keyword k) (Integer/parseInt v)]))
-                           (into {})))]
-         params)
-       (catch Exception _ {:page nil :per-page nil})))

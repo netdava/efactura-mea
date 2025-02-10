@@ -21,7 +21,8 @@
 (def web-app
   "System de stări pentru aplicația web"
   (only #{#'efactura-mea.config/conf
-          #'efactura-mea.http-server/server
           #'efactura-mea.db.ds/ds
+          #'efactura-mea.http-server/main-handler
+          #'efactura-mea.http-server/server
           #'efactura-mea.job-scheduler/job-scheduler-pool
           #'efactura-mea.job-scheduler/executor-service}))

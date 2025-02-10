@@ -126,6 +126,11 @@ where company.cif = :cif;
 -- :result :raw
 select access_token from tokens where cif = :cif
 
+-- :name select-company-token-data
+-- :command :execute
+-- :result :raw
+select * from tokens where cif = :cif
+
 -- :name select-acc-token-exp-date :? :1
 -- :command :execute
 -- :result :raw
@@ -203,3 +208,19 @@ WHERE cif = :cif AND data_emitere >= :start-date AND data_emitere <= :end-date |
 SELECT count(*) as total
 FROM detalii_facturi_anaf
 WHERE cif = :cif AND data_emitere >= :start-date AND data_emitere <= :end-date || '2359';
+
+-- :name refresh-token-data-update
+-- :command :execute
+UPDATE tokens
+SET access_token = :access_token,
+    refresh_token = :refresh_token,
+    expiration_date = :expiration_date,
+    expires_in = :expires_in,
+    _updated = :_updated
+WHERE cif = :cif;
+
+-- :name update-token-retries-counter
+-- :command :execute
+UPDATE tokens
+SET retries_count = :retries_count
+WHERE cif = :cif;

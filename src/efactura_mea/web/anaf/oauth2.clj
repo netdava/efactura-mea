@@ -72,12 +72,12 @@
    Trimite către utilizator un răspuns HTTP redirect 302.
    Pornește procesul de autentificare ANAF pentru obținere token oauth2.
    Utilizatorul va trebui să se autentifice cu certificat digital."
-  [client-id redirect-uri ]
-  (fn [_req]
-    (let [resp (authorization-url client-id redirect-uri)]
-      {:status 302
-       :body nil
-       :headers {"location" resp}})))
+  ([req]
+   (let [{:keys [client-id redirect-uri]} (:conf req)
+         resp (authorization-url client-id redirect-uri)]
+     {:status 302
+      :body nil
+      :headers {"location" resp}})))
 
 (defn authorization-code->tokens!
   "Apel HTTP POST pentru conversia codul de autorizare oauth2 în

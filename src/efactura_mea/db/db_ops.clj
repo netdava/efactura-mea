@@ -4,7 +4,9 @@
    [efactura-mea.db.facturi :as f]
    [efactura-mea.util :as u]
    [java-time.api :as jt]
-   [next.jdbc :as jdbc]))
+   [honey.sql :as sql]
+   [next.jdbc :as jdbc]
+   [next.jdbc.result-set :as rs]))
 
 (defn enable-foreignkey-constraint [spec]
   ;; Enable foreign key constraints
@@ -24,9 +26,42 @@
   (let [offset-num (* (dec page) per-page)]
     (f/select-apeluri-api-anaf db {:cif cif :limit per-page :offset offset-num})))
 
+(defn fetch-company-refresh-token [db cif]
+  (:refresh_token (first (f/select-company-token-data db {:cif cif}))))
+
+(defn fetch-company-token-data [db cif]
+  (first (f/select-company-token-data db {:cif cif})))
+
 (defn fetch-mesaje [db cif page per-page]
   (let [offset-num (* (dec page) per-page)]
     (f/select-facturi-descarcate db {:cif cif :limit per-page :offset offset-num})))
+
+(defn lista-mesaje-sorter
+  [opts]
+  (let [{:keys [cif size order-by sort-dir table-name offset]} opts
+        table-name (keyword table-name)
+        keyword-order-by (keyword order-by)
+        sort-dir (keyword sort-dir)
+        distinct-order-by (case order-by
+                            "total" [[[:raw "CAST(total AS REAL)"] sort-dir]]
+                            [[keyword-order-by sort-dir]])]
+    (sql/format {:select [:*]
+                 :from [table-name]
+                 :where [:= cif :cif]
+                 :order-by distinct-order-by
+                 :limit [size]
+                 :offset [offset]})))
+
+(defn fetch-sorted-lista-mesaje [fetch-opts]
+  (let [{:keys [ds size page]} fetch-opts
+        page-offset (* (dec page) size)
+        sorter-opts (assoc fetch-opts :offset page-offset)
+        sorter (lista-mesaje-sorter sorter-opts)]
+    (jdbc/execute! ds sorter {:builder-fn rs/as-unqualified-lower-maps})))
+
+(defn update-retries-counter!
+  [ds cif retries_count]
+  (f/update-token-retries-counter ds {:cif cif :retries_count retries_count}))
 
 (defn count-lista-mesaje
   [db cif]
@@ -87,28 +122,30 @@
 (defn scrie-factura->db [factura ds]
   (let [now (jt/zoned-date-time)
         {:keys [id data_creare tip cif id_solicitare detalii]} factura]
-    (f/insert-row-factura ds {:data_descarcare now
-                              :id_descarcare id
-                              :cif cif
-                              :tip tip
-                              :detalii detalii
-                              :data_creare data_creare
-                              :id_solicitare id_solicitare})))
+    (f/insert-row-factura
+     ds {:data_descarcare now
+         :id_descarcare id
+         :cif cif
+         :tip tip
+         :detalii detalii
+         :data_creare data_creare
+         :id_solicitare id_solicitare})))
 
 (defn scrie-detalii-factura-anaf->db [factura ds]
   (let [{:keys [id_descarcare id_solicitare data_creare cif tip serie_numar data_emitere data_scadenta furnizor client total valuta]} factura]
-    (f/insert-row-detalii-factura ds {:id_descarcare id_descarcare
-                                      :id_solicitare id_solicitare
-                                      :data_creare data_creare
-                                      :cif cif
-                                      :tip tip
-                                      :serie_numar serie_numar
-                                      :data_emitere data_emitere
-                                      :data_scadenta data_scadenta
-                                      :furnizor furnizor
-                                      :client client
-                                      :total total
-                                      :valuta valuta})))
+    (f/insert-row-detalii-factura
+     ds {:id_descarcare id_descarcare
+         :id_solicitare id_solicitare
+         :data_creare data_creare
+         :cif cif
+         :tip tip
+         :serie_numar serie_numar
+         :data_emitere data_emitere
+         :data_scadenta data_scadenta
+         :furnizor furnizor
+         :client client
+         :total total
+         :valuta valuta})))
 
 (defn log-api-calls [ds cif response tip-apel]
   (let [uri (:uri (:request response))
@@ -152,8 +189,47 @@
         total-facturi-in-date-range (:total select-total)]
     total-facturi-in-date-range))
 
-(comment
+(defn save-refreshed-token-data!
+  [ds save-opts]
+  (let [{:keys [cif access_token refresh_token expiration_date expires_in _updated]} save-opts]
+    (info "updating token now: " _updated)
+    (f/refresh-token-data-update
+     ds {:cif cif
+         :access_token access_token
+         :refresh_token refresh_token
+         :expiration_date expiration_date
+         :expires_in expires_in
+         :_updated _updated})))
 
+
+;; REMOTE SORTERS FOR TABULATOR
+
+
+
+(defn anaf-api-calls-db-sorter
+  [opts]
+  (let [{:keys [cif field table-name sort-order size offset]} opts
+        table-name (keyword table-name)
+        field (keyword field)
+        sort-order (keyword sort-order)]
+    (sql/format {:select [:*]
+                 :from [table-name]
+                 :where [:= cif :cif]
+                 :order-by [[field sort-order]]
+                 :limit [size]
+                 :offset [offset]})))
+
+(defn anaf-api-calls-sorted-results
+  [ds opts]
+  (let [{:keys [page size]} opts
+        page-offset (* (dec page) size)
+        sorter-opts (assoc opts :offset page-offset)
+        sorter (anaf-api-calls-db-sorter sorter-opts)]
+    (jdbc/execute! ds sorter {:builder-fn rs/as-unqualified-lower-maps})))
+
+
+(comment
+(anaf-api-calls-db-sorter {:cif 12344 :field :id :table-name :anaf-table :sort-order :asc :page 3 :per-page 20 :offset 20})
   (require '[efactura-mea.db.ds :refer [ds]])
   
   (get-company-data ds "35586426")

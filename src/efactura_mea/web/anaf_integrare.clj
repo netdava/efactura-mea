@@ -10,17 +10,24 @@
 
    "
   (:require
+   [babashka.http-client :as http]
    [clojure.tools.logging :as log]
+   [efactura-mea.db.db-ops :as db-ops]
    [efactura-mea.db.facturi :as fdb]
    [efactura-mea.util :as u]
+   [efactura-mea.web.anaf.oauth2 :as o2a]
    [efactura-mea.web.json :as wj]
    [efactura-mea.web.layout :as layout]
-   [efactura-mea.web.anaf.oauth2 :as o2a]
    [efactura-mea.web.ui.componente :as ui]
+   [efactura-mea.web.utils :as wu]
    [hiccup2.core :as h]
+   [java-time.api :as jt]
+   [jsonista.core :as json]
    [muuntaja.core :as m]
    [reitit.core :as r]
-   [ring.util.response :as rur]))
+   [ring.util.response :as rur])
+  (:import
+   [java.time.temporal ChronoUnit]))
 
 ;; todo: 
 ;; - funcționalitate de revocare a tokenului - în caz de compromitere
@@ -30,39 +37,46 @@
   [req]
   (let [{:keys [path-params ::r/router]} req
         {:keys [cif]} path-params
-        url-autorizare (-> router
-                           (r/match-by-name ::autorizare {:cif cif})
-                           :path)]
-    (h/html
+        url-autorizare (wu/route-name->url router ::autorizare path-params)
+        t (str "Activare descărcare automată facturi")
+        url-descarcare-automata (wu/route-name->url
+                                 router :efactura-mea.web.companii/descarcare-automata path-params)]
+    [:div.content
      (ui/title "Integrare E-factura")
-     [:div.content
-      [:p "Activează integrarea automata cu E-factura "]
-      [:div.columns
-       [:div.column
-        [:div.notification
-         [:p "Dacă " [:span.has-text-weight-bold "ai permisiunea "]
-          "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
-         [:a.button.is-link {:href url-autorizare}
-          (str "Autorizează accesul pentru CUI:" cif)]]]
-       [:div.column
-        [:div.notification
-         [:p [:span.has-text-weight-bold "Fără permisiunea "]
-          "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]] 
-         [:button.button.is-link {:disabled true
-                                  :hx-get url-autorizare
-                                  :hx-target "#modal-wrapper"
-                                  :hx-swap "innerHTML"}
-          (str "Autorizează accesul pentru CUI:" cif)]
-         [:p.is-small "Nu este implementat încă."]]]]
-      [:div#modal-wrapper]])))
+     [:p "Activează integrarea automata cu E-factura "]
+     [:div.columns
+      [:div.column
+       [:div.notification
+        [:p "Dacă " [:span.has-text-weight-bold "ai permisiunea "]
+         "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
+        [:a.button.is-link {:href url-autorizare}
+         (str "Autorizează accesul pentru CUI:" cif)]]]
+      [:div.column
+       [:div.notification
+        [:p [:span.has-text-weight-bold "Fără permisiunea "]
+         "de autentificare în S.P.V." [:span.has-text-weight-bold " cu certificatul digital:"]]
+        [:button.button.is-link {:disabled true
+                                 :hx-get url-autorizare
+                                 :hx-target "#modal-wrapper"
+                                 :hx-swap "innerHTML"}
+         (str "Autorizează accesul pentru CUI:" cif)]
+        [:p.is-small "Nu este implementat încă."]]]]
+     [:div#main-container.block
+      (ui/title t)
+      [:div#sda-form
+       {:hx-get url-descarcare-automata
+        :hx-trigger "load"}]
+      [:div#modal-wrapper]]]))
 
 (defn page-anaf-integrare
   [req]
   (let [{:keys [path-params ::r/router]} req
         {:keys [cif]} path-params
         content (content-integrare-efactura req)
-        sidebar (layout/sidebar-company-data {:cif cif :router router})]
-    (layout/main-layout content sidebar)))
+        sidebar (ui/sidebar-company-data {:cif cif :router router})
+        body (layout/main-layout content sidebar)]
+    (-> (rur/response body)
+        (rur/content-type "text/html"))))
 
 (defn modala-link-autorizare
   [_]
@@ -106,55 +120,129 @@
 
    Întoarce jetoanele de autentificare sau o structură de eroare.
   "
-  [client-id client-secret redirect-uri]
-  (fn [req]
-    (let [{:keys [query-params session ds]} req
-          cif (:efactura-mea.web.anaf-integrare/anaf-autorizare-cif session)
-          code (get query-params "code")]
-      (log/info (str "Get authorization token " cif))
+  ([req]
+   (let [{:keys [query-params session ds conf]} req
+         {:keys [client-id client-secret redirect-uri]} (:anaf conf)
+         cif (:efactura-mea.web.anaf-integrare/anaf-autorizare-cif session)
+         code (get query-params "code")]
+     (log/info (str "Get authorization token " cif))
+     (try
+       (let [res (o2a/authorization-code->tokens! client-id client-secret redirect-uri code)
+             {:keys [status body]} res]
+         (if (= status 200)
+           (let [data (m/decode wj/m "application/json" body)
+                 now (u/date-time-now-utc)
+                 expires-in (:expires_in data)
+                 expiration-date (u/expiration-date now expires-in)
+                 data (assoc data
+                             :cif cif
+                             :updated now
+                             :expiration_date expiration-date)]
+             (log/info "Received " data)
+             (fdb/insert-company-tokens ds data)
+             (-> (rur/response (m/encode wj/m "application/json" data))
+                 (rur/content-type "application/json")))
+           (throw (ex-info "Error getting token" {:response res}))))
+       (catch Exception e
+         (log/info e (str "Exception" (ex-cause e)))
+         (throw e))))))
+
+
+(defn save-refreshed-token
+  [opts]
+  (let [{:keys [token-new-data cif ds]} opts
+        b (json/read-value token-new-data)
+        access-token (get b "access_token")
+        refresh-token (get b "refresh_token")
+        expires-in (get b "expires_in")
+        now (u/date-time-now-utc)
+        expiration-date (u/expiration-date now expires-in)
+        save-opts {:cif cif
+                   :access_token access-token
+                   :refresh_token refresh-token
+                   :expiration_date expiration-date
+                   :expires_in expires-in
+                   :_updated now}
+        _ (db-ops/save-refreshed-token-data! ds save-opts)]
+    {:status 200
+     :body "Token refreshed"
+     :headers {"content-type" "text/html"}}))
+
+
+(defn handler-refresh-token
+  ([req]
+    (let [{:keys [path-params ds uri conf]} req
+          {:keys [client-id client-secret]} (:anaf conf)
+          {:keys [cif]} path-params
+          token-data (db-ops/fetch-company-token-data ds cif)
+          {:keys [refresh_token retries_count]} token-data
+          refresh-token-anaf-uri "https://logincert.anaf.ro/anaf-oauth2/v1/token"
+          opts {:basic-auth [client-id client-secret]
+                :form-params {:grant_type "refresh_token"
+                              :refresh_token refresh_token}
+                :throw false}]
       (try
-        (let [res (o2a/authorization-code->tokens! client-id client-secret redirect-uri code)
-              {:keys [status body]} res]
-          (if (= status 200)
-            (let [data (m/decode wj/m "application/json" body)
-                  now (u/date-time-now-utc)
-                  expires-in (:expires_in data)
-                  expiration-date (u/expiration-date now expires-in)
-                  data (assoc data
-                              :cif cif
-                              :updated now
-                              :expiration_date expiration-date)]
-              (log/info "Received " data)
-              (fdb/insert-company-tokens ds data)
-              (-> (rur/response (m/encode wj/m "application/json" data))
-                  (rur/content-type "application/json")))
-            (throw (ex-info "Error getting token" {:response res}))))
+        (loop [retries retries_count]
+          (if (<= retries 5)
+            (let [response (http/post refresh-token-anaf-uri opts)
+                  {:keys [status body]} response
+                  save-opts {:token-new-data body :cif cif :ds ds}]
+              (if (= 200 status)
+                (do
+                  (log/info "Refresh token reușit!")
+                  (db-ops/update-retries-counter! ds cif 0)
+                  (save-refreshed-token save-opts))
+                (do
+                  (log/info "Eroare obtinere refresh-token, încerc din nou...")
+                  (db-ops/update-retries-counter! ds cif retries)
+                  (recur (inc retries)))))
+            (log/info "Am atins limita maximă de încercări!")))
         (catch Exception e
           (log/info e (str "Exception" (ex-cause e)))
-          (throw e))))))
+          (throw e)))
+      (-> (rur/response "refreshed token")
+          (rur/header "Content-Type" "text/html")))))
+
+
+
+(defn handler-revoke!-token
+  ([req]
+   (let [{:keys [path-params ds conf]} req
+         {:keys [client-id client-secret]} conf
+         {:keys [cif]} path-params
+         revoke-token (db-ops/fetch-company-refresh-token ds cif)
+         revoke-token-anaf-uri "https://logincert.anaf.ro/anaf-oauth2/v1/revoke"
+         opts {:basic-auth [client-id client-secret]
+               :form-params {:token revoke-token}}]
+     (try
+       (let [response (http/post revoke-token-anaf-uri opts)
+             {:keys [status]} response]
+         (if (= 200 status)
+            ;; TODO: de implementat mesaj de informare
+           (log/info "Tokenul a fost revocat cu succes!")
+           (throw (ex-info "Failed to refresh token" {:status status
+                                                      :response response}))))
+       (catch Exception e
+         (log/info e (str "Exception" (ex-cause e)))
+         (throw e))))))
+
+(defn days-until-expiration [expiration-str]
+  (let [now (jt/local-date-time)
+        expiration (jt/zoned-date-time expiration-str)
+        days-difference (.between ChronoUnit/DAYS now expiration)]
+    days-difference))
 
 (defn routes
-  [anaf-conf]
-  [["/login-anaf" (o2a/make-anaf-login-handler
-                   (anaf-conf :client-id)
-                   (anaf-conf :redirect-uri))]
+  []
+  [["/login-anaf" o2a/make-anaf-login-handler]
    ["/integrare/:cif" {:name ::integrare
                        :get page-anaf-integrare}]
    ["/autorizeaza-acces/:cif" {:name ::autorizare
-                               :get handler-autorizare}]])
+                               :get handler-autorizare}]
+   ["/refresh-access-token/:cif" handler-refresh-token]
+   ["/revoke-token/:cif" handler-revoke!-token]])
 
 
-(comment 
-  
-  (-> 
-   (r/router (routes {}))
-   (r/match-by-name ::integrare {:cif "1234"}) 
-   :path)
-  ;;=> "/integrare/1234"
-  
-  (-> (r/router (routes {}))
-      (r/match-by-name ::autorizare {:cif "123"})
-      :path) 
-  ;;=> "/autorizeaza-acces/123" 
+(comment
 
   )
