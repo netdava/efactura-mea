@@ -71,6 +71,8 @@
       ["/alfa"
        ["/pornire-descarcare-automata" #'api/handler-descarcare-automata-facturi]
        ["/listare-sau-descarcare" #'api/handle-list-or-download]
+       ["/listare-mesaje" {:name ::listare-mesaje
+                           :get #'api/handle-list-messages}]
        ["/transformare-xml-pdf" #'api/handler-descarca-factura-pdf]
        ["/descarca-arhiva" #'da/handler-descarca-arhiva]
        ["/sumar-descarcare-arhiva" #'da/handler-sumar-descarcare-arhiva]]]]))

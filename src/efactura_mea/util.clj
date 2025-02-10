@@ -26,12 +26,6 @@
   (let [dir-file (io/file dir)]
     (some #(= (.getName %) file-name) (file-seq dir-file))))
 
-(defn ^:deprecated formatted-date-now
-  []
-  (let [inst-now (jt/zoned-date-time)
-        now (jt/format "H:mm - MMMM dd, yyyy" inst-now)]
-    now))
-
 (defn date-time-now-utc
   []
   (jt/with-clock
@@ -91,10 +85,9 @@
         zi (subs date 6 8)
         ora (subs date 8 10)
         min (subs date 10 12)
-        data-creare (str zi "." luna "." an)
+        data-creare (str an "-" luna "-" zi)
         ora-creare (str ora ":" min)]
-    {:data_c data-creare
-     :ora_c ora-creare}))
+    (str data-creare " " ora-creare)))
 
 (defn encode-body-json->edn [body]
   (let [object-mapper (j/object-mapper {:decode-key-fn true})
@@ -164,15 +157,3 @@
         (with-open [stream (.getInputStream zip-file entry)]
           (slurp (io/reader stream)))
         (throw (Exception. (str "File " file-name-inside-zip " not found in " zip-file-path)))))))
-
-#_(defn extract-query-params [url]
-    (try (let [uri (java.net.URI. url)
-               query (.getQuery uri)
-               params (when query
-                        (->> (s/split query #"&")
-                             (map #(s/split % #"="))
-                             (map (fn [[k v]] [(keyword k) (Integer/parseInt v)]))
-                             (into {})))]
-           params)
-         (catch Exception _ {:page nil :per-page nil})))
-

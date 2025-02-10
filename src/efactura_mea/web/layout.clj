@@ -60,7 +60,7 @@
                :src "/js/vanillajs-datepicker-constructor.js"}]
      [:body
       (ui/navbar header)
-      [:section.mt-5
+      [:section.container.is-fluid.mt-5
        [:div.columns
         [:div.column.is-one-fifth
          sidebar]

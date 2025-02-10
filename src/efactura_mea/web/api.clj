@@ -4,7 +4,6 @@
    [babashka.http-client :as http]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
-   [clojure.string :as s]
    [clojure.data.json :as json]
    [clojure.tools.logging :as log]
    [efactura-mea.config :as c]
@@ -105,26 +104,6 @@
         path (str download-to "/" cif "/" date-path)]
     (descarca-factura cif id path ds conf)))
 
-(defn parse-message [m]
-  (let [{:keys [data_creare tip id_solicitare detalii id descarcata]} m
-        downloaded?-mark (when descarcata [:div.icon-text
-                                           [:span.icon.has-text-success
-                                            [:i.fa.fa-check-square-o]]])
-        data-creare-mesaj (u/parse-date data_creare)
-        d (:data_c data-creare-mesaj)
-        h (:ora_c data-creare-mesaj)
-        parsed-tip (s/lower-case tip)]
-    (ui/row-factura-anaf d h parsed-tip id_solicitare detalii id downloaded?-mark)))
-
-(defn afisare-lista-mesaje [mesaje eroare]
-  (if mesaje
-    (let [parsed-messages (for [m mesaje]
-                            (parse-message m))
-          theader (ui/table-header-facturi-anaf)
-          table-rows (cons theader parsed-messages)]
-      table-rows)
-    eroare))
-
 (defn add-status-downloaded?
   [ids-set mesaje]
   (mapv (fn [mesaj]
@@ -134,28 +113,13 @@
               (assoc mesaj :descarcata false))))
         mesaje))
 
-#_(defn call-for-lista-facturi [opts]
-    (let [{:keys [zile cif ds conf]} opts
-          tip-apel "lista-mesaje"
-          apel-lista-mesaje (obtine-lista-facturi zile cif tip-apel ds conf)
-          {:keys [status body]} apel-lista-mesaje
-          {:keys [mesaje eroare]} body
-        ;; TODO: de vazut ce status are raspunsul cu eroare: este tot 200 dar are eroare?
-          ids-mesaje-disponibile (mapv :id mesaje)
-          mesaje-disponibile-descarcate (db-ops/fetch-ids-mesaje-descarcate ds ids-mesaje-disponibile)
-          ids-map->set (set (map :id_descarcare mesaje-disponibile-descarcate))
-          mesaje-marcate (add-status-downloaded? ids-map->set mesaje)]
-      (if
-       (= 200 status)
-        (afisare-lista-mesaje mesaje-marcate eroare)
-        body)))
 
 (defn call-for-lista-facturi [opts]
   (let [{:keys [zile cif ds conf]} opts
         tip-apel "lista-mesaje"
         apel-lista-mesaje (obtine-lista-facturi zile cif tip-apel ds conf)
-        {:keys [status body]} apel-lista-mesaje
-        {:keys [mesaje eroare]} body
+        {:keys [body]} apel-lista-mesaje
+        {:keys [mesaje]} body
         ;; TODO: de vazut ce status are raspunsul cu eroare: este tot 200 dar are eroare?
         ids-mesaje-disponibile (mapv :id mesaje)
         mesaje-disponibile-descarcate (db-ops/fetch-ids-mesaje-descarcate ds ids-mesaje-disponibile)
@@ -185,7 +149,8 @@
    [] mesaje))
 
 (defn fetch-lista-mesaje [opts]
-  (let [{:keys [zile cif ds conf]} opts
+  (let [{:keys [params ds conf]} opts
+        {:keys [cif zile]} params
         tip-apel "lista-mesaje-descarcare"
         apel-lista-mesaje (obtine-lista-facturi zile cif tip-apel ds conf)
         {:keys [status body]} apel-lista-mesaje
@@ -219,14 +184,6 @@
         (log/debug "Am terminat descarcarea automata a facturilor pentru cif: " cif))
       (error-message-invalid-result validation-result))))
 
-(defn handle-mesaje
-  [opts fetch-fn]
-  (let [{:keys [cif zile validation-result ds conf]} opts
-        facturi-pretabile-descarcat (if (nil? validation-result)
-                                      (json/write-str (fetch-fn opts))
-                                      (error-message-invalid-result validation-result))]
-    ;; TODO: access_token nu era valid, nu a dat nicio eroare in UI
-    facturi-pretabile-descarcat))
 
 (defn facturi-anaf-table-config [opts]
   (let [{:keys [url]} opts]
@@ -234,24 +191,28 @@
      :ajaxURL url
      :columns [{:title "Descărcată?" :field "descarcata" :formatter "tickCross" :width 60}
                {:title "ID mesaj" :field "id" :width 150}
-               {:title "Dată creare" :field "data_creare" :width 80 :headerSort false}
+               {:title "Dată creare" :field "data_creare" :width 150}
                {:title "Cif" :field "cif" :width 120}
                {:title "ID solicitare" :field "id_solicitare" :width 120}
                {:title "Tip"  :field "tip"}
-               {:title "Detalii" :field "detalii"}]
-     :layout "fitColumns"}))
+               {:title "Detalii" :field "detalii" :maxWidth 700}]
+     :layout "fitData"}))
 
 (defn facturi-table-js-logic [opts]
   (let [{:keys [params router]} opts
         {:keys [action cif zile]} params
-        url (wu/route-name->url router :efactura-mea.web.routes/listare-mesaje {} {:cif cif :zile zile :action action})
+        querry-params {:cif cif :zile zile :action action}
+        url (wu/route-name->url
+             router 
+             :efactura-mea.http-server/listare-mesaje 
+             {} querry-params)
         cfg (json/write-str (facturi-anaf-table-config {:url url}))]
     [:script
      (raw-string (str "document.body.addEventListener('htmx:afterSettle', function(evt) {
-         if (evt.target.querySelector('#ceva')) {
-           console.log('Initializing Tabulator on #ceva');
+         if (evt.target.querySelector('#raport-facturi-table')) {
+           console.log('Initializing Tabulator on #raport-facturi-table');
            var tableConfig = " cfg ";
-           var table = new Tabulator('#ceva', tableConfig);
+           var table = new Tabulator('#raport-facturi-table', tableConfig);
          }
        });"))]))
 
@@ -261,19 +222,20 @@
         {:keys [action cif zile]} params
         zile (or (some-> zile Integer/parseInt) nil)
         vr (v/validate-input-data zile cif)
-        opts {:params params :validation-result vr :router router}
+        opts {:params params :validation-result vr :router router :ds ds :conf conf}
         result (case action
                  "listare" (let [r [:div
-                                    [:p "iata ce facturi poti descarca"]
-                                    [:div#ceva]
+                                    [:h2 "Facturi disponibile pentru descărcat:"]
+                                    [:div#raport-facturi-table]
                                     (facturi-table-js-logic opts)]]
                              (-> (rur/response (str (h/html r)))
                                  (rur/content-type "text/html")))
-                 "descarcare" (let [r (handle-mesaje opts fetch-lista-mesaje)]
-                                (-> (rur/response (str (h/html r)))
+                 "descarcare" (let [raport-descarcare-facturi (if (nil? vr)
+                                                                (fetch-lista-mesaje opts)
+                                                                (error-message-invalid-result vr))]
+                                (-> (rur/response (str (h/html raport-descarcare-facturi)))
                                     (rur/content-type "text/html"))))]
     result))
-
 
 (defn handle-list-messages
   [req]
@@ -281,10 +243,18 @@
         {:keys [cif zile]} params
         zile (or (some-> zile Integer/parseInt) nil)
         vr (v/validate-input-data zile cif)
-        opts {:cif cif :zile zile :validation-result vr :ds ds :conf conf}
-        result (handle-mesaje opts call-for-lista-facturi)]
-    (-> (rur/response result)
-        (rur/content-type "application/json"))))
+        opts {:cif cif :zile zile :ds ds :conf conf}
+        lista-facturi (call-for-lista-facturi opts)
+        sorted-lista-facturi (sort-by :data_creare #(compare %2 %1) lista-facturi)
+        sorted-lista-facturi-date-parsed (map
+                                          #(assoc % :data_creare (u/parse-date (:data_creare %)))
+                                          sorted-lista-facturi)
+        facturi-pretabile-descarcat (if (nil? vr)
+                                      (json/write-str sorted-lista-facturi-date-parsed)
+                                      (error-message-invalid-result vr))
+        ct (if (nil? vr) "application/json" "text/html")]
+    (-> (rur/response facturi-pretabile-descarcat)
+        (rur/content-type ct))))
 
 
 (defn save-pdf [path pdf-name pdf-content]

@@ -51,17 +51,6 @@
    []
    p))
 
-#_(defn opis-facturi-descarcate
-  [facturi ds]
-  (for [ff facturi]
-    (when ff
-      (let [{:keys [tip id_descarcare]} ff
-            is-downloaded? (> (count (f/test-factura-descarcata? ds {:id id_descarcare})) 0)
-            tip-factura (parse-tip-factura tip)
-            invoice-details (assoc ff :tip tip-factura)
-            _ (when is-downloaded? (db/scrie-detalii-factura-anaf->db invoice-details ds))]
-        (ui/row-factura-descarcata-detalii invoice-details)))))
-
 (defn opis-facturi-descarcate
   [facturi ds]
   (for [ff facturi]
@@ -77,18 +66,6 @@
   [facturi]
   (sort #(compare (:data_emitere %2) (:data_emitere %1)) facturi))
 
-#_(defn afisare-facturile-mele
-  "Receives messages data, pagination details,
-   return html table with pagination;"
-  [mesaje ds opts]
-  (let [{:keys [page per-page uri cif]} opts
-        count-mesaje (db/count-lista-mesaje ds cif)
-        facturi-sortate (sortare-facturi-data-creare mesaje)
-        detalii->table-rows (opis-facturi-descarcate facturi-sortate ds)
-        total-pages (pagination/calculate-pages-number count-mesaje per-page)
-        table-with-pagination [:div (ui/tabel-facturi-descarcate detalii->table-rows)
-                                    (pagination/make-pagination total-pages page per-page uri)]]
-    table-with-pagination))
 
 (defn afisare-facturile-mele
   "Receives messages data, pagination details,
@@ -148,7 +125,7 @@
         cfg (json/write-str (facturi-tabulator-config cfg-opts))]
     [:script
      (str "document.addEventListener('DOMContentLoaded', function() {
-                                                  var table = new Tabulator('#facturile-mele', " cfg ")});")]))
+             var table = new Tabulator('#facturile-mele', " cfg ")});")]))
 
 
 (defn facturi-descarcate
@@ -217,7 +194,7 @@
 
 (defn handler-facturi-spv
   [req]
-  (let [{:keys [path-params query-params ds uri headers ::r/router]} req
+  (let [{:keys [path-params query-params ds uri ::r/router]} req
         {:strs [page per-page]} query-params
         cif (:cif path-params)
         opts {:cif cif :page page :per-page per-page :uri uri

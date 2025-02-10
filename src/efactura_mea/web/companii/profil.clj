@@ -4,7 +4,6 @@
    [efactura-mea.util :as u]
    [efactura-mea.db.db-ops :as db
     :refer [get-company-data fetch-company-token-data]]
-   [hiccup2.core :as h]
    [java-time.api :as jt]))
 
 (defn afisare-profil-companie
