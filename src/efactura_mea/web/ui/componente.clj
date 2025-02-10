@@ -2,7 +2,8 @@
   (:require
    [efactura-mea.util :as u]
    [efactura-mea.web.utils :as wu]
-   [hiccup2.core :as h]))
+   [hiccup2.core :as h]
+   [hiccup.util :refer [raw-string]]))
 
 (defn hiccup-bold-span
   [text]
@@ -90,8 +91,12 @@
    [:p.title.is-4 (str title-text (apply str args))]
    [:hr.title-hr]])
 
+
+
+
+
 (defn facturi-spv [opts _]
-  (let [{:keys [cif]} opts
+  (let [{:keys [cif router]} opts
         days (range 1 60)
         days-select-vals (for [n days]
                            [:option {:value n} n])]
@@ -117,7 +122,7 @@
                                          :name "action"
                                          :value "listare"} "vezi facturi"]
        [:button.button.is-small.is-link {:type "submit" :name "action" :value "descarcare"} "descarca facturi"]]]
-     [:div#facturi-anaf]]))
+     [:div#facturi-anaf-table-wrapper]]))
 
 (defn table-header-facturi-anaf
   []

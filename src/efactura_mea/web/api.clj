@@ -5,6 +5,7 @@
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.string :as s]
+   [clojure.data.json :as json]
    [clojure.tools.logging :as log]
    [efactura-mea.config :as c]
    [efactura-mea.db.db-ops :as db-ops]
@@ -15,8 +16,11 @@
    [efactura-mea.web.ui.componente :as ui]
    [efactura-mea.web.ui.input-validation :as v]
    [hiccup2.core :as h]
+   [hiccup.util :refer [raw-string]]
    [java-time.api :as jt]
-   [ring.util.response :as rur])
+   [ring.util.response :as rur]
+   [reitit.core :as r]
+   [efactura-mea.web.utils :as wu])
   (:import
    (java.time LocalDate)
    (java.time.format DateTimeFormatter)
@@ -123,26 +127,41 @@
 
 (defn add-status-downloaded?
   [ids-set mesaje]
-  (map (fn [mesaj]
-         (let [{:keys [id]} mesaj]
-           (if (ids-set id)
-             (assoc mesaj :descarcata true)
-             (assoc mesaj :descarcata false))))
-       mesaje))
+  (mapv (fn [mesaj]
+          (let [{:keys [id]} mesaj]
+            (if (ids-set id)
+              (assoc mesaj :descarcata true)
+              (assoc mesaj :descarcata false))))
+        mesaje))
 
-(defn call-for-lista-facturi [zile cif ds conf]
-  (let [tip-apel "lista-mesaje"
+#_(defn call-for-lista-facturi [opts]
+    (let [{:keys [zile cif ds conf]} opts
+          tip-apel "lista-mesaje"
+          apel-lista-mesaje (obtine-lista-facturi zile cif tip-apel ds conf)
+          {:keys [status body]} apel-lista-mesaje
+          {:keys [mesaje eroare]} body
+        ;; TODO: de vazut ce status are raspunsul cu eroare: este tot 200 dar are eroare?
+          ids-mesaje-disponibile (mapv :id mesaje)
+          mesaje-disponibile-descarcate (db-ops/fetch-ids-mesaje-descarcate ds ids-mesaje-disponibile)
+          ids-map->set (set (map :id_descarcare mesaje-disponibile-descarcate))
+          mesaje-marcate (add-status-downloaded? ids-map->set mesaje)]
+      (if
+       (= 200 status)
+        (afisare-lista-mesaje mesaje-marcate eroare)
+        body)))
+
+(defn call-for-lista-facturi [opts]
+  (let [{:keys [zile cif ds conf]} opts
+        tip-apel "lista-mesaje"
         apel-lista-mesaje (obtine-lista-facturi zile cif tip-apel ds conf)
         {:keys [status body]} apel-lista-mesaje
         {:keys [mesaje eroare]} body
+        ;; TODO: de vazut ce status are raspunsul cu eroare: este tot 200 dar are eroare?
         ids-mesaje-disponibile (mapv :id mesaje)
         mesaje-disponibile-descarcate (db-ops/fetch-ids-mesaje-descarcate ds ids-mesaje-disponibile)
         ids-map->set (set (map :id_descarcare mesaje-disponibile-descarcate))
         mesaje-marcate (add-status-downloaded? ids-map->set mesaje)]
-    (if
-     (= 200 status)
-      (afisare-lista-mesaje mesaje-marcate eroare)
-      body)))
+    mesaje-marcate))
 
 (defn error-message-invalid-result [validation-result]
   (let [{:keys [cif zile]} validation-result
@@ -165,9 +184,9 @@
          (conj acc (str "factura " zip-name " exista salvata local")))))
    [] mesaje))
 
-(defn fetch-lista-mesaje [zile cif ds conf]
-  (log/info "Entering fetch-lista-mesaje with zile:" zile ", cif:" cif "si conf " conf)
-  (let [tip-apel "lista-mesaje-descarcare"
+(defn fetch-lista-mesaje [opts]
+  (let [{:keys [zile cif ds conf]} opts
+        tip-apel "lista-mesaje-descarcare"
         apel-lista-mesaje (obtine-lista-facturi zile cif tip-apel ds conf)
         {:keys [status body]} apel-lista-mesaje
         {:keys [eroare mesaje]} body]
@@ -190,40 +209,83 @@
 
 (defn descarca-mesaje-automat
   [zile cif ds conf]
-  (let [validation-result (v/validate-input-data zile cif)]
+  (let [opts {:zile zile :cif cif :ds ds :conf conf}
+        validation-result (v/validate-input-data zile cif)]
     (if (nil? validation-result)
       (do
         (log/debug "Pornesc descarcarea automata a facturilor pentru cif: " cif " la " zile " zile")
         (log/debug "o sa apelez (fetch-lista-mesaje) cu ")
-        (fetch-lista-mesaje zile cif ds conf)
+        (fetch-lista-mesaje opts)
         (log/debug "Am terminat descarcarea automata a facturilor pentru cif: " cif))
       (error-message-invalid-result validation-result))))
 
 (defn handle-mesaje
-  [opts ds conf fetch-fn]
-  (let [{:keys [cif zile validation-result]} opts
-        r (if (nil? validation-result)
-            (fetch-fn zile cif ds conf)
-            (error-message-invalid-result validation-result))]
+  [opts fetch-fn]
+  (let [{:keys [cif zile validation-result ds conf]} opts
+        facturi-pretabile-descarcat (if (nil? validation-result)
+                                      (json/write-str (fetch-fn opts))
+                                      (error-message-invalid-result validation-result))]
     ;; TODO: access_token nu era valid, nu a dat nicio eroare in UI
-    (ui/lista-mesaje r)))
+    facturi-pretabile-descarcat))
+
+(defn facturi-anaf-table-config [opts]
+  (let [{:keys [url]} opts]
+    {:locale true
+     :ajaxURL url
+     :columns [{:title "Descărcată?" :field "descarcata" :formatter "tickCross" :width 60}
+               {:title "ID mesaj" :field "id" :width 150}
+               {:title "Dată creare" :field "data_creare" :width 80 :headerSort false}
+               {:title "Cif" :field "cif" :width 120}
+               {:title "ID solicitare" :field "id_solicitare" :width 120}
+               {:title "Tip"  :field "tip"}
+               {:title "Detalii" :field "detalii"}]
+     :layout "fitColumns"}))
+
+(defn facturi-table-js-logic [opts]
+  (let [{:keys [params router]} opts
+        {:keys [action cif zile]} params
+        url (wu/route-name->url router :efactura-mea.web.routes/listare-mesaje {} {:cif cif :zile zile :action action})
+        cfg (json/write-str (facturi-anaf-table-config {:url url}))]
+    [:script
+     (raw-string (str "document.body.addEventListener('htmx:afterSettle', function(evt) {
+         if (evt.target.querySelector('#ceva')) {
+           console.log('Initializing Tabulator on #ceva');
+           var tableConfig = " cfg ";
+           var table = new Tabulator('#ceva', tableConfig);
+         }
+       });"))]))
 
 (defn handle-list-or-download
   [req]
-  (let [{:keys [params ds conf headers]} req
-        {:strs [hx-request]} headers
+  (let [{:keys [params ds conf ::r/router]} req
         {:keys [action cif zile]} params
         zile (or (some-> zile Integer/parseInt) nil)
         vr (v/validate-input-data zile cif)
-        opts {:cif cif :zile zile :validation-result vr}
+        opts {:params params :validation-result vr :router router}
         result (case action
-                 "listare" (handle-mesaje opts ds conf call-for-lista-facturi)
-                 "descarcare" (handle-mesaje opts ds conf fetch-lista-mesaje))
-        #_(if (= hx-request "true")
-          result
-          (layout/main-layout result sidebar))]
-    (-> (rur/response (str (h/html result)))
-        (rur/content-type "text/html"))))
+                 "listare" (let [r [:div
+                                    [:p "iata ce facturi poti descarca"]
+                                    [:div#ceva]
+                                    (facturi-table-js-logic opts)]]
+                             (-> (rur/response (str (h/html r)))
+                                 (rur/content-type "text/html")))
+                 "descarcare" (let [r (handle-mesaje opts fetch-lista-mesaje)]
+                                (-> (rur/response (str (h/html r)))
+                                    (rur/content-type "text/html"))))]
+    result))
+
+
+(defn handle-list-messages
+  [req]
+  (let [{:keys [params ds conf]} req
+        {:keys [cif zile]} params
+        zile (or (some-> zile Integer/parseInt) nil)
+        vr (v/validate-input-data zile cif)
+        opts {:cif cif :zile zile :validation-result vr :ds ds :conf conf}
+        result (handle-mesaje opts call-for-lista-facturi)]
+    (-> (rur/response result)
+        (rur/content-type "application/json"))))
+
 
 (defn save-pdf [path pdf-name pdf-content]
   (let [save-to (str path "/" pdf-name)]
