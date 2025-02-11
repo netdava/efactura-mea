@@ -25,7 +25,11 @@
         [:a.navbar-item {:href "#"} "Profile"]
         [:a.navbar-item {:href "#"} "Settings"]
         [:hr.navbar-divider]
-        [:a.navbar-item.is-selected {:href "#"} "Logout"]]]]]]])
+        [:a.navbar-item.is-selected {:href "#"} "Logout"]]]
+      [:div.navbar-item
+       [:div.buttons
+        [:a.button.is-primary {:href "#"} "Înregistrare"]
+        [:a.button.is-light {:href "/oauth2/main/login"} "Autentificare"]]]]]]])
 
 (defn sidebar-company-data [opts]
   ;; TODO de pus conditia ca meniul sa fie disponibil doar daca compania a 

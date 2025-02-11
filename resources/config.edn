@@ -14,6 +14,19 @@
  :dev-mode? true
  :server {:public-path "public"
           :templates-path "templates"}
+ ;; :auth este specifcat în secrete
+ :authentication
+ {:profiles
+  {:main
+   {:authorize-uri    "https://auth.netdava.com/realms/netdava/protocol/openid-connect/auth"
+    :access-token-uri "https://auth.netdava.com/realms/netdava/protocol/openid-connect/token"
+    :pkce?            true
+    :client-id        "efacturier"
+    :client-secret    "REDACTED"
+    :scopes           ["email", "roles"]
+    :launch-uri       "/oauth2/main/login"
+    :redirect-uri     "https://localhost:8123/oauth2/main/callback"
+    :landing-uri      "/oauth2/main/done"}}}
  :jetty {:port 8080
          :join? false
          :h2c? true  ;; enable cleartext http/2

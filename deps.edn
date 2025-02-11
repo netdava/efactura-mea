@@ -46,6 +46,7 @@
                   :main-opts ["-m" "kaocha.runner"]}
            :dev {:extra-paths ["dev" "dev-resources"]
                  :extra-deps {djblue/portal {:mvn/version "0.58.5"}
+                              org.clojure/tools.trace {:mvn/version "0.8.0"}
                               io.github.matthewdowney/rich-comment-tests {:mvn/version "v1.0.3"}}
                  :jvm-opts ["-Dconf=conf/efactura.dev.edn"]}
            :debug {:jvm-opts [;; enable logging for java.net.http
