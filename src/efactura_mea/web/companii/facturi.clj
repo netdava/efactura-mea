@@ -90,7 +90,8 @@
 
 (defn facturi-tabulator-config [opts]
   (let [{:keys [page url size]} opts]
-    {:locale true
+    {:dependencies {:DateTime 'luxon.DateTime}
+     :locale true
      :langs {:default
              {:pagination
               {:counter {:showing "pagina"
@@ -98,16 +99,16 @@
                          :rows "rows"
                          :pages "pagini"}}}}
      :ajaxURL url
-     :columns [{:title "Id descărcare" :field "id_solicitare"}
-               {:title "Serie/număr" :field "serie_numar"}
-               {:title "Data urcare SPV"  :field "data_creare"}
+     :columns [{:title "Id descărcare" :field "id_solicitare" :headerFilter "input"}
+               {:title "Serie/număr" :field "serie_numar" :headerFilter "input"}
+               {:title "Data urcare SPV"  :field "data_creare" :headerFilter "input" :sorterParams {:format "yyyy/MM/dd"}}
                {:title "emisă" :field "data_emitere"}
                {:title "scadentă" :field "data_scadenta"}
-               {:title "furnizor" :field "furnizor"}
-               {:title "client" :field "client"}
+               {:title "furnizor" :field "furnizor" :headerFilter "input"}
+               {:title "client" :field "client" :headerFilter "input"}
                {:title "valoare" :field "total"}
-               {:title "monedă" :field "valuta"}
-               {:title "tip" :field "tip"}]
+               {:title "monedă" :field "valuta" :headerFilter "input"}
+               {:title "tip" :field "tip" :headerFilter "input"}]
      :layout "fitColumns"
      :sortMode "remote"
      :pagination true
@@ -122,16 +123,51 @@
   (let [{:keys [router cif page per-page size]} opts
         url (wu/route-name->url router :efactura-mea.web.companii/endpoint-facturi {:cif cif})
         cfg-opts {:page page :per-page per-page :url url :size size}
-        cfg (json/write-str (facturi-tabulator-config cfg-opts))]
+        cfg (json/write-str (facturi-tabulator-config cfg-opts))
+        js-script (slurp "public/js/facturi-filter.js")]
     [:script
      (str "document.addEventListener('DOMContentLoaded', function() {
-             var table = new Tabulator('#facturile-mele', " cfg ")});")]))
+           
+             " js-script "
+           var table = new Tabulator('#facturile-mele', " cfg ")
+                                                                 });")]))
 
 
 (defn facturi-descarcate
   [opts]
   [:div#main-container.block
    (ui/title "Facturi descărcate local")
+   [:div.columns
+    [:div.column
+     [:div.field.has-addons
+      [:p.control
+       [:span.select
+        [:select#filter-field
+         [:option {:value "id_solicitare"} "id descărcare"]
+         [:option {:value "serie_numar"} "serie/număr"]
+         [:option {:value "data_creare"} "data urcare SPV"]
+         [:option {:value "data_emitere"} "emisă"]
+         [:option {:value "data_scadenta"} "scadenta"]
+         [:option {:value "furnizor"} "furnizor"]
+         [:option {:value "client"} "client"]
+         [:option {:value "total"} "valoare"]
+         [:option {:value "valuta"} "monedă"]
+         [:option {:value "tip"} "tip"]]]]
+      [:p.control
+       [:span.select
+        [:select#filter-type
+         [:option {:value "="} "="]
+         [:option {:value "<"} "<"]
+         [:option {:value "<="} "<="]
+         [:option {:value ">"} ">"]
+         [:option {:value ">="} ">="]
+         [:option {:value "!="} "!="]
+         [:option {:value "like"} "like"]]]]
+      [:p.control
+       [:input#filter-value.input {:type "text" :placeholder "value to filter"}]]
+      [:p.control
+       [:button#filter-clear.button "clear filter"]]]]
+    [:div.column]]
    [:div#facturile-mele]
    (facturi-tabulator opts)])
 
@@ -153,12 +189,14 @@
   [data-facturile-mele]
   (let [{:keys [data]} data-facturile-mele
         new-data (mapv (fn [f]
-                         (let [{:keys [data_creare]} f
+                         (let [{:keys [data_creare total]} f
                                an (subs data_creare 0 4)
                                luna (subs data_creare 4 6)
                                zi (subs data_creare 6 8)
-                               data_creare (str an "-" luna "-" zi)]
-                           (assoc f :data_creare data_creare))) data)]
+                               data_creare (str an "-" luna "-" zi)
+                               valoare (read-string total)]
+                           (assoc f :data_creare data_creare
+                                  :total valoare))) data)]
     (assoc data-facturile-mele :data new-data)))
 
 

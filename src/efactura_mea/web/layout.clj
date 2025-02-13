@@ -40,6 +40,8 @@
                :href "/images/favicon-32x32.png"}]
      [:title "eFacturaMea"]
      tabulator-cdn
+     [:script {:type "text/javascript"
+               :src "https://cdn.jsdelivr.net/npm/luxon@2.3.1/build/global/luxon.min.js"}]
      [:link {:rel "stylesheet"
              :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css"}]
      [:link {:rel "stylesheet"
