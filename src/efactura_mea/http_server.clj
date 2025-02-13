@@ -1,6 +1,7 @@
 (ns efactura-mea.http-server
   (:require
    [babashka.fs :as fs]
+   [babashka.http-client :as http]
    [clojure.tools.logging :as log]
    [efactura-mea.config :as config]
    [efactura-mea.web.anaf-integrare :as anaf]
@@ -32,13 +33,26 @@
 ;; single instance
 (def session-store (memory/memory-store session-data))
 
+(defn handle-oauth-main-done
+  [req]
+  ;; call user info
+  ;; parse user data & attach to session
+  (when-let [token (get-in req [:oauth2/access-tokens :main :token])]
+    (try
+      (let [user-info-uri
+            (get-in req [:conf :authentication :profile :main :user-info-uri])]
+        (http/post user-info-uri {:headers
+                                  {"Authorization" (str "Bearer " token)}}))
+      (catch Exception _e))
+    (rur/redirect "/")))
+
 (defn routes
   []
   [["/" {:handler #'home/handle-homepage}]
    ["/openapi.json" {:get {:handler (openapi/create-openapi-handler)
                            :openapi {:info {:title "my nice api" :version "0.0.1"}}
                            :no-doc true}}]
-   ["/oauth2/main/done" {:handler (fn [_req] (rur/redirect "/"))}]
+   ["/oauth2/main/done" {:handler #'handle-oauth-main-done}]
    ["/ui"
     ["/companii" (companii/routes)]
     ["/anaf" (anaf/routes)]]
@@ -64,7 +78,7 @@
                              (assoc-in [:session :store] session-store)
                                      ;; change session cookie ID - avoid disclosing information
                              (assoc-in [:session :cookie-name] "SID")
-                                     ;; https://github.com/weavejester/ring-oauth2 
+                                     ;; https://github.com/weavejester/ring-oauth2
                                      ;; for redirect to auth service - lax cookie
                              (assoc-in [:session :cookie-attrs :same-site] :lax))
         dev-middleware [#_[wrap-lint]
@@ -78,7 +92,7 @@
                                   (into [] (concat dev-middleware ring-handler-middleware))
                                   ring-handler-middleware)
         router-opts {;; difuri drăguțe
-                    ;;  :reitit.middleware/transform reitit.ring.middleware.dev/print-request-diffs 
+                    ;;  :reitit.middleware/transform reitit.ring.middleware.dev/print-request-diffs
                      :data {:middleware defaults-middleware
                             :defaults my-site-defaults
                             ;; Muuntaja instance for content negotiation
@@ -122,9 +136,10 @@
                 defaults-middleware))
 
   (use 'clojure.tools.trace)
-  (trace-ns ring.middleware.oauth2)
+  (untrace-ns ring.middleware.oauth2)
+  (trace-vars handle-oauth-main-done)
 
-  (main-handler {:request-method :get, :uri "/"}) 
+  (main-handler {:request-method :get, :uri "/"})
   (main-handler {:request-method :get, :uri "/css/style.css"})
 
   (main-handler {:request-method :get, :uri "/oauth2/main/login"})
@@ -138,4 +153,3 @@
   (main-handler {:request-method :get, :uri "/favicon.ico"})
   (main-handler {:request-method :get, :uri "/api/get"})
   )
-  

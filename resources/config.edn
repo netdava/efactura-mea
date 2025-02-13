@@ -20,6 +20,7 @@
   {:main
    {:authorize-uri    "https://auth.netdava.com/realms/netdava/protocol/openid-connect/auth"
     :access-token-uri "https://auth.netdava.com/realms/netdava/protocol/openid-connect/token"
+    :user-info-uri    "https://auth.netdava.com/realms/netdava/protocol/openid-connect/userinfo"
     :pkce?            true
     :client-id        "efacturier"
     :client-secret    "REDACTED"
